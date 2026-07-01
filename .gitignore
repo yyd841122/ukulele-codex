@@ -1,0 +1,9 @@
+node_modules/
+.npm-cache/
+.expo/
+.expo-home/
+dist/
+build/
+coverage/
+*.log
+apps/mobile/.expo/

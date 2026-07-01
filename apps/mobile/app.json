@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "AI Ukulele Academy",
+    "slug": "ai-ukulele-academy",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "允许 AI Ukulele Academy 使用麦克风进行调音和练习反馈。",
+          "enableBackgroundRecording": false
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ukulele.academy"
+    },
+    "android": {
+      "package": "com.ukulele.academy",
+      "permissions": [
+        "RECORD_AUDIO"
+      ]
+    }
+  }
+}

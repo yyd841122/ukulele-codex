@@ -1,0 +1,17 @@
+{
+  "name": "ai-ukulele-academy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-assisted ukulele practice MVP",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "node --test packages/*/test/*.test.mjs",
+    "start:mobile": "npm --workspace @ukulele/mobile run start",
+    "android": "npm --workspace @ukulele/mobile run android",
+    "ios": "npm --workspace @ukulele/mobile run ios"
+  }
+}
