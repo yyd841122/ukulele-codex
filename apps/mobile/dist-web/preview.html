@@ -617,6 +617,37 @@
         gap: 8px;
       }
 
+      .practice-option-panel {
+        display: grid;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .segment-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .segment-row.loop {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .segment-button {
+        min-height: 34px;
+        padding: 0 6px;
+        border-radius: 8px;
+        background: #eee8dc;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 950;
+      }
+
+      .segment-button.active {
+        background: var(--forest);
+        color: #fff8ec;
+      }
+
       .practice-beat-panel {
         padding: 10px;
         border: 1px solid var(--line);
@@ -1270,6 +1301,17 @@
             <div class="progress-fill" id="practiceProgress"></div>
           </div>
           <div class="session-meta" id="sessionMeta">已完成 0/4 · 第 1 小节</div>
+          <div class="practice-option-panel">
+            <div class="segment-row" aria-label="跟练速度模式">
+              <button class="segment-button" type="button" data-tempo-id="slow" data-tempo-bpm="60">慢速 60</button>
+              <button class="segment-button active" type="button" data-tempo-id="standard" data-tempo-bpm="70">标准 70</button>
+              <button class="segment-button" type="button" data-tempo-id="advanced" data-tempo-bpm="85">进阶 85</button>
+            </div>
+            <div class="segment-row loop" aria-label="跟练循环模式">
+              <button class="segment-button active" type="button" data-loop-mode="auto">自动循环</button>
+              <button class="segment-button" type="button" data-loop-mode="single">只练当前</button>
+            </div>
+          </div>
           <div class="practice-main-grid">
             <div class="fingering-guide compact" aria-live="polite">
               <div class="chord-diagram" id="currentChordDiagram"></div>
@@ -1328,13 +1370,13 @@
         </div>
         <section class="section compact-report">
           <div class="section-title">
-            <h3>模拟报告</h3>
-            <span class="muted" id="reportHint">第 1 小节</span>
+            <h3>本次练习</h3>
+            <span class="muted" id="reportHint">循环</span>
           </div>
           <div class="report">
-            <div class="score">音准<strong id="pitchScore">91</strong></div>
-            <div class="score">节奏<strong id="rhythmScore">86</strong></div>
-            <div class="score">连续性<strong id="flowScore">88</strong></div>
+            <div class="score">练过<strong id="practicedBars">0 小节</strong></div>
+            <div class="score">完成<strong id="completedClicks">0/4</strong></div>
+            <div class="score">时长<strong id="practiceDuration">0s</strong></div>
           </div>
           <div class="row" style="margin-top: 10px">
             <strong>下次建议</strong>
@@ -1614,6 +1656,7 @@
         recorderButton.classList.remove("stop");
         inputStatus.textContent = "真实麦克风已停止。";
         setPipelineStage("pipelineLevel", false, "未启动");
+        setPipelineStage("pipelinePitch", false, "模拟");
         lastRms = 0;
         lastOnsetAt = 0;
         onsetWindowUntil = 0;
@@ -1722,6 +1765,7 @@
         tunerFreq.textContent = `检测 ${frequency.toFixed(2)} Hz · 平滑 ${cents > 0 ? "+" : ""}${cents.toFixed(1)} cents · 目标 ${best.freq} Hz`;
         needleMark.style.transform = `translateX(calc(-50% + ${Math.max(-42, Math.min(42, cents * 3.4))}px))`;
         stringButtons.forEach((button) => button.classList.toggle("active", button.dataset.string === best.note));
+        setPipelineStage("pipelinePitch", true, "浏览器 PoC");
         lastStablePitchAt = Date.now();
       }
 
@@ -1845,11 +1889,13 @@
       const currentChordDiagram = document.getElementById("currentChordDiagram");
       const currentFingeringHelp = document.getElementById("currentFingeringHelp");
       const reportHint = document.getElementById("reportHint");
-      const pitchScore = document.getElementById("pitchScore");
-      const rhythmScore = document.getElementById("rhythmScore");
-      const flowScore = document.getElementById("flowScore");
+      const practicedBars = document.getElementById("practicedBars");
+      const completedClicks = document.getElementById("completedClicks");
+      const practiceDuration = document.getElementById("practiceDuration");
       const suggestion = document.getElementById("suggestion");
       const togglePractice = document.getElementById("togglePractice");
+      const practiceTempoButtons = Array.from(document.querySelectorAll("[data-tempo-id]"));
+      const practiceLoopButtons = Array.from(document.querySelectorAll("[data-loop-mode]"));
       const reports = [
         { chord: "C", action: "下扫四拍", fingering: [0, 0, 0, 3], fingers: [0, 0, 0, 3], pitch: 91, rhythm: 86, flow: 88, text: "先稳住第一拍，右手扫弦不用急。" },
         { chord: "Am", action: "换到 Am", fingering: [2, 0, 0, 0], fingers: [2, 0, 0, 0], pitch: 93, rhythm: 88, flow: 90, text: "Am 进入很稳，保持手腕放松。" },
@@ -1858,8 +1904,11 @@
       ];
       let practiceStep = 0;
       let practiceBpm = 70;
+      let practiceTempoId = "standard";
+      let practiceLoopMode = "auto";
       let practiceBeat = 0;
       let completedSteps = reports.map(() => false);
+      let practiceEvents = [];
       let practiceRunning = false;
       let practiceTimer = null;
       let practiceSoundEnabled = true;
@@ -1869,6 +1918,16 @@
 
       function renderPractice() {
         const completedCount = completedSteps.filter(Boolean).length;
+        const barsPracticed = practiceEvents.filter((event) => event.type === "bar").length;
+        const completeCount = practiceEvents.filter((event) => event.type === "complete").length;
+        const firstEventAt = practiceEvents[0]?.timestampMs;
+        const lastEventAt = practiceEvents[practiceEvents.length - 1]?.timestampMs;
+        const durationSec = firstEventAt && lastEventAt ? Math.max(0, Math.round((lastEventAt - firstEventAt) / 1000)) : 0;
+        const practiceAdvice = practiceLoopMode === "single"
+          ? `当前锁定 ${reports[practiceStep].chord}，适合把换指练熟后再切自动循环。`
+          : barsPracticed >= reports.length
+            ? "已经跑完一轮四和弦，可以尝试升到进阶 85。"
+            : "先保持稳定四拍，再追求更快换和弦。";
         steps.forEach((step, index) => {
           step.classList.toggle("active", index === practiceStep);
           step.classList.toggle("done", completedSteps[index]);
@@ -1879,16 +1938,30 @@
         sessionTitle.textContent = `${report.chord} · ${report.action}`;
         sessionPill.textContent = practiceRunning ? "进行中" : "待开始";
         practiceBpmValue.textContent = String(practiceBpm);
+        practiceTempoButtons.forEach((button) => button.classList.toggle("active", button.dataset.tempoId === practiceTempoId));
+        practiceLoopButtons.forEach((button) => button.classList.toggle("active", button.dataset.loopMode === practiceLoopMode));
         practiceBeats.forEach((node, index) => node.classList.toggle("active", index === practiceBeat));
         practiceProgress.style.width = `${Math.round((completedCount / reports.length) * 100)}%`;
         sessionMeta.textContent = `已完成 ${completedCount}/${reports.length} · 第 ${practiceStep + 1} 小节 · 第 ${practiceBeat + 1} 拍`;
         renderFingeringGuide(report);
-        reportHint.textContent = `第 ${practiceStep + 1} 小节`;
-        pitchScore.textContent = String(report.pitch);
-        rhythmScore.textContent = String(report.rhythm);
-        flowScore.textContent = String(report.flow);
-        suggestion.textContent = report.text;
+        reportHint.textContent = practiceLoopMode === "auto" ? "循环" : "单和弦";
+        practicedBars.textContent = `${barsPracticed} 小节`;
+        completedClicks.textContent = `${completeCount}/${reports.length}`;
+        practiceDuration.textContent = `${durationSec}s`;
+        suggestion.textContent = `${practiceBpm} BPM · ${practiceLoopMode === "auto" ? "自动循环" : `只练 ${report.chord}`} · ${practiceAdvice}`;
         togglePractice.textContent = practiceRunning ? "暂停" : "开始";
+      }
+
+      function recordPracticeEvent(type, step = practiceStep) {
+        const report = reports[step] || reports[practiceStep];
+        practiceEvents.push({
+          type,
+          step,
+          chord: report.chord,
+          bpm: practiceBpm,
+          loopMode: practiceLoopMode,
+          timestampMs: Date.now()
+        });
       }
 
       function renderFingeringGuide(report) {
@@ -1945,6 +2018,7 @@
         practiceRunning = nextRunning;
         stopPracticeTimer();
         if (practiceRunning) {
+          recordPracticeEvent("start");
           if (practiceSoundEnabled) {
             preparePracticeClickAudio();
             playPracticeClick("accent");
@@ -1954,8 +2028,11 @@
             if (practiceSoundEnabled) {
               playPracticeClick(practiceBeat === 0 ? "accent" : "light");
             }
-            if (practiceBeat === 0) {
+            if (practiceBeat === 0 && practiceLoopMode === "auto") {
+              recordPracticeEvent("bar", practiceStep);
               practiceStep = (practiceStep + 1) % steps.length;
+            } else if (practiceBeat === 0) {
+              recordPracticeEvent("bar", practiceStep);
             }
             renderPractice();
           }, 60000 / practiceBpm);
@@ -2028,8 +2105,11 @@
 
       document.getElementById("completeStep").addEventListener("click", () => {
         completedSteps[practiceStep] = true;
+        recordPracticeEvent("complete");
         practiceBeat = 0;
-        if (practiceStep === steps.length - 1) {
+        if (practiceLoopMode === "single") {
+          setPracticeRunning(false);
+        } else if (practiceStep === steps.length - 1) {
           setPracticeRunning(false);
         } else {
           practiceStep += 1;
@@ -2042,17 +2122,41 @@
         practiceStep = 0;
         practiceBeat = 0;
         completedSteps = reports.map(() => false);
+        practiceEvents = [];
         renderPractice();
       });
 
       document.getElementById("practiceBpmDown").addEventListener("click", () => {
+        practiceTempoId = "custom";
+        recordPracticeEvent("tempo");
         practiceBpm = Math.max(40, practiceBpm - 5);
         setPracticeRunning(practiceRunning);
       });
 
       document.getElementById("practiceBpmUp").addEventListener("click", () => {
+        practiceTempoId = "custom";
+        recordPracticeEvent("tempo");
         practiceBpm = Math.min(140, practiceBpm + 5);
         setPracticeRunning(practiceRunning);
+      });
+
+      practiceTempoButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          practiceTempoId = button.dataset.tempoId;
+          recordPracticeEvent("tempo");
+          practiceBpm = Number(button.dataset.tempoBpm);
+          practiceBeat = 0;
+          setPracticeRunning(practiceRunning);
+        });
+      });
+
+      practiceLoopButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          practiceLoopMode = button.dataset.loopMode;
+          recordPracticeEvent("mode");
+          practiceBeat = 0;
+          renderPractice();
+        });
       });
       renderPractice();
     </script>

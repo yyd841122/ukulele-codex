@@ -20,8 +20,7 @@ import {
   centsBetween,
   midiToFrequency,
   noteNameToMidi,
-  scorePitchEvent,
-  summarizePracticeEvents
+  scorePitchEvent
 } from "@ukulele/audio-core";
 import {
   ensureMicrophoneAccess,
@@ -31,6 +30,7 @@ import {
 import { createMockTunerFrame } from "./src/audio/mockAudioEngine";
 import { playPracticeBeatClick, preparePracticeBeatAudio } from "./src/audio/practiceBeatSound";
 import { useMicrophoneRecorderMonitor } from "./src/audio/useMicrophoneRecorderMonitor";
+import { useRealtimeTunerStream } from "./src/audio/useRealtimeTunerStream";
 
 type Tab = "home" | "tuner" | "metronome" | "chords" | "practice";
 
@@ -58,6 +58,25 @@ const accentBeatRed = "#DC2626";
 const lightBeatBlue = "#2F7A9A";
 const ukuleleStringLabels = ["G", "C", "E", "A"];
 const practiceBeatNumbers = [1, 2, 3, 4];
+const practiceTempoPresets = [
+  { id: "slow", label: "慢速", bpm: 60 },
+  { id: "standard", label: "标准", bpm: 70 },
+  { id: "advanced", label: "进阶", bpm: 85 }
+] as const;
+const practiceLoopModes = [
+  { id: "auto", label: "自动循环" },
+  { id: "single", label: "只练当前" }
+] as const;
+type PracticeTempoId = "custom" | typeof practiceTempoPresets[number]["id"];
+type PracticeLoopMode = typeof practiceLoopModes[number]["id"];
+type PracticeLogEvent = {
+  type: "start" | "bar" | "complete" | "reset" | "tempo" | "mode";
+  step: number;
+  chord: string;
+  bpm: number;
+  loopMode: PracticeLoopMode;
+  timestampMs: number;
+};
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
@@ -146,14 +165,29 @@ function TunerScreen() {
   const [micAccess, setMicAccess] = useState(initialMicrophoneAccessState);
   const [micBusy, setMicBusy] = useState(false);
   const recorderMonitor = useMicrophoneRecorderMonitor();
+  const realtimeTuner = useRealtimeTunerStream(tuning.strings, selectedIndex);
   const selectedString = tuning.strings[selectedIndex];
-  const frame = createMockTunerFrame(tuning.strings, selectedIndex);
+  const fallbackFrame = createMockTunerFrame(tuning.strings, selectedIndex);
+  const frame = realtimeTuner.frame ?? fallbackFrame;
   const cents = frame.cents;
+  const combinedInputLevel = Math.max(recorderMonitor.level, realtimeTuner.level);
   const frameSourceLabel = frame.source === "mock" ? "模拟 PitchFrame" : "真实 PitchFrame";
-  const audioInputLabel = recorderMonitor.isRecording ? "真实麦克风电平" : frameSourceLabel;
+  const audioInputLabel = realtimeTuner.isStreaming
+    ? "实时 PCM PitchFrame"
+    : recorderMonitor.isRecording
+      ? "真实麦克风电平"
+      : frameSourceLabel;
   const micPipelineStages = [
-    { label: "权限", done: micAccess.granted, detail: micAccess.granted ? "已开通" : "待授权" },
-    { label: "电平", done: recorderMonitor.isRecording, detail: recorderMonitor.isRecording ? "读取中" : "未启动" },
+    {
+      label: "权限",
+      done: micAccess.granted || Boolean(realtimeTuner.access?.granted),
+      detail: micAccess.granted || realtimeTuner.access?.granted ? "已开通" : "待授权"
+    },
+    {
+      label: "电平",
+      done: recorderMonitor.isRecording || realtimeTuner.isStreaming,
+      detail: realtimeTuner.isStreaming ? "PCM 流" : recorderMonitor.isRecording ? "读取中" : "未启动"
+    },
     { label: "PitchFrame", done: frame.source === "detected", detail: frame.source === "detected" ? "真实" : "模拟" }
   ];
 
@@ -186,6 +220,18 @@ function TunerScreen() {
 
     const access = await recorderMonitor.start();
     setMicAccess(access);
+  }
+
+  async function toggleRealtimePitch() {
+    if (realtimeTuner.isStreaming) {
+      realtimeTuner.stop();
+      return;
+    }
+
+    const access = await realtimeTuner.start();
+    if (access) {
+      setMicAccess(access);
+    }
   }
 
   return (
@@ -243,10 +289,10 @@ function TunerScreen() {
                 : "启动后可验证真实麦克风权限与输入电平"}
             </Text>
           </View>
-          <Text style={styles.levelValue}>{Math.round(recorderMonitor.level * 100)}%</Text>
+          <Text style={styles.levelValue}>{Math.round(combinedInputLevel * 100)}%</Text>
         </View>
         <View style={styles.levelTrack}>
-          <View style={[styles.levelFill, { width: `${Math.round(recorderMonitor.level * 100)}%` }]} />
+          <View style={[styles.levelFill, { width: `${Math.round(combinedInputLevel * 100)}%` }]} />
         </View>
         <View style={styles.inputMetaRow}>
           <Text style={styles.inputMeta}>时长 {Math.round(recorderMonitor.durationMillis / 1000)}s</Text>
@@ -255,6 +301,7 @@ function TunerScreen() {
           </Text>
         </View>
         {recorderMonitor.error ? <Text style={styles.errorText}>{recorderMonitor.error}</Text> : null}
+        {realtimeTuner.error ? <Text style={styles.errorText}>{realtimeTuner.error}</Text> : null}
         <Pressable
           accessibilityRole="button"
           disabled={recorderMonitor.isBusy}
@@ -263,6 +310,16 @@ function TunerScreen() {
         >
           <Text style={styles.recorderButtonText}>
             {recorderMonitor.isBusy ? "处理中" : recorderMonitor.isRecording ? "停止录音 PoC" : "开始录音 PoC"}
+          </Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          disabled={realtimeTuner.isBusy}
+          onPress={toggleRealtimePitch}
+          style={[styles.realtimeButton, realtimeTuner.isStreaming && styles.recorderButtonStop]}
+        >
+          <Text style={styles.recorderButtonText}>
+            {realtimeTuner.isBusy ? "处理中" : realtimeTuner.isStreaming ? "停止实时 PitchFrame" : "启动实时 PitchFrame"}
           </Text>
         </Pressable>
       </View>
@@ -379,10 +436,13 @@ function ChordScreen() {
 function PracticeScreen() {
   const [currentStep, setCurrentStep] = useState(0);
   const [practiceBpm, setPracticeBpm] = useState(chordLoopPractice.bpm);
+  const [practiceTempoId, setPracticeTempoId] = useState<PracticeTempoId>("standard");
+  const [practiceLoopMode, setPracticeLoopMode] = useState<PracticeLoopMode>("auto");
   const [practiceBeat, setPracticeBeat] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [beatSoundEnabled, setBeatSoundEnabled] = useState(true);
   const [beatSoundStatus, setBeatSoundStatus] = useState("节拍声已开启");
+  const [practiceEvents, setPracticeEvents] = useState<PracticeLogEvent[]>([]);
   const [completedSteps, setCompletedSteps] = useState<boolean[]>(() =>
     chordLoopPractice.targets.map(() => false)
   );
@@ -407,12 +467,35 @@ function PracticeScreen() {
       };
     });
   }, []);
-  const report = useMemo(() => summarizePracticeEvents(stepReports.map((item) => item.event)), [stepReports]);
   const activeTarget = chordLoopPractice.targets[currentStep];
   const activeReport = stepReports[currentStep];
-  const activeChord = getBeginnerChord(activeTarget.chord);
   const completedCount = completedSteps.filter(Boolean).length;
   const progressPercent = Math.round((completedCount / chordLoopPractice.targets.length) * 100);
+  const barsPracticed = practiceEvents.filter((event) => event.type === "bar").length;
+  const completedClicks = practiceEvents.filter((event) => event.type === "complete").length;
+  const firstEventAt = practiceEvents[0]?.timestampMs;
+  const lastEventAt = practiceEvents[practiceEvents.length - 1]?.timestampMs;
+  const practiceDurationSec = firstEventAt && lastEventAt ? Math.max(0, Math.round((lastEventAt - firstEventAt) / 1000)) : 0;
+  const practiceAdvice = practiceLoopMode === "single"
+    ? `当前锁定 ${activeTarget.chord}，适合把换指练熟后再切自动循环。`
+    : barsPracticed >= chordLoopPractice.targets.length
+      ? "已经跑完一轮四和弦，可以尝试升到进阶 85。"
+      : "先保持稳定四拍，再追求更快换和弦。";
+
+  function recordPracticeEvent(type: PracticeLogEvent["type"], step = currentStep) {
+    const target = chordLoopPractice.targets[step] ?? activeTarget;
+    setPracticeEvents((events) => [
+      ...events,
+      {
+        type,
+        step,
+        chord: target.chord,
+        bpm: practiceBpm,
+        loopMode: practiceLoopMode,
+        timestampMs: Date.now()
+      }
+    ]);
+  }
 
   useEffect(() => {
     if (!isRunning) return undefined;
@@ -424,14 +507,17 @@ function PracticeScreen() {
           void playPracticeBeatClick(nextBeat === 0 ? "accent" : "light");
         }
         if (nextBeat === 0) {
-          setCurrentStep((step) => (step + 1) % chordLoopPractice.targets.length);
+          setCurrentStep((step) => {
+            recordPracticeEvent("bar", step);
+            return practiceLoopMode === "auto" ? (step + 1) % chordLoopPractice.targets.length : step;
+          });
         }
         return nextBeat;
       });
     }, 60000 / practiceBpm);
 
     return () => clearInterval(interval);
-  }, [beatSoundEnabled, isRunning, practiceBpm]);
+  }, [beatSoundEnabled, isRunning, practiceBpm, practiceLoopMode]);
 
   async function togglePracticeRunning() {
     if (isRunning) {
@@ -445,6 +531,7 @@ function PracticeScreen() {
       void playPracticeBeatClick("accent");
     }
 
+    recordPracticeEvent("start");
     setIsRunning(true);
   }
 
@@ -463,7 +550,12 @@ function PracticeScreen() {
 
   function completeCurrentStep() {
     setCompletedSteps((steps) => steps.map((done, index) => (index === currentStep ? true : done)));
+    recordPracticeEvent("complete");
     setPracticeBeat(0);
+    if (practiceLoopMode === "single") {
+      setIsRunning(false);
+      return;
+    }
     if (currentStep === chordLoopPractice.targets.length - 1) {
       setIsRunning(false);
       return;
@@ -473,14 +565,23 @@ function PracticeScreen() {
 
   function resetPractice() {
     setIsRunning(false);
+    recordPracticeEvent("reset");
     setCurrentStep(0);
     setPracticeBeat(0);
+    setPracticeEvents([]);
     setCompletedSteps(chordLoopPractice.targets.map(() => false));
   }
 
   function moveToPreviousStep() {
     setPracticeBeat(0);
     setCurrentStep((value) => (value + chordLoopPractice.targets.length - 1) % chordLoopPractice.targets.length);
+  }
+
+  function applyTempoPreset(preset: typeof practiceTempoPresets[number]) {
+    setPracticeTempoId(preset.id);
+    setPracticeBpm(preset.bpm);
+    setPracticeBeat(0);
+    recordPracticeEvent("tempo");
   }
 
   return (
@@ -500,6 +601,46 @@ function PracticeScreen() {
         <Text style={styles.sessionMeta}>
           已完成 {completedCount}/{chordLoopPractice.targets.length} · 第 {activeTarget.bar} 小节 · 第 {practiceBeat + 1} 拍
         </Text>
+        <View style={styles.practiceOptionPanel}>
+          <View style={styles.segmentRow}>
+            {practiceTempoPresets.map((preset) => {
+              const selected = practiceTempoId === preset.id;
+              return (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  key={preset.id}
+                  style={[styles.segmentButton, selected && styles.segmentButtonActive]}
+                  onPress={() => applyTempoPreset(preset)}
+                >
+                  <Text style={[styles.segmentButtonText, selected && styles.segmentButtonTextActive]}>
+                    {preset.label} {preset.bpm}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={styles.segmentRow}>
+            {practiceLoopModes.map((mode) => {
+              const selected = practiceLoopMode === mode.id;
+              return (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  key={mode.id}
+                  style={[styles.segmentButton, selected && styles.segmentButtonActive]}
+                  onPress={() => {
+                    setPracticeLoopMode(mode.id);
+                    setPracticeBeat(0);
+                    recordPracticeEvent("mode");
+                  }}
+                >
+                  <Text style={[styles.segmentButtonText, selected && styles.segmentButtonTextActive]}>{mode.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
         <View style={styles.practiceMainGrid}>
           <View style={styles.practiceChordColumn}>
             <ChordFingeringGuide chordName={activeTarget.chord} compact />
@@ -533,14 +674,22 @@ function PracticeScreen() {
                 <Pressable
                   accessibilityRole="button"
                   style={styles.bpmStepButton}
-                  onPress={() => setPracticeBpm((value) => Math.max(40, value - 5))}
+                  onPress={() => {
+                    setPracticeTempoId("custom");
+                    recordPracticeEvent("tempo");
+                    setPracticeBpm((value) => Math.max(40, value - 5));
+                  }}
                 >
                   <Text style={styles.bpmStepText}>-5</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
                   style={styles.bpmStepButton}
-                  onPress={() => setPracticeBpm((value) => Math.min(140, value + 5))}
+                  onPress={() => {
+                    setPracticeTempoId("custom");
+                    recordPracticeEvent("tempo");
+                    setPracticeBpm((value) => Math.min(140, value + 5));
+                  }}
                 >
                   <Text style={styles.bpmStepText}>+5</Text>
                 </Pressable>
@@ -609,19 +758,19 @@ function PracticeScreen() {
       </View>
       <View style={styles.reportPanel}>
         <View style={styles.reportHeader}>
-          <Text style={styles.reportTitle}>模拟报告</Text>
-          <Text style={styles.reportPill}>第 {activeTarget.bar} 小节</Text>
+          <Text style={styles.reportTitle}>本次练习</Text>
+          <Text style={styles.reportPill}>{practiceLoopMode === "auto" ? "循环" : "单和弦"}</Text>
         </View>
         <View style={styles.reportGrid}>
-          <ScoreBox label="完成" value={`${report.completedTargets}/${report.totalTargets}`} />
-          <ScoreBox label="准确率" value={`${report.accuracy}%`} />
-          <ScoreBox label="音准" value={String(report.averagePitchScore)} />
+          <ScoreBox label="练过" value={`${barsPracticed} 小节`} />
+          <ScoreBox label="完成" value={`${completedClicks}/${chordLoopPractice.targets.length}`} />
+          <ScoreBox label="时长" value={`${practiceDurationSec}s`} />
         </View>
         <Text style={styles.reportLine}>
-          本小节：音准 {activeReport.event.pitchScore} · 节奏 {activeReport.event.rhythmScore ?? "--"} · 当前目标 {activeTarget.chord}
+          当前：{practiceBpm} BPM · {practiceLoopMode === "auto" ? "自动循环" : `只练 ${activeTarget.chord}`} · 最近目标 {activeTarget.chord}
         </Text>
         <Text style={styles.reportLine}>
-          指法：{activeChord ? activeChord.fingering.join("-") : "--"} · 下次建议：{activeReport.suggestion}
+          参考评分：音准 {activeReport.event.pitchScore} · 节奏 {activeReport.event.rhythmScore ?? "--"} · 建议：{practiceAdvice}
         </Text>
       </View>
     </View>
@@ -1058,6 +1207,14 @@ const styles = StyleSheet.create({
   recorderButtonStop: {
     backgroundColor: colors.coral
   },
+  realtimeButton: {
+    minHeight: 48,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#2F7A9A",
+    paddingHorizontal: 12
+  },
   recorderButtonText: {
     color: "#FFF8EC",
     fontWeight: "900"
@@ -1289,6 +1446,34 @@ const styles = StyleSheet.create({
   practiceCoachColumn: {
     flex: 0.92,
     gap: 8
+  },
+  practiceOptionPanel: {
+    gap: 6
+  },
+  segmentRow: {
+    flexDirection: "row",
+    gap: 6
+  },
+  segmentButton: {
+    flex: 1,
+    minHeight: 34,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EEE8DC",
+    paddingHorizontal: 6
+  },
+  segmentButtonActive: {
+    backgroundColor: colors.forest
+  },
+  segmentButtonText: {
+    color: "#756D64",
+    fontSize: 11,
+    fontWeight: "900",
+    textAlign: "center"
+  },
+  segmentButtonTextActive: {
+    color: "#FFF8EC"
   },
   practiceBeatPanel: {
     padding: 10,
