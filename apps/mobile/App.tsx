@@ -16,6 +16,7 @@ import {
   designTokens,
   mvpPracticeTemplates,
   mvpLesson,
+  mvpPracticeContent,
   practiceLoopModes as sharedPracticeLoopModes,
   practiceTempoPresets as sharedPracticeTempoPresets,
   ukuleleInstrument
@@ -84,7 +85,14 @@ const practiceLoopModes = sharedPracticeLoopModes.map((mode) => ({
   id: mode.id as PracticeLoopMode,
   label: loopModeLabelById[mode.id as PracticeLoopMode] ?? mode.label
 }));
-const practiceTemplates = mvpPracticeTemplates;
+const practiceContent = mvpPracticeContent;
+const sharedContentSummary = {
+  moduleCount: practiceContent.modules.length,
+  songCount: practiceContent.songs.length
+};
+const practiceTemplates = practiceContent.practiceTemplates.length > 0
+  ? practiceContent.practiceTemplates
+  : mvpPracticeTemplates;
 const defaultPracticeTemplate = chordLoopPractice;
 type PracticeTemplate = typeof practiceTemplates[number];
 type PracticeTarget = PracticeTemplate["targets"][number];
@@ -800,6 +808,7 @@ export default function App() {
             practiceMilestone={practiceMilestone}
             practiceHistorySummary={practiceHistorySummary}
             recentPracticeSummaries={recentPracticeSummaries}
+            contentSummary={sharedContentSummary}
           />
         )}
         {activeTab === "tuner" && <TunerScreen />}
@@ -841,6 +850,7 @@ function HomeScreen({
   practiceMilestone,
   practiceHistorySummary,
   recentPracticeSummaries,
+  contentSummary,
   onStart
 }: {
   latestPracticeSummary?: PracticeRecordSummary;
@@ -852,13 +862,16 @@ function HomeScreen({
   practiceMilestone: PracticeMilestoneEvaluation;
   practiceHistorySummary: PracticeHistorySummary;
   recentPracticeSummaries: PracticeRecordSummary[];
+  contentSummary: typeof sharedContentSummary;
   onStart: () => void;
 }) {
   return (
     <View style={styles.stack}>
       <View style={styles.heroBand}>
         <Text style={styles.heroTitle}>{mvpLesson.title}</Text>
-        <Text style={styles.heroCopy}>8 分钟完成一次调音、慢速节拍、四和弦循环和模拟报告。</Text>
+        <Text style={styles.heroCopy}>
+          {mvpLesson.estimatedMinutes} 分钟完成调音、节奏型、和弦转换和歌曲片段。已接入 {contentSummary.songCount} 首结构化样例。
+        </Text>
         <Pressable accessibilityRole="button" onPress={onStart} style={styles.primaryButton}>
           <Text style={styles.primaryButtonText}>开始 8 分钟练习</Text>
         </Pressable>
