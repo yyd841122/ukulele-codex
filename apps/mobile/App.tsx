@@ -36,7 +36,7 @@ import { createMockTunerFrame } from "./src/audio/mockAudioEngine";
 import { playPracticeBeatClick, preparePracticeBeatAudio } from "./src/audio/practiceBeatSound";
 import { useMicrophoneRecorderMonitor } from "./src/audio/useMicrophoneRecorderMonitor";
 import { useRealtimeTunerStream } from "./src/audio/useRealtimeTunerStream";
-import { loadPracticeHistory, savePracticeHistory } from "./src/storage/practiceHistoryStore";
+import { clearPracticeHistory, loadPracticeHistory, savePracticeHistory } from "./src/storage/practiceHistoryStore";
 
 type Tab = "home" | "tuner" | "metronome" | "chords" | "practice";
 
@@ -152,9 +152,21 @@ type SharedPracticeSummary = Partial<{
   suggestion: string;
 }>;
 
+type PracticeHistorySummary = {
+  totalSessions: number;
+  totalDurationSec: number;
+  totalCompletedCount: number;
+  latestRecord: PracticeSessionRecord | null;
+  practiceDays: number;
+  practiceDayKeys: string[];
+  currentStreakDays: number;
+};
+
 type SharedPracticeTools = Partial<{
   createPracticeSessionRecord: (input: Record<string, unknown>) => SharedPracticeRecord;
   summarizePracticeRecord: (record: Record<string, unknown>) => SharedPracticeSummary;
+  normalizePracticeHistory: <TRecord>(history: TRecord[], limit?: number) => TRecord[];
+  summarizePracticeHistory: (history: Array<Record<string, unknown>>) => PracticeHistorySummary;
 }>;
 
 const sharedPracticeTools = sharedPractice as unknown as SharedPracticeTools;
@@ -270,6 +282,30 @@ function summarizePracticeRhythm(events: PracticeLogEvent[], bpm: number): Rhyth
   return summarizeRhythmEvents(buildPracticeRhythmEvents(events, bpm)) as RhythmPracticeSummary;
 }
 
+function normalizeLocalPracticeHistory(history: PracticeSessionRecord[]) {
+  const normalize = sharedPracticeTools.normalizePracticeHistory;
+  if (normalize) {
+    return normalize(history, 20);
+  }
+  return [...history].slice(0, 20);
+}
+
+function summarizeLocalPracticeHistory(history: PracticeSessionRecord[]): PracticeHistorySummary {
+  const summary = sharedPracticeTools.summarizePracticeHistory?.(history);
+  if (summary) {
+    return summary;
+  }
+  return {
+    totalSessions: history.length,
+    totalDurationSec: history.reduce((sum, record) => sum + (record.durationSec ?? 0), 0),
+    totalCompletedCount: history.reduce((sum, record) => sum + (record.completedCount ?? 0), 0),
+    latestRecord: history[0] ?? null,
+    practiceDays: 0,
+    practiceDayKeys: [],
+    currentStreakDays: 0
+  };
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [practiceHistory, setPracticeHistory] = useState<PracticeSessionRecord[]>([]);
@@ -277,12 +313,20 @@ export default function App() {
     const latestRecord = practiceHistory[0];
     return latestRecord ? summarizePracticeRecord(latestRecord) : undefined;
   }, [practiceHistory]);
+  const recentPracticeSummaries = useMemo(
+    () => practiceHistory.slice(0, 3).map((record) => summarizePracticeRecord(record)),
+    [practiceHistory]
+  );
+  const practiceHistorySummary = useMemo(
+    () => summarizeLocalPracticeHistory(practiceHistory),
+    [practiceHistory]
+  );
 
   useEffect(() => {
     let mounted = true;
     loadPracticeHistory<PracticeSessionRecord>().then((records) => {
       if (mounted) {
-        setPracticeHistory(records);
+        setPracticeHistory(normalizeLocalPracticeHistory(records));
       }
     });
     return () => {
@@ -292,10 +336,15 @@ export default function App() {
 
   function appendPracticeRecord(record: PracticeSessionRecord) {
     setPracticeHistory((history) => {
-      const nextHistory = [record, ...history].slice(0, 20);
+      const nextHistory = normalizeLocalPracticeHistory([record, ...history]);
       void savePracticeHistory(nextHistory);
       return nextHistory;
     });
+  }
+
+  function clearPracticeRecords() {
+    setPracticeHistory([]);
+    void clearPracticeHistory();
   }
 
   return (
@@ -312,7 +361,15 @@ export default function App() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {activeTab === "home" && <HomeScreen latestPracticeSummary={latestPracticeSummary} onStart={() => setActiveTab("practice")} />}
+        {activeTab === "home" && (
+          <HomeScreen
+            latestPracticeSummary={latestPracticeSummary}
+            onClearHistory={clearPracticeRecords}
+            onStart={() => setActiveTab("practice")}
+            practiceHistorySummary={practiceHistorySummary}
+            recentPracticeSummaries={recentPracticeSummaries}
+          />
+        )}
         {activeTab === "tuner" && <TunerScreen />}
         {activeTab === "metronome" && <MetronomeScreen />}
         {activeTab === "chords" && <ChordScreen />}
@@ -342,9 +399,15 @@ export default function App() {
 
 function HomeScreen({
   latestPracticeSummary,
+  onClearHistory,
+  practiceHistorySummary,
+  recentPracticeSummaries,
   onStart
 }: {
   latestPracticeSummary?: PracticeRecordSummary;
+  onClearHistory: () => void;
+  practiceHistorySummary: PracticeHistorySummary;
+  recentPracticeSummaries: PracticeRecordSummary[];
   onStart: () => void;
 }) {
   return (
@@ -368,6 +431,39 @@ function HomeScreen({
         <Text style={styles.sessionMeta}>
           建议：{latestPracticeSummary?.advice ?? "完成一次跟练或重置后，这里会显示最近摘要。"}
         </Text>
+        <Text style={styles.historyOverview}>
+          累计 {practiceHistorySummary.totalSessions} 次 · {formatPracticeDuration(practiceHistorySummary.totalDurationSec)} · 练习 {practiceHistorySummary.practiceDays} 天 · 连续 {practiceHistorySummary.currentStreakDays} 天
+        </Text>
+        <View style={styles.practiceHistoryHeader}>
+          <Text style={styles.historyTitle}>最近记录</Text>
+          <Pressable
+            accessibilityRole="button"
+            disabled={recentPracticeSummaries.length === 0}
+            onPress={onClearHistory}
+            style={[styles.clearHistoryButton, recentPracticeSummaries.length === 0 && styles.clearHistoryButtonDisabled]}
+          >
+            <Text style={[styles.clearHistoryText, recentPracticeSummaries.length === 0 && styles.clearHistoryTextDisabled]}>清空</Text>
+          </Pressable>
+        </View>
+        {recentPracticeSummaries.length === 0 ? (
+          <Text style={styles.historyEmpty}>开始一次跟练后会自动保存到本机。</Text>
+        ) : (
+          <View style={styles.historyList}>
+            {recentPracticeSummaries.map((summary, index) => (
+              <View key={`${summary.title}-${index}`} style={styles.historyRow}>
+                <View style={styles.historyIndex}>
+                  <Text style={styles.historyIndexText}>{index + 1}</Text>
+                </View>
+                <View style={styles.historyCopy}>
+                  <Text style={styles.historyRowTitle}>{summary.title}</Text>
+                  <Text style={styles.historyRowMeta}>
+                    {summary.completedStepsLabel} · {summary.durationLabel} · {summary.bpmLabel} · 节奏 {summary.rhythmLabel}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       <SectionTitle title="今日闭环" detail="本地模拟拾音" />
@@ -2190,6 +2286,84 @@ const styles = StyleSheet.create({
   reportGrid: {
     flexDirection: "row",
     gap: 6
+  },
+  practiceHistoryHeader: {
+    marginTop: 6,
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between"
+  },
+  historyOverview: {
+    color: "#756D64",
+    fontSize: 12,
+    lineHeight: 18
+  },
+  historyTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  clearHistoryButton: {
+    minHeight: 44,
+    minWidth: 64,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EEE8DC"
+  },
+  clearHistoryButtonDisabled: {
+    opacity: 0.45
+  },
+  clearHistoryText: {
+    color: colors.coral,
+    fontWeight: "900"
+  },
+  clearHistoryTextDisabled: {
+    color: "#756D64"
+  },
+  historyEmpty: {
+    color: "#756D64",
+    lineHeight: 20
+  },
+  historyList: {
+    gap: 6
+  },
+  historyRow: {
+    minHeight: 48,
+    borderRadius: 8,
+    padding: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#FFF8EC",
+    borderWidth: 1,
+    borderColor: colors.line
+  },
+  historyIndex: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#E0F2EE"
+  },
+  historyIndexText: {
+    color: colors.forest,
+    fontWeight: "900"
+  },
+  historyCopy: {
+    flex: 1
+  },
+  historyRowTitle: {
+    color: colors.ink,
+    fontWeight: "900"
+  },
+  historyRowMeta: {
+    marginTop: 3,
+    color: "#756D64",
+    fontSize: 12,
+    lineHeight: 16
   },
   scoreBox: {
     flex: 1,

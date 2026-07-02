@@ -7,12 +7,15 @@ import {
   chordLoopPractice,
   createPracticeSessionRecord,
   designTokens,
+  formatPracticeDayKey,
   getMvpPracticeTemplate,
   m0AgentTasks,
   mvpPracticeTemplates,
+  normalizePracticeHistory,
   practiceLoopModes,
   practiceRecordVersion,
   practiceTempoPresets,
+  summarizePracticeHistory,
   summarizePracticeRecord,
   ukuleleInstrument
 } from "../src/index.js";
@@ -193,4 +196,95 @@ test("appendPracticeRecord keeps history immutable", () => {
 
   assert.deepEqual(history, []);
   assert.deepEqual(nextHistory, [record]);
+});
+
+test("practice history normalizes valid records by latest ended or created time", () => {
+  const oldest = { id: "oldest", endedAt: "2026-07-01T10:00:00.000Z" };
+  const newestByEnded = { id: "newest-ended", endedAt: "2026-07-03T10:00:00.000Z" };
+  const middleByCreated = { id: "middle-created", createdAt: "2026-07-02T10:00:00.000Z" };
+  const invalid = { id: "invalid", endedAt: "not-a-date" };
+
+  assert.deepEqual(
+    normalizePracticeHistory([oldest, invalid, newestByEnded, middleByCreated]).map((record) => record.id),
+    ["newest-ended", "middle-created", "oldest"]
+  );
+});
+
+test("practice history limits to twenty records by default", () => {
+  const history = Array.from({ length: 25 }, (_, index) => ({
+    id: `record-${index}`,
+    endedAt: new Date(Date.UTC(2026, 6, index + 1, 10, 0, 0)).toISOString()
+  }));
+
+  const normalized = normalizePracticeHistory(history);
+
+  assert.equal(normalized.length, 20);
+  assert.equal(normalized[0].id, "record-24");
+  assert.equal(normalized.at(-1).id, "record-5");
+});
+
+test("practice history summary handles empty history", () => {
+  assert.deepEqual(summarizePracticeHistory([]), {
+    totalSessions: 0,
+    totalDurationSec: 0,
+    totalCompletedCount: 0,
+    latestRecord: null,
+    practiceDays: 0,
+    practiceDayKeys: [],
+    currentStreakDays: 0
+  });
+});
+
+test("practice history summary counts current streak across days", () => {
+  const history = [
+    { id: "day-1", endedAt: "2026-07-01T09:00:00.000Z", durationSec: 20, completedCount: 1 },
+    { id: "day-3-a", endedAt: "2026-07-03T09:00:00.000Z", durationSec: 30, completedCount: 1 },
+    { id: "day-3-b", endedAt: "2026-07-03T12:00:00.000Z", durationSec: 40, completedCount: 2 },
+    { id: "day-4", endedAt: "2026-07-04T09:00:00.000Z", durationSec: 50, completedCount: 3 },
+    { id: "day-5", endedAt: "2026-07-05T09:00:00.000Z", durationSec: 60, completedCount: 4 }
+  ];
+
+  const summary = summarizePracticeHistory(history, "2026-07-05T18:00:00.000Z");
+
+  assert.equal(summary.currentStreakDays, 3);
+  assert.equal(summary.practiceDays, 4);
+  assert.deepEqual(summary.practiceDayKeys, ["2026-07-05", "2026-07-04", "2026-07-03", "2026-07-01"]);
+  assert.equal(summary.latestRecord.id, "day-5");
+});
+
+test("practice history summary totals app and preview record fields", () => {
+  const sharedRecord = createPracticeSessionRecord({
+    exerciseId: chordLoopPractice.id,
+    startedAt: "2026-07-03T10:00:00.000Z",
+    endedAt: "2026-07-03T10:01:00.000Z",
+    targets: chordLoopPractice.targets,
+    events: [
+      { type: "complete", targetId: "bar-1" },
+      { type: "target_completed", targetId: "bar-2" }
+    ]
+  });
+  const appRecord = {
+    id: "app-record",
+    endedAt: "2026-07-04T10:00:00.000Z",
+    durationSec: 45,
+    completedCount: 3
+  };
+  const previewRecord = {
+    id: "preview-record",
+    endedAt: "2026-07-05T10:00:00.000Z",
+    duration: 15,
+    completedCount: 1
+  };
+
+  const summary = summarizePracticeHistory([sharedRecord, appRecord, previewRecord]);
+
+  assert.equal(summary.totalSessions, 3);
+  assert.equal(summary.totalDurationSec, 120);
+  assert.equal(summary.totalCompletedCount, 6);
+  assert.equal(summary.latestRecord, previewRecord);
+});
+
+test("practice day key formats date-like input", () => {
+  assert.equal(formatPracticeDayKey("2026-07-05T10:30:00.000Z"), "2026-07-05");
+  assert.equal(formatPracticeDayKey("not-a-date"), null);
 });

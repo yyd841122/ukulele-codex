@@ -215,6 +215,82 @@
         line-height: 1.35;
       }
 
+      .practice-history-header {
+        margin-top: 10px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .practice-history-overview {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .practice-history-header strong {
+        color: var(--ink);
+      }
+
+      .clear-history {
+        min-width: 64px;
+        background: #eee8dc;
+        color: var(--coral);
+      }
+
+      .clear-history:disabled {
+        opacity: 0.45;
+        color: var(--muted);
+      }
+
+      .practice-history-list {
+        display: grid;
+        gap: 6px;
+      }
+
+      .practice-history-empty {
+        color: var(--muted);
+        line-height: 1.4;
+      }
+
+      .practice-history-item {
+        min-height: 48px;
+        padding: 8px;
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        gap: 8px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff8ec;
+      }
+
+      .practice-history-index {
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        background: #e0f2ee;
+        color: var(--forest);
+        font-weight: 900;
+      }
+
+      .practice-history-item strong,
+      .practice-history-item span {
+        display: block;
+      }
+
+      .practice-history-item span {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
       .mic-panel {
         min-height: 76px;
         margin-bottom: 10px;
@@ -1149,6 +1225,14 @@
             <strong>最近练习</strong>
             <span class="muted" id="recentPracticeSummaryToday" data-practice-history-summary>暂无练习记录</span>
           </div>
+          <p class="practice-history-overview" id="practiceHistoryOverview">累计 0 次 · 0s · 练习 0 天 · 连续 0 天</p>
+          <div class="practice-history-header">
+            <strong>最近记录</strong>
+            <button class="clear-history" id="clearPracticeHistory" type="button">清空</button>
+          </div>
+          <div class="practice-history-list" id="practiceHistoryList">
+            <p class="practice-history-empty">开始一次跟练后会自动保存到本机。</p>
+          </div>
         </section>
 
         <section class="section">
@@ -1942,6 +2026,9 @@
       const PRACTICE_HISTORY_KEY = "ukulele.practiceHistory.v1";
       const PRACTICE_HISTORY_LIMIT = 20;
       const practiceHistorySummaryNodes = Array.from(document.querySelectorAll("[data-practice-history-summary]"));
+      const practiceHistoryOverview = document.getElementById("practiceHistoryOverview");
+      const practiceHistoryList = document.getElementById("practiceHistoryList");
+      const clearPracticeHistoryButton = document.getElementById("clearPracticeHistory");
 
       function readPracticeHistory() {
         try {
@@ -1976,6 +2063,39 @@
 
       function formatPracticeMode(mode) {
         return mode === "single" ? "只练当前" : "自动循环";
+      }
+
+      function formatDurationLabel(durationSec) {
+        if (durationSec < 60) return `${durationSec}s`;
+        const minutes = Math.floor(durationSec / 60);
+        const seconds = durationSec % 60;
+        return seconds === 0 ? `${minutes}min` : `${minutes}min ${seconds}s`;
+      }
+
+      function practiceDayKey(value) {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
+      }
+
+      function previousDayKey(dayKey) {
+        const date = new Date(`${dayKey}T00:00:00.000Z`);
+        date.setUTCDate(date.getUTCDate() - 1);
+        return date.toISOString().slice(0, 10);
+      }
+
+      function summarizePracticeHistory(records) {
+        const dayKeys = Array.from(new Set(records.map((record) => practiceDayKey(record.endedAt || record.createdAt || record.startedAt)).filter(Boolean))).sort((a, b) => b.localeCompare(a));
+        const daySet = new Set(dayKeys);
+        let streak = 0;
+        for (let dayKey = dayKeys[0]; dayKey && daySet.has(dayKey); dayKey = previousDayKey(dayKey)) {
+          streak += 1;
+        }
+        return {
+          sessions: records.length,
+          durationSec: records.reduce((sum, record) => sum + Math.max(0, Math.round(record.durationSec || record.duration || 0)), 0),
+          days: dayKeys.length,
+          streak
+        };
       }
 
       function scoreTimingOffset(offsetMs) {
@@ -2032,13 +2152,30 @@
       }
 
       function renderPracticeHistorySummary() {
-        const latest = readPracticeHistory()[0];
+        const history = readPracticeHistory();
+        const latest = history[0];
         const text = latest
           ? `${formatPracticeHistoryTime(latest.endedAt)} · ${latest.bpm} BPM · ${formatPracticeMode(latest.mode)} · 完成 ${latest.completedCount}/${reports.length} · 节奏 ${latest.rhythmScore || "--"} · ${latest.targetSummary}`
           : "暂无练习记录";
         practiceHistorySummaryNodes.forEach((node) => {
           node.textContent = text;
         });
+        const overview = summarizePracticeHistory(history);
+        practiceHistoryOverview.textContent = `累计 ${overview.sessions} 次 · ${formatDurationLabel(overview.durationSec)} · 练习 ${overview.days} 天 · 连续 ${overview.streak} 天`;
+        clearPracticeHistoryButton.disabled = history.length === 0;
+        if (history.length === 0) {
+          practiceHistoryList.innerHTML = '<p class="practice-history-empty">开始一次跟练后会自动保存到本机。</p>';
+          return;
+        }
+        practiceHistoryList.innerHTML = history.slice(0, 3).map((record, index) => `
+          <div class="practice-history-item">
+            <div class="practice-history-index">${index + 1}</div>
+            <div>
+              <strong>${formatPracticeHistoryTime(record.endedAt)} · ${formatPracticeMode(record.mode)}</strong>
+              <span>完成 ${record.completedCount || 0}/${reports.length} · ${record.durationSec || 0}s · ${record.bpm || 70} BPM · 节奏 ${record.rhythmScore || "--"}</span>
+            </div>
+          </div>
+        `).join("");
       }
 
       function buildPracticeSessionRecord(reason) {
@@ -2342,6 +2479,10 @@
           practiceBeat = 0;
           renderPractice();
         });
+      });
+      clearPracticeHistoryButton.addEventListener("click", () => {
+        writePracticeHistory([]);
+        renderPracticeHistorySummary();
       });
       renderPracticeHistorySummary();
       renderPractice();

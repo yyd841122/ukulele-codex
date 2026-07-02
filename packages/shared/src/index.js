@@ -242,6 +242,16 @@ const eventTimeMs = (event) => {
   return null;
 };
 
+const practiceRecordTimeMs = (record) => {
+  for (const key of ["endedAt", "createdAt", "startedAt"]) {
+    const parsed = toTimeMs(record?.[key]);
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+  return null;
+};
+
 export const createPracticeSessionRecord = ({
   exerciseId,
   startedAt,
@@ -318,6 +328,93 @@ export const summarizePracticeRecord = (record = {}) => {
 };
 
 export const appendPracticeRecord = (history = [], record) => [...history, record];
+
+export const formatPracticeDayKey = (value) => {
+  const timeMs = toTimeMs(value);
+  return timeMs === null ? null : new Date(timeMs).toISOString().slice(0, 10);
+};
+
+export const normalizePracticeHistory = (history = [], limit = 20) => {
+  if (!Array.isArray(history)) {
+    return [];
+  }
+
+  const normalizedLimit = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : 20;
+
+  return history
+    .map((record, index) => ({
+      record,
+      index,
+      timeMs: typeof record === "object" && record !== null ? practiceRecordTimeMs(record) : null
+    }))
+    .filter((entry) => entry.timeMs !== null)
+    .sort((left, right) => right.timeMs - left.timeMs || left.index - right.index)
+    .slice(0, normalizedLimit)
+    .map((entry) => entry.record);
+};
+
+const practiceRecordDurationSec = (record) => {
+  for (const key of ["durationSec", "duration"]) {
+    const value = record?.[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return Math.max(0, Math.round(value));
+    }
+  }
+  return summarizePracticeRecord(record).durationSec;
+};
+
+const practiceRecordCompletedCount = (record) => {
+  for (const key of ["completedCount", "completedTargetCount"]) {
+    const value = record?.[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return Math.max(0, Math.round(value));
+    }
+  }
+  return summarizePracticeRecord(record).completedCount;
+};
+
+const shiftPracticeDayKey = (dayKey, deltaDays) => {
+  const date = new Date(`${dayKey}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + deltaDays);
+  return date.toISOString().slice(0, 10);
+};
+
+export const summarizePracticeHistory = (history = [], currentDate) => {
+  const records = normalizePracticeHistory(history, Array.isArray(history) ? history.length : 0);
+  const totalDurationSec = records.reduce((total, record) => total + practiceRecordDurationSec(record), 0);
+  const totalCompletedCount = records.reduce((total, record) => total + practiceRecordCompletedCount(record), 0);
+  const practiceDayKeys = [
+    ...new Set(
+      records
+        .map((record) => formatPracticeDayKey(practiceRecordTimeMs(record)))
+        .filter((dayKey) => dayKey !== null)
+    )
+  ].sort((left, right) => right.localeCompare(left));
+  const practiceDaySet = new Set(practiceDayKeys);
+  const anchorDayKey =
+    currentDate === undefined ? practiceDayKeys[0] ?? null : formatPracticeDayKey(currentDate);
+  let currentStreakDays = 0;
+
+  if (anchorDayKey !== null) {
+    for (
+      let dayKey = anchorDayKey;
+      practiceDaySet.has(dayKey);
+      dayKey = shiftPracticeDayKey(dayKey, -1)
+    ) {
+      currentStreakDays += 1;
+    }
+  }
+
+  return {
+    totalSessions: records.length,
+    totalDurationSec,
+    totalCompletedCount,
+    latestRecord: records[0] ?? null,
+    practiceDays: practiceDayKeys.length,
+    practiceDayKeys,
+    currentStreakDays
+  };
+};
 
 export const designPrinciples = [
   "练习入口优先，不做营销式首页",

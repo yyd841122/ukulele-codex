@@ -37,4 +37,8 @@ export async function savePracticeHistory<TRecord>(records: TRecord[]): Promise<
   }
 }
 
+export async function clearPracticeHistory(): Promise<boolean> {
+  return savePracticeHistory([]);
+}
+
 export { PRACTICE_HISTORY_KEY, PRACTICE_HISTORY_LIMIT };
