@@ -505,6 +505,115 @@
   .tool-screen { padding: 16px; }
   .tool-screen h3 { font-size: 18px; margin-bottom: 8px; }
   .tool-panel { padding: 16px; margin-bottom: 12px; }
+  .module-note {
+    margin-top: 8px;
+    color: var(--text-2);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .module-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .module-row:last-child { border-bottom: 0; }
+  .mini-button {
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    color: var(--orange-dark);
+    font-size: 12px;
+    font-weight: 900;
+    background: #FFF1E6;
+  }
+  .score-bars {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .score-line {
+    display: grid;
+    grid-template-columns: 58px 1fr 34px;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .score-track {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #EEF2F7;
+  }
+  .score-track i {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--grad);
+  }
+  .empty-state {
+    padding: 18px 12px;
+    color: var(--text-2);
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .course-detail-cover {
+    width: 72px;
+    height: 72px;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 12px;
+    font-size: 36px;
+    background: rgba(255,255,255,.22);
+  }
+  .segment-list {
+    display: grid;
+    gap: 10px;
+  }
+  .segment-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: var(--shadow);
+  }
+  .segment-index {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 900;
+    background: var(--grad);
+  }
+  .paywall-card {
+    margin: 16px;
+    padding: 18px;
+    text-align: center;
+  }
+  .paywall-card .crown {
+    font-size: 42px;
+  }
+  .paywall-card h3 {
+    margin-top: 8px;
+    font-size: 20px;
+  }
+  .paywall-card p {
+    margin-top: 6px;
+    color: var(--text-2);
+    font-size: 13px;
+    line-height: 1.6;
+  }
   .beat-dots { display: flex; justify-content: space-between; margin: 14px 0; }
   .beat-dot { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; color: #fff; font-weight: 900; background: #9CA3AF; }
   .beat-dot.active { background: var(--orange); transform: scale(1.08); }
@@ -1035,6 +1144,456 @@ $("#metroToggle").addEventListener("click", toggleMetro);
 $("#bpmDown").addEventListener("click", () => { bpm = Math.max(40, bpm - 5); renderMetro(); });
 $("#bpmUp").addEventListener("click", () => { bpm = Math.min(240, bpm + 5); renderMetro(); });
 $("#detailPlay").addEventListener("click", () => toast("进入歌曲片段跟弹"));
+const defaultAppState = {
+  todayMinutes: 12,
+  streak: 7,
+  masteredChords: 8,
+  checkinDone: false,
+  courseProgress: { 1: 100, 2: 100, 3: 60, 4: 20, 5: 0, 6: 0, 7: 0 },
+  sessions: [
+    { type: "节奏", title: "下扫四拍", score: 72, minutes: 4, at: "今天 09:10" },
+    { type: "换和弦", title: "C → Am", score: 68, minutes: 3, at: "昨天 20:03" }
+  ],
+  lastScore: 72
+};
+function loadAppState() {
+  try {
+    return { ...defaultAppState, ...(JSON.parse(localStorage.getItem("ukulelePreviewState") || "{}")) };
+  } catch {
+    return { ...defaultAppState };
+  }
+}
+let appState = loadAppState();
+let activeCourseTab = "required";
+let activeSongFilter = "all";
+let activeSongQuery = "";
+let selectedCourseOrder = 3;
+const extraCourses = [
+  { order: 6, emoji: "🎵", title: "切分节奏和扫弦方向", subtitle: "下下上上、弱起和切音的入门练习", progress: 0, meta: "14 分钟 · 选修", free: true, type: "optional" },
+  { order: 7, emoji: "🏝️", title: "完整弹唱：Riptide", subtitle: "从前奏节奏进入完整歌曲跟弹", progress: 0, meta: "18 分钟 · Pro", free: false, type: "pro" }
+];
+const rhythmPatterns = [
+  { id: "down4", name: "下扫四拍", bpm: 60, beats: ["强", "轻", "轻", "轻"], hint: "每拍一次下扫，先让右手保持稳定。" },
+  { id: "island", name: "下 下上 上下上", bpm: 70, beats: ["强", "下上", "轻", "上下"], hint: "常见弹唱节奏，第二拍后半拍要放松。" },
+  { id: "split", name: "切分轻扫", bpm: 85, beats: ["强", "空", "轻", "轻"], hint: "保留手腕摆动，空拍不碰弦。" }
+];
+const transitionPairs = [
+  { from: "C", to: "Am", tip: "保留手型，只移动到 G 弦 2 品。" },
+  { from: "Am", to: "F", tip: "二指不离弦，加一指到 E 弦 1 品。" },
+  { from: "F", to: "G7", tip: "提前半拍摆好三指，第一拍前落稳。" },
+  { from: "G7", to: "C", tip: "松开后只留下 A 弦 3 品，动作越小越稳。" }
+];
+const followChords = ["C", "Am", "F", "G7"];
+const rhythmState = { pattern: 0, beat: 0, bars: 0, running: false, timer: null, score: 62 };
+const transitionState = { index: 0, reps: 0, running: false, timer: null, score: 58 };
+const followState = { beat: 0, bars: 0, running: false, timer: null, score: 60 };
+function saveAppState() {
+  localStorage.setItem("ukulelePreviewState", JSON.stringify(appState));
+}
+function addSession(session) {
+  appState.sessions = [{ ...session, at: "刚刚" }, ...appState.sessions].slice(0, 5);
+  appState.todayMinutes += session.minutes || 1;
+  appState.lastScore = session.score || appState.lastScore;
+  saveAppState();
+  renderHome();
+  renderMe();
+}
+function playClick(accent = false) {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const ctx = window.__clickCtx || (window.__clickCtx = new AudioContext());
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = accent ? 1040 : 720;
+    gain.gain.setValueAtTime(accent ? 0.12 : 0.06, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.08);
+  } catch {}
+}
+function allCourses() {
+  return courses.concat(extraCourses).map(course => ({
+    ...course,
+    type: course.type || (course.free ? "required" : "pro"),
+    progress: appState.courseProgress[course.order] ?? course.progress
+  }));
+}
+function courseSegments(course) {
+  const base = {
+    1: ["认识四根弦", "正确持琴", "第一次拨弦", "完成课后小测"],
+    2: ["打开调音器", "识别 G-C-E-A", "调准四根弦", "完成调音记录"],
+    3: ["听 60 BPM", "下扫四拍", "连续 2 轮", "节奏分达到 70"],
+    4: ["C 到 Am", "Am 到 F", "F 到 G7", "四和弦循环"],
+    5: ["读谱和和弦", "前 4 小节", "慢速跟弹", "提交评分"],
+    6: ["节奏方向", "空拍练习", "切分扫弦", "应用到歌曲"],
+    7: ["歌曲结构", "主歌跟弹", "副歌跟弹", "完整录制"]
+  };
+  return base[course.order] || ["预习", "练习", "复盘", "完成"];
+}
+function setupEnhancedPreview() {
+  const courseTabs = document.querySelector(".course-tabs");
+  if (courseTabs) {
+    courseTabs.innerHTML = [
+      ["required", "必修"],
+      ["optional", "选修"],
+      ["pro", "Pro"]
+    ].map(([id, label]) => `<button class="pill-tab ${id === activeCourseTab ? "active" : ""}" data-course-tab="${id}">${label}</button>`).join("");
+  }
+  const songSearch = document.querySelector("#page-songs .search");
+  if (songSearch && !$("#songSearch")) {
+    songSearch.outerHTML = `<label class="search card" for="songSearch">🔎 <input id="songSearch" type="search" placeholder="搜索歌名 / 歌手 / Key" autocomplete="off" style="border:0;outline:0;background:transparent;font:inherit;width:100%;color:var(--text-1)" /></label>`;
+  }
+  const filters = document.querySelector("#page-songs .filters");
+  if (filters) {
+    filters.innerHTML = [
+      ["all", "全部"],
+      ["entry", "⭐ 入门"],
+      ["advanced", "⭐⭐ 进阶"],
+      ["member", "会员"]
+    ].map(([id, label]) => `<button class="filter ${id === activeSongFilter ? "active" : ""}" data-song-filter="${id}">${label}</button>`).join("");
+  }
+  const checkin = document.querySelector(".checkin");
+  if (checkin) {
+    checkin.classList.add("clickable");
+    checkin.dataset.checkin = "today";
+  }
+  const mePage = $("#page-me");
+  if (mePage && !$("#recentSessions")) {
+    mePage.insertAdjacentHTML("beforeend", `<div class="achievements" id="recentSessionsWrap"><div class="section-title" style="margin-left:0;margin-right:0"><h2>最近练习</h2><span>本地记录</span></div><div class="segment-list" id="recentSessions"></div></div>`);
+  }
+  setupExtraSheets();
+  if (!window.__practiceSheetsEnhanced) {
+    setupPracticeSheets();
+    window.__practiceSheetsEnhanced = true;
+  }
+}
+function setupExtraSheets() {
+  const phone = document.querySelector(".phone");
+  if (!phone || $("#courseDetail")) return;
+  phone.insertAdjacentHTML("beforeend", `
+    <section class="sheet" id="courseDetail">
+      <div class="sheet-head"><button class="back" data-close="courseDetail">‹</button><h2 id="courseTitle">课程详情</h2><p id="courseSubtitle">按步骤完成本课练习</p></div>
+      <div class="tool-screen">
+        <div class="course-detail-cover card" id="courseCover">🎓</div>
+        <div class="tool-panel card">
+          <div class="module-row"><b>学习进度</b><span id="courseProgressText">0%</span></div>
+          <div class="mini-progress" style="width:100%;margin-top:10px"><i id="courseProgressBar" style="width:0%"></i></div>
+          <div class="segment-list" id="courseSegments"></div>
+          <button class="primary" id="courseNext" style="width:100%;margin-top:14px">完成下一步</button>
+        </div>
+      </div>
+    </section>
+    <section class="sheet" id="paywall">
+      <div class="sheet-head"><button class="back" data-close="paywall">‹</button><h2>解锁 Pro 内容</h2><p id="paywallReason">这部分放到后续真实会员模块。</p></div>
+      <div class="tool-screen">
+        <div class="paywall-card">
+          <div class="crown">👑</div>
+          <h3>Pro 歌曲与进阶课程</h3>
+          <p>当前 MVP 先展示入口和锁定状态，后续接账号、支付、云端课程包。</p>
+          <button class="primary" style="width:100%" data-close="paywall">知道了</button>
+        </div>
+      </div>
+    </section>
+  `);
+}
+function setupPracticeSheets() {
+  const rhythm = $("#rhythm");
+  if (rhythm) {
+    rhythm.innerHTML = `<div class="sheet-head"><button class="back" data-close="rhythm">‹</button><h2>节奏型练习</h2><p>从最简单的右手节奏进入真实弹唱。</p></div><div class="tool-screen"><div class="tool-panel card"><div class="module-row"><h3 id="rhythmName">下扫四拍</h3><b id="rhythmBpm">60 BPM</b></div><div class="beat-dots" id="rhythmDots"></div><p class="module-note" id="rhythmHint"></p><div class="module-row"><button class="mini-button" id="rhythmPrev">上一个</button><button class="mini-button" id="rhythmNext">下一个</button></div><button class="primary" id="rhythmToggle" style="width:100%">开始练习</button><button class="ghost" id="rhythmComplete" style="width:100%;margin-top:10px">完成本组</button></div><div class="tool-panel card"><div class="module-row"><b>本组反馈</b><span id="rhythmBars">0 小节</span></div><div class="score-bars" id="rhythmScoreBars"></div></div></div>`;
+  }
+  const transition = $("#transition");
+  if (transition) {
+    transition.innerHTML = `<div class="sheet-head"><button class="back" data-close="transition">‹</button><h2>和弦转换</h2><p>两个和弦一组，练稳后再进入歌曲。</p></div><div class="tool-screen"><div class="tool-panel card"><div class="module-row"><h3 id="transitionTitle">C → Am</h3><b id="transitionReps">0 次</b></div><p class="module-note" id="transitionTip"></p><div class="segment-list" id="transitionList"></div><div class="module-row"><button class="mini-button" id="transitionNext">下一组</button><button class="mini-button" id="transitionComplete">完成本组</button></div><button class="primary" id="transitionToggle" style="width:100%;margin-top:10px">开始转换练习</button></div><div class="tool-panel card"><div class="module-row"><b>转换稳定度</b><span id="transitionScore">58</span></div><div class="score-bars" id="transitionScoreBars"></div></div></div>`;
+  }
+  const follow = $("#follow");
+  if (follow) {
+    follow.innerHTML = `<div class="sheet-head"><button class="back" data-close="follow">‹</button><h2>歌曲片段跟弹</h2><p>把节奏型和和弦转换放回真实歌曲。</p></div><div class="tool-screen"><div class="tool-panel card"><div class="module-row"><h3>《童年》前 4 小节</h3><b>70 BPM</b></div><div class="beat-dots" id="followDots"></div><p class="module-note" id="followHint">跟着红点进第一拍，蓝点切换和弦。</p><button class="primary" id="followToggle" style="width:100%">开始跟弹</button><button class="ghost" id="followComplete" style="width:100%;margin-top:10px">提交本段</button></div><div class="tool-panel card"><div class="module-row"><b>模拟评分</b><span id="followScore">60</span></div><div class="score-bars" id="followScoreBars"></div></div></div>`;
+  }
+}
+function renderScoreBars(target, score) {
+  const node = $(target);
+  if (!node) return;
+  const values = [
+    ["节奏", score],
+    ["和弦", Math.max(40, score - 6)],
+    ["连续", Math.min(100, score + 4)]
+  ];
+  node.innerHTML = values.map(([label, value]) => `<div class="score-line"><span>${label}</span><div class="score-track"><i style="width:${value}%"></i></div><b>${value}</b></div>`).join("");
+}
+function renderRhythm() {
+  const pattern = rhythmPatterns[rhythmState.pattern];
+  $("#rhythmName").textContent = pattern.name;
+  $("#rhythmBpm").textContent = `${pattern.bpm} BPM`;
+  $("#rhythmHint").textContent = pattern.hint;
+  $("#rhythmBars").textContent = `${rhythmState.bars} 小节`;
+  $("#rhythmToggle").textContent = rhythmState.running ? "暂停练习" : "开始练习";
+  $("#rhythmDots").innerHTML = pattern.beats.map((beatLabel, index) => `<span class="beat-dot ${index === rhythmState.beat ? "active" : ""}">${beatLabel}</span>`).join("");
+  renderScoreBars("#rhythmScoreBars", rhythmState.score);
+}
+function tickRhythm() {
+  const pattern = rhythmPatterns[rhythmState.pattern];
+  playClick(rhythmState.beat === 0);
+  rhythmState.beat = (rhythmState.beat + 1) % pattern.beats.length;
+  if (rhythmState.beat === 0) {
+    rhythmState.bars += 1;
+    rhythmState.score = Math.min(96, rhythmState.score + 3);
+  }
+  renderRhythm();
+}
+function toggleRhythm() {
+  rhythmState.running = !rhythmState.running;
+  clearInterval(rhythmState.timer);
+  if (rhythmState.running) {
+    tickRhythm();
+    rhythmState.timer = setInterval(tickRhythm, 60000 / rhythmPatterns[rhythmState.pattern].bpm);
+  }
+  renderRhythm();
+}
+function completeRhythm() {
+  rhythmState.running = false;
+  clearInterval(rhythmState.timer);
+  appState.courseProgress[3] = Math.max(appState.courseProgress[3] || 0, rhythmState.score >= 70 ? 100 : 75);
+  addSession({ type: "节奏", title: rhythmPatterns[rhythmState.pattern].name, score: rhythmState.score, minutes: Math.max(2, rhythmState.bars) });
+  toast(`节奏练习完成：${rhythmState.score} 分`);
+  renderRhythm();
+  renderCourses();
+}
+function renderTransition() {
+  const pair = transitionPairs[transitionState.index];
+  $("#transitionTitle").textContent = `${pair.from} → ${pair.to}`;
+  $("#transitionTip").textContent = pair.tip;
+  $("#transitionReps").textContent = `${transitionState.reps} 次`;
+  $("#transitionScore").textContent = transitionState.score;
+  $("#transitionToggle").textContent = transitionState.running ? "暂停转换练习" : "开始转换练习";
+  $("#transitionList").innerHTML = transitionPairs.map((item, index) => `<button class="segment-item ${index === transitionState.index ? "active" : ""}" data-transition-index="${index}"><span class="segment-index">${index + 1}</span><b>${item.from} → ${item.to}</b><small>${item.tip}</small></button>`).join("");
+  renderScoreBars("#transitionScoreBars", transitionState.score);
+}
+function tickTransition() {
+  transitionState.reps += 1;
+  if (transitionState.reps % 4 === 0) transitionState.index = (transitionState.index + 1) % transitionPairs.length;
+  transitionState.score = Math.min(94, transitionState.score + 2);
+  playClick(transitionState.reps % 4 === 1);
+  renderTransition();
+}
+function toggleTransition() {
+  transitionState.running = !transitionState.running;
+  clearInterval(transitionState.timer);
+  if (transitionState.running) transitionState.timer = setInterval(tickTransition, 1800);
+  renderTransition();
+}
+function completeTransition() {
+  transitionState.running = false;
+  clearInterval(transitionState.timer);
+  appState.courseProgress[4] = Math.max(appState.courseProgress[4] || 0, transitionState.score >= 70 ? 100 : 65);
+  addSession({ type: "换和弦", title: transitionPairs[transitionState.index].from + " → " + transitionPairs[transitionState.index].to, score: transitionState.score, minutes: 3 });
+  toast(`转换练习完成：${transitionState.score} 分`);
+  renderTransition();
+  renderCourses();
+}
+function renderFollow() {
+  $("#followDots").innerHTML = followChords.map((chord, index) => `<span class="beat-dot ${index === followState.beat ? "active" : ""}">${chord}</span>`).join("");
+  $("#followScore").textContent = followState.score;
+  $("#followHint").textContent = `第 ${followState.bars + 1} 轮 · 当前和弦 ${followChords[followState.beat]}`;
+  $("#followToggle").textContent = followState.running ? "暂停跟弹" : "开始跟弹";
+  renderScoreBars("#followScoreBars", followState.score);
+}
+function tickFollow() {
+  playClick(followState.beat === 0);
+  followState.beat = (followState.beat + 1) % followChords.length;
+  if (followState.beat === 0) {
+    followState.bars += 1;
+    followState.score = Math.min(98, followState.score + 4);
+  }
+  renderFollow();
+}
+function toggleFollow() {
+  followState.running = !followState.running;
+  clearInterval(followState.timer);
+  if (followState.running) {
+    tickFollow();
+    followState.timer = setInterval(tickFollow, 60000 / 70);
+  }
+  renderFollow();
+}
+function completeFollow() {
+  followState.running = false;
+  clearInterval(followState.timer);
+  appState.courseProgress[5] = Math.max(appState.courseProgress[5] || 0, followState.score >= 70 ? 100 : 50);
+  addSession({ type: "跟弹", title: "童年前 4 小节", score: followState.score, minutes: Math.max(3, followState.bars * 2) });
+  toast(`跟弹提交：${followState.score} 分`);
+  renderFollow();
+  renderCourses();
+}
+function renderHome() {
+  const doneText = appState.checkinDone ? "今日已打卡" : "点我打卡";
+  const checkin = document.querySelector(".checkin");
+  if (checkin) {
+    checkin.innerHTML = `<div><b>连续打卡 <span style="color:var(--orange-dark)">${appState.streak}</span> 天 🔥</b><small>今日已练 ${appState.todayMinutes} 分钟 · ${doneText}</small></div><div class="streak"><span class="day done">一</span><span class="day done">二</span><span class="day done">三</span><span class="day done">四</span><span class="day done">五</span><span class="day done">六</span><span class="day now">日</span></div>`;
+  }
+  $("#hotSongs").innerHTML = songs.map(song => `<button class="song-card clickable" data-open-song="${song.title}"><div class="cover" style="background:linear-gradient(135deg,${song.color},${song.light})">${song.emoji}</div><b>${song.title}</b><small>${song.artist}</small><div class="stars">${starText(song.stars)}</div></button>`).join("");
+  $("#rankList").innerHTML = songs.slice(0,4).map((song, index) => `<button class="rank-row clickable" data-open-song="${song.title}"><div class="no">${index + 1}</div><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light})">${song.emoji}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · ${12 - index * 2}.3 万人练过</small></div><div class="difficulty">练 ▶</div></button>`).join("");
+}
+function renderCourses() {
+  setupEnhancedPreview();
+  const visible = allCourses().filter(course => course.type === activeCourseTab);
+  $("#courseList").innerHTML = visible.map(course => `<button class="course-card card clickable" data-course="${course.order}"><div class="thumb" style="background:linear-gradient(135deg,#FFE4D6,#fff)">${course.emoji}</div><div class="body"><div><span class="tag">${course.type === "required" ? "必修" : course.type === "optional" ? "选修" : "Pro"} · 第 ${course.order} 课</span>${course.free ? "" : "<span class='member-tag'>会员</span>"}</div><h3>${course.title}</h3><p>${course.subtitle}</p><div class="course-meta"><span class="mini-progress"><i style="width:${course.progress}%"></i></span><span>${course.progress >= 100 ? "已完成" : course.meta}</span></div></div></button>`).join("") || `<div class="empty-state">这个分类暂时没有课程。</div>`;
+  $all("[data-course-tab]").forEach(node => node.classList.toggle("active", node.dataset.courseTab === activeCourseTab));
+}
+function renderSongs() {
+  setupEnhancedPreview();
+  const query = activeSongQuery.trim().toLowerCase();
+  const visible = songs.filter(song => {
+    const filterMatch =
+      activeSongFilter === "all" ||
+      (activeSongFilter === "entry" && song.stars <= 1) ||
+      (activeSongFilter === "advanced" && song.stars === 2) ||
+      (activeSongFilter === "member" && song.diff === "会员");
+    const searchMatch = !query || `${song.title} ${song.artist} ${song.key}`.toLowerCase().includes(query);
+    return filterMatch && searchMatch;
+  });
+  $("#songList").innerHTML = visible.map(song => `<button class="song-row clickable" data-open-song="${song.title}"><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light});position:relative">${song.emoji}${song.diff === "会员" ? "<span class='member-tag' style='position:absolute;right:-8px;top:-5px'>会员</span>" : ""}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · ${song.key} 调 · ${song.bpm} BPM</small></div><div class="difficulty">${starText(song.stars)}<br>${song.diff}</div></button>`).join("") || `<div class="empty-state">没有找到匹配曲谱。</div>`;
+  $all("[data-song-filter]").forEach(node => node.classList.toggle("active", node.dataset.songFilter === activeSongFilter));
+}
+function renderMe() {
+  const stats = document.querySelector("#page-me .stat-grid");
+  if (stats) {
+    stats.innerHTML = `<div class="stat card"><div class="n">${appState.streak}</div><div class="l">连续天数</div></div><div class="stat card"><div class="n">${appState.todayMinutes}</div><div class="l">练习分钟</div></div><div class="stat card"><div class="n">${appState.masteredChords}</div><div class="l">掌握和弦</div></div>`;
+  }
+  const pattern = [1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,0,1,1,0,1];
+  $("#calendar").innerHTML = pattern.map((on, i) => `<span class="cal-day ${on ? "on" : ""} ${i === 26 ? "today" : ""}">${i + 1}</span>`).join("");
+  const badges = [["🔥","连续7天",1],["🎼","掌握8和弦",1],["🥁","节奏70分",appState.lastScore >= 70],["🎤","首段跟弹",appState.sessions.some(item => item.type === "跟弹")],["🏆","连续30天",0],["⭐","满分曲目",0]];
+  $("#badges").innerHTML = badges.map(([emoji, label, on]) => `<div class="badge ${on ? "" : "lock"}"><div class="medal">${emoji}</div><small>${label}</small></div>`).join("");
+  const hero = document.querySelector("#page-me .me-hero .level");
+  if (hero) hero.textContent = `Lv.4 · 最近得分 ${appState.lastScore}`;
+  const recent = $("#recentSessions");
+  if (recent) {
+    recent.innerHTML = appState.sessions.map((item, index) => `<div class="segment-item"><span class="segment-index">${index + 1}</span><b>${item.type} · ${item.title}</b><small>${item.at} · ${item.minutes} 分钟 · ${item.score} 分</small></div>`).join("") || `<div class="empty-state">完成一次练习后，这里会出现本地记录。</div>`;
+  }
+}
+function openCourse(order) {
+  const course = allCourses().find(item => String(item.order) === String(order));
+  if (!course) return;
+  if (!course.free) {
+    $("#paywallReason").textContent = `${course.title} 属于 Pro 内容，当前先展示锁定入口。`;
+    openSheet("paywall");
+    return;
+  }
+  selectedCourseOrder = course.order;
+  $("#courseTitle").textContent = course.title;
+  $("#courseSubtitle").textContent = course.subtitle;
+  $("#courseCover").textContent = course.emoji;
+  renderCourseDetail();
+  openSheet("courseDetail");
+}
+function renderCourseDetail() {
+  const course = allCourses().find(item => item.order === selectedCourseOrder);
+  if (!course) return;
+  const progress = appState.courseProgress[course.order] ?? course.progress;
+  $("#courseProgressText").textContent = `${progress}%`;
+  $("#courseProgressBar").style.width = `${progress}%`;
+  const completeCount = Math.floor(progress / 25);
+  $("#courseSegments").innerHTML = courseSegments(course).map((label, index) => `<div class="segment-item ${index < completeCount ? "active" : ""}"><span class="segment-index">${index + 1}</span><b>${label}</b><small>${index < completeCount ? "已完成" : index === completeCount ? "当前步骤" : "未开始"}</small></div>`).join("");
+  $("#courseNext").textContent = progress >= 100 ? "本课已完成" : "完成下一步";
+}
+function completeCourseStep() {
+  const current = appState.courseProgress[selectedCourseOrder] || 0;
+  appState.courseProgress[selectedCourseOrder] = Math.min(100, current + 25);
+  addSession({ type: "课程", title: `第 ${selectedCourseOrder} 课`, score: 75, minutes: 2 });
+  renderCourseDetail();
+  renderCourses();
+  toast(appState.courseProgress[selectedCourseOrder] >= 100 ? "本课完成" : "已完成一步");
+}
+function openSong(title) {
+  const song = songs.find(item => item.title === title) || songs[0];
+  if (song.diff === "会员") {
+    $("#paywallReason").textContent = `《${song.title}》是会员曲谱，当前 MVP 先展示锁定入口。`;
+    openSheet("paywall");
+    return;
+  }
+  $("#detailTitle").textContent = song.title;
+  $("#detailArtist").textContent = `${song.artist} · ${song.diff}弹唱`;
+  $("#lyrics").innerHTML = [
+    [["C","我听见雨滴落在青青草地"]],
+    [["Am","我听见远方下课钟声响起"]],
+    [["F","可是我没有听见你的声音"]],
+    [["G7","认真呼唤我姓名"]],
+    [["C","把四个和弦接成完整歌曲片段"]]
+  ].map((line, index) => `<div class="lyric-line ${index === 2 ? "now" : ""}">${line.map(([chord, text]) => `<span class="chord">${chord}</span>${text}`).join(" ")}</div>`).join("");
+  openSheet("songDetail");
+}
+function bindEnhancedPreview() {
+  document.addEventListener("click", event => {
+    const courseTab = event.target.closest("[data-course-tab]");
+    const songFilter = event.target.closest("[data-song-filter]");
+    const checkin = event.target.closest("[data-checkin]");
+    const course = event.target.closest("[data-course]");
+    const transitionPick = event.target.closest("[data-transition-index]");
+    if (courseTab) {
+      activeCourseTab = courseTab.dataset.courseTab;
+      renderCourses();
+    }
+    if (songFilter) {
+      activeSongFilter = songFilter.dataset.songFilter;
+      renderSongs();
+    }
+    if (checkin) {
+      appState.checkinDone = true;
+      appState.todayMinutes = Math.max(appState.todayMinutes, 15);
+      saveAppState();
+      renderHome();
+      renderMe();
+      toast("今日打卡完成");
+    }
+    if (course) openCourse(course.dataset.course);
+    if (transitionPick) {
+      transitionState.index = Number(transitionPick.dataset.transitionIndex);
+      transitionState.reps = 0;
+      renderTransition();
+    }
+  });
+  document.addEventListener("input", event => {
+    if (event.target.id === "songSearch") {
+      activeSongQuery = event.target.value;
+      renderSongs();
+    }
+  });
+  document.addEventListener("click", event => {
+    if (event.target.id === "courseNext") completeCourseStep();
+    if (event.target.id === "detailPlay") {
+      closeSheet("songDetail");
+      openSheet("follow");
+      renderFollow();
+    }
+    if (event.target.id === "rhythmToggle") toggleRhythm();
+    if (event.target.id === "rhythmComplete") completeRhythm();
+    if (event.target.id === "rhythmPrev") {
+      rhythmState.pattern = (rhythmState.pattern + rhythmPatterns.length - 1) % rhythmPatterns.length;
+      rhythmState.beat = 0;
+      renderRhythm();
+    }
+    if (event.target.id === "rhythmNext") {
+      rhythmState.pattern = (rhythmState.pattern + 1) % rhythmPatterns.length;
+      rhythmState.beat = 0;
+      renderRhythm();
+    }
+    if (event.target.id === "transitionToggle") toggleTransition();
+    if (event.target.id === "transitionNext") {
+      transitionState.index = (transitionState.index + 1) % transitionPairs.length;
+      transitionState.reps = 0;
+      renderTransition();
+    }
+    if (event.target.id === "transitionComplete") completeTransition();
+    if (event.target.id === "followToggle") toggleFollow();
+    if (event.target.id === "followComplete") completeFollow();
+  });
+}
+setupEnhancedPreview();
+bindEnhancedPreview();
+renderRhythm();
+renderTransition();
+renderFollow();
 renderHome();
 renderCourses();
 renderSongs();
