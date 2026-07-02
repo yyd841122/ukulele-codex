@@ -14,6 +14,7 @@ import {
   chordLoopPractice,
   designPrinciples,
   designTokens,
+  mvpPracticeTemplates,
   mvpLesson,
   practiceLoopModes as sharedPracticeLoopModes,
   practiceTempoPresets as sharedPracticeTempoPresets,
@@ -62,7 +63,6 @@ const successGreen = "#16A34A";
 const accentBeatRed = "#DC2626";
 const lightBeatBlue = "#2F7A9A";
 const ukuleleStringLabels = ["G", "C", "E", "A"];
-const practiceBeatNumbers = [1, 2, 3, 4];
 type PracticeTempoId = "custom" | "slow" | "standard" | "advanced";
 type PracticeLoopMode = "auto" | "single";
 const tempoLabelById: Record<Exclude<PracticeTempoId, "custom">, string> = {
@@ -84,6 +84,48 @@ const practiceLoopModes = sharedPracticeLoopModes.map((mode) => ({
   id: mode.id as PracticeLoopMode,
   label: loopModeLabelById[mode.id as PracticeLoopMode] ?? mode.label
 }));
+const practiceTemplates = mvpPracticeTemplates;
+const defaultPracticeTemplate = chordLoopPractice;
+type PracticeTemplate = typeof practiceTemplates[number];
+type PracticeTarget = PracticeTemplate["targets"][number];
+
+function getPracticeTemplateById(templateId?: string | null): PracticeTemplate {
+  return practiceTemplates.find((template) => template.id === templateId) ?? defaultPracticeTemplate;
+}
+
+function getPracticeTemplateTitle(template: PracticeTemplate) {
+  return template.display?.title ?? template.id;
+}
+
+function getPracticeTemplateShortLabel(template: PracticeTemplate) {
+  if (template.type === "rhythm_pattern") return "节奏型";
+  if (template.type === "chord_transition") return "换和弦";
+  if (template.type === "song_fragment") return "歌曲";
+  return "循环";
+}
+
+function getPracticeTargetChord(target?: PracticeTarget) {
+  return target?.chord ?? "C";
+}
+
+function getPracticeTargetNote(target?: PracticeTarget) {
+  return target?.primaryNote ?? "C4";
+}
+
+function getPracticeTargetBar(target?: PracticeTarget, fallbackIndex = 0) {
+  return target?.bar ?? fallbackIndex + 1;
+}
+
+function getPracticeTargetCue(target?: PracticeTarget) {
+  return target && "cue" in target && typeof target.cue === "string" ? target.cue : undefined;
+}
+
+function getPracticeBeatNumbers(template: PracticeTemplate) {
+  const beatsPerBar = Number(String(template.timeSignature ?? "4/4").split("/")[0]);
+  const count = Number.isFinite(beatsPerBar) ? Math.max(1, Math.min(12, Math.round(beatsPerBar))) : 4;
+  return Array.from({ length: count }, (_, index) => index + 1);
+}
+
 type PracticeLogEvent = {
   type: "start" | "bar" | "complete" | "reset" | "tempo" | "mode" | "end";
   step: number;
@@ -100,6 +142,7 @@ type PracticeSessionInput = {
   mode: PracticeLoopMode;
   lessonId: string;
   exerciseId: string;
+  template: PracticeTemplate;
   rhythmSummary?: RhythmPracticeSummary;
 };
 
@@ -205,6 +248,7 @@ type LessonPathProgress = {
 };
 
 type PracticeLaunchConfig = {
+  templateId?: string;
   bpm: number;
   tempoId: PracticeTempoId;
   loopMode: PracticeLoopMode;
@@ -245,15 +289,16 @@ function createPracticeSessionRecord(input: PracticeSessionInput): PracticeSessi
   const startedAtMs = input.events[0]?.timestampMs ?? Date.now();
   const endedAtMs = input.events[input.events.length - 1]?.timestampMs ?? startedAtMs;
   const completedCount = input.completedSteps.filter(Boolean).length;
+  const targets = input.template.targets ?? chordLoopPractice.targets;
   const sharedInput = {
     exerciseId: input.exerciseId,
     startedAt: new Date(startedAtMs).toISOString(),
     endedAt: new Date(endedAtMs).toISOString(),
     bpm: input.bpm,
     mode: input.mode,
-    targets: chordLoopPractice.targets,
+    targets,
     events: input.events.map((event) => {
-      const target = chordLoopPractice.targets[event.step];
+      const target = targets[event.step];
       return {
         ...event,
         targetId: target?.id,
@@ -348,9 +393,9 @@ function summarizePracticeRhythm(events: PracticeLogEvent[], bpm: number): Rhyth
   }).summary as RhythmPracticeSummary;
 }
 
-function findPracticeStepByChord(chordName?: string | null) {
+function findPracticeStepByChord(chordName?: string | null, template: PracticeTemplate = defaultPracticeTemplate) {
   if (!chordName) return 0;
-  const index = chordLoopPractice.targets.findIndex((target) => target.chord === chordName);
+  const index = (template.targets ?? []).findIndex((target) => target.chord === chordName);
   return index >= 0 ? index : 0;
 }
 
@@ -707,6 +752,7 @@ export default function App() {
       id: `pass-${Date.now()}`,
       lessonId: mvpLesson.id,
       exerciseId: chordLoopPractice.id,
+      template: chordLoopPractice,
       startedAt: now,
       endedAt: now,
       durationSec: 0,
@@ -1258,9 +1304,11 @@ function PracticeScreen({
   launchConfig?: PracticeLaunchConfig;
   onPracticeRecord: (record: PracticeSessionRecord) => void;
 }) {
-  const initialStep = findPracticeStepByChord(launchConfig?.focusChord);
+  const initialTemplate = getPracticeTemplateById(launchConfig?.templateId);
+  const initialStep = findPracticeStepByChord(launchConfig?.focusChord, initialTemplate);
+  const [activeTemplateId, setActiveTemplateId] = useState(initialTemplate.id);
   const [currentStep, setCurrentStep] = useState(initialStep);
-  const [practiceBpm, setPracticeBpm] = useState(launchConfig?.bpm ?? chordLoopPractice.bpm);
+  const [practiceBpm, setPracticeBpm] = useState(launchConfig?.bpm ?? initialTemplate.bpm ?? chordLoopPractice.bpm);
   const [practiceTempoId, setPracticeTempoId] = useState<PracticeTempoId>(launchConfig?.tempoId ?? "standard");
   const [practiceLoopMode, setPracticeLoopMode] = useState<PracticeLoopMode>(launchConfig?.loopMode ?? "auto");
   const [practiceBeat, setPracticeBeat] = useState(0);
@@ -1271,12 +1319,15 @@ function PracticeScreen({
   const [practiceMicBusy, setPracticeMicBusy] = useState(false);
   const [practiceEvents, setPracticeEvents] = useState<PracticeLogEvent[]>([]);
   const [sessionClosed, setSessionClosed] = useState(false);
+  const activeTemplate = useMemo(() => getPracticeTemplateById(activeTemplateId), [activeTemplateId]);
+  const practiceTargets = activeTemplate.targets ?? chordLoopPractice.targets;
+  const activeBeatNumbers = useMemo(() => getPracticeBeatNumbers(activeTemplate), [activeTemplate]);
   const [completedSteps, setCompletedSteps] = useState<boolean[]>(() =>
-    chordLoopPractice.targets.map(() => false)
+    initialTemplate.targets.map(() => false)
   );
   const stepReports = useMemo(() => {
-    return chordLoopPractice.targets.map((target, index) => {
-      const expectedMidi = noteNameToMidi(target.primaryNote);
+    return practiceTargets.map((target, index) => {
+      const expectedMidi = noteNameToMidi(getPracticeTargetNote(target));
       const detectedMidi = index === 2 ? expectedMidi - 1 : expectedMidi;
       const targetHz = midiToFrequency(expectedMidi);
       const detectedHz = midiToFrequency(detectedMidi);
@@ -1291,14 +1342,14 @@ function PracticeScreen({
       return {
         target,
         event,
-        suggestion: practiceSuggestions[index]
+        suggestion: getPracticeTargetCue(target) ?? activeTemplate.display?.subtitle ?? practiceSuggestions[index % practiceSuggestions.length]
       };
     });
-  }, []);
-  const activeTarget = chordLoopPractice.targets[currentStep];
+  }, [activeTemplate, practiceTargets]);
+  const activeTarget = practiceTargets[currentStep] ?? practiceTargets[0];
   const activeReport = stepReports[currentStep];
   const completedCount = completedSteps.filter(Boolean).length;
-  const progressPercent = Math.round((completedCount / chordLoopPractice.targets.length) * 100);
+  const progressPercent = Math.round((completedCount / practiceTargets.length) * 100);
   const barsPracticed = practiceEvents.filter((event) => event.type === "bar").length;
   const completedClicks = practiceEvents.filter((event) => event.type === "complete").length;
   const firstEventAt = practiceEvents[0]?.timestampMs;
@@ -1313,9 +1364,9 @@ function PracticeScreen({
     ? `准 ${rhythmSummary.onTimeCount} · 早 ${rhythmSummary.earlyCount} · 晚 ${rhythmSummary.lateCount}`
     : "完成一次小节后生成节奏参考";
   const practiceAdvice = practiceLoopMode === "single"
-    ? `当前锁定 ${activeTarget.chord}，适合把换指练熟后再切自动循环。`
-    : barsPracticed >= chordLoopPractice.targets.length
-      ? "已经跑完一轮四和弦，可以尝试升到进阶 85。"
+    ? `当前锁定 ${getPracticeTargetChord(activeTarget)}，适合把当前目标练熟后再切自动循环。`
+    : barsPracticed >= practiceTargets.length
+      ? "已经跑完一轮练习，可以尝试升到进阶 85。"
       : "先保持稳定四拍，再追求更快换和弦。";
 
   useEffect(() => {
@@ -1324,19 +1375,21 @@ function PracticeScreen({
     setPracticeBpm(launchConfig.bpm);
     setPracticeTempoId(launchConfig.tempoId);
     setPracticeLoopMode(launchConfig.loopMode);
-    setCurrentStep(findPracticeStepByChord(launchConfig.focusChord));
+    const nextTemplate = getPracticeTemplateById(launchConfig.templateId);
+    setActiveTemplateId(nextTemplate.id);
+    setCurrentStep(findPracticeStepByChord(launchConfig.focusChord, nextTemplate));
     setPracticeBeat(0);
     setPracticeEvents([]);
-    setCompletedSteps(chordLoopPractice.targets.map(() => false));
+    setCompletedSteps(nextTemplate.targets.map(() => false));
     setSessionClosed(false);
   }, [launchConfig?.token]);
 
   function createPracticeEvent(type: PracticeLogEvent["type"], step = currentStep): PracticeLogEvent {
-    const target = chordLoopPractice.targets[step] ?? activeTarget;
+    const target = practiceTargets[step] ?? activeTarget;
     return {
       type,
       step,
-      chord: target.chord,
+      chord: getPracticeTargetChord(target),
       bpm: practiceBpm,
       loopMode: practiceLoopMode,
       timestampMs: Date.now()
@@ -1362,7 +1415,8 @@ function PracticeScreen({
       bpm: practiceBpm,
       mode: practiceLoopMode,
       lessonId: mvpLesson.id,
-      exerciseId: chordLoopPractice.id,
+      exerciseId: activeTemplate.id,
+      template: activeTemplate,
       rhythmSummary: summarizePracticeRhythm(events, practiceBpm)
     });
     onPracticeRecord(record);
@@ -1374,14 +1428,14 @@ function PracticeScreen({
 
     const interval = setInterval(() => {
       setPracticeBeat((value) => {
-        const nextBeat = (value + 1) % practiceBeatNumbers.length;
+        const nextBeat = (value + 1) % activeBeatNumbers.length;
         if (beatSoundEnabled) {
           void playPracticeBeatClick(nextBeat === 0 ? "accent" : "light");
         }
         if (nextBeat === 0) {
           setCurrentStep((step) => {
             recordPracticeEvent("bar", step);
-            return practiceLoopMode === "auto" ? (step + 1) % chordLoopPractice.targets.length : step;
+            return practiceLoopMode === "auto" ? (step + 1) % practiceTargets.length : step;
           });
         }
         return nextBeat;
@@ -1389,7 +1443,7 @@ function PracticeScreen({
     }, 60000 / practiceBpm);
 
     return () => clearInterval(interval);
-  }, [beatSoundEnabled, isRunning, practiceBpm, practiceLoopMode]);
+  }, [activeBeatNumbers.length, beatSoundEnabled, isRunning, practiceBpm, practiceLoopMode, practiceTargets.length]);
 
   async function togglePracticeRunning() {
     if (isRunning) {
@@ -1407,7 +1461,7 @@ function PracticeScreen({
 
     if (sessionClosed) {
       setPracticeEvents([]);
-      setCompletedSteps(chordLoopPractice.targets.map(() => false));
+      setCompletedSteps(practiceTargets.map(() => false));
       setCurrentStep(0);
       setPracticeBeat(0);
     }
@@ -1448,7 +1502,7 @@ function PracticeScreen({
       setIsRunning(false);
       return;
     }
-    if (currentStep === chordLoopPractice.targets.length - 1) {
+    if (currentStep === practiceTargets.length - 1) {
       commitPracticeSession([...practiceEvents, completeEvent], nextCompletedSteps);
       setIsRunning(false);
       return;
@@ -1466,12 +1520,12 @@ function PracticeScreen({
     setPracticeBeat(0);
     setPracticeEvents([]);
     setSessionClosed(false);
-    setCompletedSteps(chordLoopPractice.targets.map(() => false));
+    setCompletedSteps(practiceTargets.map(() => false));
   }
 
   function moveToPreviousStep() {
     setPracticeBeat(0);
-    setCurrentStep((value) => (value + chordLoopPractice.targets.length - 1) % chordLoopPractice.targets.length);
+    setCurrentStep((value) => (value + practiceTargets.length - 1) % practiceTargets.length);
   }
 
   function applyTempoPreset(preset: typeof practiceTempoPresets[number]) {
@@ -1483,12 +1537,12 @@ function PracticeScreen({
 
   return (
     <View style={styles.stack}>
-      <SectionTitle title="跟练" detail={`${practiceBpm} BPM · ${chordLoopPractice.timeSignature}`} />
+      <SectionTitle title="跟练" detail={`${getPracticeTemplateShortLabel(activeTemplate)} · ${practiceBpm} BPM · ${activeTemplate.timeSignature}`} />
       <View style={styles.practiceSession}>
         <View style={styles.reportHeader}>
           <View>
             <Text style={styles.sessionEyebrow}>当前任务</Text>
-            <Text style={styles.sessionTitle}>{activeTarget.chord} · {practiceAction(activeTarget.chord)}</Text>
+            <Text style={styles.sessionTitle}>{getPracticeTargetChord(activeTarget)} · {practiceAction(getPracticeTargetChord(activeTarget), activeTemplate)}</Text>
           </View>
           <Text style={styles.sessionPill}>{isRunning ? "进行中" : "待开始"}</Text>
         </View>
@@ -1496,8 +1550,40 @@ function PracticeScreen({
           <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
         </View>
         <Text style={styles.sessionMeta}>
-          已完成 {completedCount}/{chordLoopPractice.targets.length} · 第 {activeTarget.bar} 小节 · 第 {practiceBeat + 1} 拍
+          已完成 {completedCount}/{practiceTargets.length} · 第 {getPracticeTargetBar(activeTarget, currentStep)} 小节 · 第 {practiceBeat + 1} 拍
         </Text>
+        <View style={styles.templatePicker}>
+          {practiceTemplates.map((template) => {
+            const selected = template.id === activeTemplate.id;
+            return (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                key={template.id}
+                style={[styles.templateChip, selected && styles.templateChipActive]}
+                onPress={() => {
+                  setIsRunning(false);
+                  setActiveTemplateId(template.id);
+                  setPracticeBpm(template.bpm ?? chordLoopPractice.bpm);
+                  setPracticeTempoId(template.bpm === 60 ? "slow" : template.bpm === 85 ? "advanced" : "standard");
+                  setPracticeLoopMode("auto");
+                  setCurrentStep(0);
+                  setPracticeBeat(0);
+                  setPracticeEvents([]);
+                  setCompletedSteps(template.targets.map(() => false));
+                  setSessionClosed(false);
+                }}
+              >
+                <Text style={[styles.templateChipType, selected && styles.templateChipTextActive]}>
+                  {getPracticeTemplateShortLabel(template)}
+                </Text>
+                <Text style={[styles.templateChipTitle, selected && styles.templateChipTextActive]} numberOfLines={1}>
+                  {getPracticeTemplateTitle(template)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
         <View style={styles.practiceOptionPanel}>
           <View style={styles.segmentRow}>
             {practiceTempoPresets.map((preset) => {
@@ -1564,7 +1650,7 @@ function PracticeScreen({
         </View>
         <View style={styles.practiceMainGrid}>
           <View style={styles.practiceChordColumn}>
-            <ChordFingeringGuide chordName={activeTarget.chord} compact />
+            <ChordFingeringGuide chordName={getPracticeTargetChord(activeTarget)} compact />
           </View>
           <View style={styles.practiceCoachColumn}>
             <View style={styles.practiceBeatPanel}>
@@ -1573,7 +1659,7 @@ function PracticeScreen({
                 <Text style={styles.practiceBeatMeta}>{practiceBpm} BPM</Text>
               </View>
               <View style={styles.practiceBeatGrid}>
-                {practiceBeatNumbers.map((beat, index) => {
+                {activeBeatNumbers.map((beat, index) => {
                   const isAccent = index === 0;
                   const active = index === practiceBeat;
                   return (
@@ -1657,21 +1743,22 @@ function PracticeScreen({
         </View>
       </View>
       <View style={styles.practiceTimeline}>
-        {chordLoopPractice.targets.map((target, index) => {
+        {practiceTargets.map((target, index) => {
           const active = index === currentStep;
           const completed = completedSteps[index];
+          const chord = getPracticeTargetChord(target);
           return (
             <View key={target.id} style={[styles.targetBlock, active && styles.targetBlockActive, completed && styles.targetBlockDone]}>
               <View style={styles.barBadge}>
-                <Text style={styles.barBadgeText}>{completed ? "✓" : target.bar}</Text>
+                <Text style={styles.barBadgeText}>{completed ? "✓" : getPracticeTargetBar(target, index)}</Text>
               </View>
               <View style={styles.targetCopy}>
-                <Text style={styles.targetAction}>{practiceAction(target.chord)}</Text>
-                <Text style={styles.targetBeat}>第 {target.bar} 小节 · 第 {target.beat} 拍</Text>
+                <Text style={styles.targetAction}>{practiceAction(chord, activeTemplate)}</Text>
+                <Text style={styles.targetBeat}>第 {getPracticeTargetBar(target, index)} 小节 · 第 {target.beat ?? 1} 拍</Text>
               </View>
               <View style={styles.targetChordBox}>
-                <Text style={styles.targetChord}>{target.chord}</Text>
-                <MiniFingering chordName={target.chord} />
+                <Text style={styles.targetChord}>{chord}</Text>
+                <MiniFingering chordName={chord} />
               </View>
             </View>
           );
@@ -1684,15 +1771,15 @@ function PracticeScreen({
         </View>
         <View style={styles.reportGrid}>
           <ScoreBox label="练过" value={`${barsPracticed} 小节`} />
-          <ScoreBox label="完成" value={`${completedCount}/${chordLoopPractice.targets.length}`} />
+          <ScoreBox label="完成" value={`${completedCount}/${practiceTargets.length}`} />
           <ScoreBox label="时长" value={`${practiceDurationSec}s`} />
           <ScoreBox label="节奏" value={rhythmScoreLabel} />
         </View>
         <Text style={styles.reportLine}>
-          当前：{practiceBpm} BPM · {practiceLoopMode === "auto" ? "自动循环" : `只练 ${activeTarget.chord}`} · 最近目标 {activeTarget.chord}
+          当前：{practiceBpm} BPM · {practiceLoopMode === "auto" ? "自动循环" : `只练 ${getPracticeTargetChord(activeTarget)}`} · 最近目标 {getPracticeTargetChord(activeTarget)}
         </Text>
         <Text style={styles.reportLine}>
-          参考评分：音准 {activeReport.event.pitchScore} · 节奏 {rhythmScoreLabel} · {rhythmTimingLabel} · 建议：{practiceAdvice}
+          参考评分：音准 {activeReport?.event.pitchScore ?? "--"} · 节奏 {rhythmScoreLabel} · {rhythmTimingLabel} · 建议：{practiceAdvice}
         </Text>
       </View>
     </View>
@@ -1860,7 +1947,10 @@ function tuningActionLabel(cents: number) {
     : `偏低 ${amount} cents · 请拧紧`;
 }
 
-function practiceAction(chord: string) {
+function practiceAction(chord: string, template: PracticeTemplate = defaultPracticeTemplate) {
+  if (template.type === "rhythm_pattern") return "下扫节奏";
+  if (template.type === "chord_transition") return `换到 ${chord}`;
+  if (template.type === "song_fragment") return `歌曲片段 ${chord}`;
   if (chord === "C") return "下扫四拍";
   if (chord === "Am") return "换到 Am";
   if (chord === "F") return "换到 F";
@@ -2457,6 +2547,41 @@ const styles = StyleSheet.create({
   },
   practiceOptionPanel: {
     gap: 6
+  },
+  templatePicker: {
+    marginTop: 8,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6
+  },
+  templateChip: {
+    minWidth: "48%",
+    flexGrow: 1,
+    minHeight: 46,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    justifyContent: "center",
+    paddingHorizontal: 9
+  },
+  templateChipActive: {
+    borderColor: colors.forest,
+    backgroundColor: "#DCECE2"
+  },
+  templateChipType: {
+    color: "#756D64",
+    fontSize: 11,
+    fontWeight: "900"
+  },
+  templateChipTitle: {
+    marginTop: 2,
+    color: colors.forest,
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  templateChipTextActive: {
+    color: colors.forest
   },
   segmentRow: {
     flexDirection: "row",

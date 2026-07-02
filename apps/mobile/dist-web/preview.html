@@ -871,6 +871,36 @@
         margin-top: 8px;
       }
 
+      .practice-template-panel {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .template-button {
+        min-height: 46px;
+        padding: 7px 9px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffdf8;
+        color: var(--forest);
+        text-align: left;
+        font-size: 11px;
+        font-weight: 950;
+      }
+
+      .template-button span {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .template-button.active {
+        border-color: var(--forest);
+        background: var(--mint);
+      }
+
       .segment-row {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1665,6 +1695,12 @@
             <div class="progress-fill" id="practiceProgress"></div>
           </div>
           <div class="session-meta" id="sessionMeta">已完成 0/4 · 第 1 小节</div>
+          <div class="practice-template-panel" aria-label="练习类型">
+            <button class="template-button" type="button" data-practice-template="practice-rhythm-down-four">节奏型<span>Down Strum Four</span></button>
+            <button class="template-button" type="button" data-practice-template="practice-transition-c-am">换和弦<span>C to Am</span></button>
+            <button class="template-button active" type="button" data-practice-template="practice-c-am-f-g7-loop">循环<span>C-Am-F-G7</span></button>
+            <button class="template-button" type="button" data-practice-template="practice-song-fragment-four-chord-hum">歌曲<span>Four Chord Hum</span></button>
+          </div>
           <div class="practice-option-panel">
             <div class="segment-row" aria-label="跟练速度模式">
               <button class="segment-button" type="button" data-tempo-id="slow" data-tempo-bpm="60">慢速 60</button>
@@ -2295,7 +2331,7 @@
       });
       renderBeat();
 
-      const steps = Array.from(document.querySelectorAll(".step"));
+      let steps = Array.from(document.querySelectorAll(".step"));
       const sessionTitle = document.getElementById("sessionTitle");
       const sessionPill = document.getElementById("sessionPill");
       const practiceProgress = document.getElementById("practiceProgress");
@@ -2304,6 +2340,7 @@
       const practiceBeats = Array.from(document.querySelectorAll(".practice-beat"));
       const currentChordDiagram = document.getElementById("currentChordDiagram");
       const currentFingeringHelp = document.getElementById("currentFingeringHelp");
+      const practiceTimeline = document.getElementById("practiceTimeline");
       const reportHint = document.getElementById("reportHint");
       const practicedBars = document.getElementById("practicedBars");
       const completedClicks = document.getElementById("completedClicks");
@@ -2314,12 +2351,75 @@
       const togglePractice = document.getElementById("togglePractice");
       const practiceTempoButtons = Array.from(document.querySelectorAll("[data-tempo-id]"));
       const practiceLoopButtons = Array.from(document.querySelectorAll("[data-loop-mode]"));
-      const reports = [
-        { chord: "C", action: "下扫四拍", fingering: [0, 0, 0, 3], fingers: [0, 0, 0, 3], pitch: 91, rhythm: 86, flow: 88, text: "先稳住第一拍，右手扫弦不用急。" },
-        { chord: "Am", action: "换到 Am", fingering: [2, 0, 0, 0], fingers: [2, 0, 0, 0], pitch: 93, rhythm: 88, flow: 90, text: "Am 进入很稳，保持手腕放松。" },
-        { chord: "F", action: "换到 F", fingering: [2, 0, 1, 0], fingers: [2, 0, 1, 0], pitch: 89, rhythm: 84, flow: 86, text: "F 和弦按弦再靠近品丝一点。" },
-        { chord: "G7", action: "收在 G7", fingering: [0, 2, 1, 2], fingers: [0, 2, 1, 3], pitch: 92, rhythm: 90, flow: 91, text: "G7 收尾清楚，可以升到 75 BPM。" },
+      const practiceTemplateButtons = Array.from(document.querySelectorAll("[data-practice-template]"));
+      const chordShapes = {
+        C: { fingering: [0, 0, 0, 3], fingers: [0, 0, 0, 3] },
+        Am: { fingering: [2, 0, 0, 0], fingers: [2, 0, 0, 0] },
+        F: { fingering: [2, 0, 1, 0], fingers: [2, 0, 1, 0] },
+        G7: { fingering: [0, 2, 1, 2], fingers: [0, 2, 1, 3] }
+      };
+      const practiceTemplates = [
+        {
+          id: "practice-rhythm-down-four",
+          type: "rhythm_pattern",
+          bpm: 60,
+          title: "Down Strum Four",
+          label: "节奏型",
+          targets: [
+            { chord: "C", action: "下扫第一拍", bar: 1, beat: 1, text: "第一拍重音要稳。" },
+            { chord: "C", action: "下扫第二拍", bar: 1, beat: 2, text: "轻拍贴住节拍。" },
+            { chord: "C", action: "下扫第三拍", bar: 1, beat: 3, text: "保持扫弦幅度一致。" },
+            { chord: "C", action: "下扫第四拍", bar: 1, beat: 4, text: "放松手腕，准备循环。" }
+          ]
+        },
+        {
+          id: "practice-transition-c-am",
+          type: "chord_transition",
+          bpm: 60,
+          title: "C to Am Transition",
+          label: "换和弦",
+          targets: [
+            { chord: "C", action: "稳住 C", bar: 1, beat: 1, text: "先把 C 的第三指落稳。" },
+            { chord: "Am", action: "换到 Am", bar: 2, beat: 1, text: "提前准备二指，落在第一拍。" }
+          ]
+        },
+        {
+          id: "practice-c-am-f-g7-loop",
+          type: "chord_switch",
+          bpm: 70,
+          title: "C-Am-F-G7 Chord Loop",
+          label: "循环",
+          targets: [
+            { chord: "C", action: "下扫四拍", bar: 1, beat: 1, text: "先稳住第一拍，右手扫弦不用急。" },
+            { chord: "Am", action: "换到 Am", bar: 2, beat: 1, text: "Am 进入很稳，保持手腕放松。" },
+            { chord: "F", action: "换到 F", bar: 3, beat: 1, text: "F 和弦按弦再靠近品丝一点。" },
+            { chord: "G7", action: "收在 G7", bar: 4, beat: 1, text: "G7 收尾清楚，可以升到 75 BPM。" }
+          ]
+        },
+        {
+          id: "practice-song-fragment-four-chord-hum",
+          type: "song_fragment",
+          bpm: 70,
+          title: "Four Chord Hum",
+          label: "歌曲",
+          targets: [
+            { chord: "C", action: "唱 la", bar: 1, beat: 1, text: "C 上轻声哼唱，扫弦别抢。" },
+            { chord: "Am", action: "唱 la", bar: 2, beat: 1, text: "换到 Am 前先准备二指。" },
+            { chord: "F", action: "唱 la", bar: 3, beat: 1, text: "保持歌词和扫弦同步。" },
+            { chord: "G7", action: "唱 la", bar: 4, beat: 1, text: "G7 收尾放轻，准备循环。" }
+          ]
+        }
       ];
+      const withChordShape = (target, index) => ({
+        ...target,
+        id: `${target.bar || index + 1}-${target.beat || 1}-${target.chord}`,
+        pitch: [91, 93, 89, 92][index % 4],
+        rhythm: [86, 88, 84, 90][index % 4],
+        flow: [88, 90, 86, 91][index % 4],
+        ...(chordShapes[target.chord] || chordShapes.C)
+      });
+      let activePracticeTemplate = practiceTemplates.find((template) => template.id === "practice-c-am-f-g7-loop") || practiceTemplates[0];
+      let reports = activePracticeTemplate.targets.map(withChordShape);
       let practiceStep = 0;
       let practiceBpm = 70;
       let practiceTempoId = "standard";
@@ -2731,7 +2831,7 @@
         const history = readPracticeHistory();
         const latest = history[0];
         const text = latest
-          ? `${formatPracticeHistoryTime(latest.endedAt)} · ${latest.bpm} BPM · ${formatPracticeMode(latest.mode)} · 完成 ${Math.min(latest.completedCount || 0, reports.length)}/${reports.length} · 扫弦 ${latest.strumCount || 0} · 节奏 ${latest.rhythmScore || "--"} · ${latest.targetSummary}`
+          ? `${formatPracticeHistoryTime(latest.endedAt)} · ${latest.templateTitle || "跟练"} · ${latest.bpm} BPM · ${formatPracticeMode(latest.mode)} · 完成 ${Math.min(latest.completedCount || 0, reports.length)}/${reports.length} · 扫弦 ${latest.strumCount || 0} · 节奏 ${latest.rhythmScore || "--"} · ${latest.targetSummary}`
           : "暂无练习记录";
         practiceHistorySummaryNodes.forEach((node) => {
           node.textContent = text;
@@ -2750,7 +2850,7 @@
           <div class="practice-history-item">
             <div class="practice-history-index">${index + 1}</div>
             <div>
-              <strong>${formatPracticeHistoryTime(record.endedAt)} · ${formatPracticeMode(record.mode)}</strong>
+              <strong>${formatPracticeHistoryTime(record.endedAt)} · ${record.templateTitle || "跟练"} · ${formatPracticeMode(record.mode)}</strong>
               <span>完成 ${Math.min(record.completedCount || 0, reports.length)}/${reports.length} · 扫弦 ${record.strumCount || 0} · ${record.durationSec || 0}s · ${record.bpm || 70} BPM · 节奏 ${record.rhythmScore || "--"}</span>
             </div>
           </div>
@@ -2788,6 +2888,9 @@
           endedAt: new Date(endedAtMs).toISOString(),
           duration: durationSec,
           durationSec,
+          exerciseId: activePracticeTemplate.id,
+          templateTitle: activePracticeTemplate.title,
+          templateType: activePracticeTemplate.type,
           bpm: practiceBpm,
           mode: practiceLoopMode,
           completedCount,
@@ -2821,6 +2924,17 @@
         return `${Math.round(secondsAgo / 60)}m 前`;
       }
 
+      function renderPracticeTimeline() {
+        practiceTimeline.innerHTML = reports.map((report, index) => `
+          <div class="step" data-step="${index}">
+            <div class="bar">${completedSteps[index] ? "✓" : (report.bar || index + 1)}</div>
+            <div><strong>${report.action}</strong><p class="muted">第 ${report.bar || index + 1} 小节 · 第 ${report.beat || 1} 拍</p></div>
+            <div class="step-chord"><div class="chord-pill">${report.chord}</div><div class="mini-frets">${report.fingering.map((fret) => `<span>${fret}</span>`).join("")}</div></div>
+          </div>
+        `).join("");
+        steps = Array.from(document.querySelectorAll(".step"));
+      }
+
       function renderPractice() {
         const completedCount = completedSteps.filter(Boolean).length;
         const barsPracticed = practiceEvents.filter((event) => event.type === "bar").length;
@@ -2836,13 +2950,15 @@
           : barsPracticed >= reports.length
             ? "已经跑完一轮四和弦，可以尝试升到进阶 85。"
             : "先保持稳定四拍，再追求更快换和弦。";
+        renderPracticeTimeline();
         steps.forEach((step, index) => {
           step.classList.toggle("active", index === practiceStep);
           step.classList.toggle("done", completedSteps[index]);
           const bar = step.querySelector(".bar");
-          if (bar) bar.textContent = completedSteps[index] ? "✓" : String(index + 1);
+          if (bar) bar.textContent = completedSteps[index] ? "✓" : String(reports[index]?.bar || index + 1);
         });
         const report = reports[practiceStep];
+        practiceTemplateButtons.forEach((button) => button.classList.toggle("active", button.dataset.practiceTemplate === activePracticeTemplate.id));
         sessionTitle.textContent = `${report.chord} · ${report.action}`;
         sessionPill.textContent = practiceRunning ? "进行中" : "待开始";
         practiceBpmValue.textContent = String(practiceBpm);
@@ -3082,6 +3198,24 @@
           practiceLoopMode = button.dataset.loopMode;
           recordPracticeEvent("mode");
           practiceBeat = 0;
+          renderPractice();
+        });
+      });
+      practiceTemplateButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const nextTemplate = practiceTemplates.find((template) => template.id === button.dataset.practiceTemplate);
+          if (!nextTemplate || nextTemplate.id === activePracticeTemplate.id) return;
+          setPracticeRunning(false);
+          activePracticeTemplate = nextTemplate;
+          reports = activePracticeTemplate.targets.map(withChordShape);
+          practiceBpm = activePracticeTemplate.bpm || 70;
+          practiceTempoId = practiceBpm === 60 ? "slow" : practiceBpm === 85 ? "advanced" : "standard";
+          practiceLoopMode = "auto";
+          practiceStep = 0;
+          practiceBeat = 0;
+          completedSteps = reports.map(() => false);
+          practiceEvents = [];
+          practiceSessionSaved = false;
           renderPractice();
         });
       });
