@@ -1,3247 +1,793 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI 尤克里里学园 MVP Preview</title>
-    <style>
-      :root {
-        --ink: #202124;
-        --paper: #f6f2ea;
-        --surface: #fffdf8;
-        --line: #ded6ca;
-        --muted: #756d64;
-        --forest: #243b35;
-        --success: #16a34a;
-        --mint: #dcece2;
-        --amber: #f2b84b;
-        --coral: #c75546;
-        --blue: #3a6ea5;
-        --violet: #6f5a8f;
-        --shadow: 0 12px 30px rgba(36, 59, 53, 0.12);
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        margin: 0;
-        font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
-        background: var(--paper);
-        color: var(--ink);
-      }
-
-      button {
-        min-height: 44px;
-        border: 0;
-        border-radius: 8px;
-        padding: 0 14px;
-        font: inherit;
-        font-weight: 800;
-        cursor: pointer;
-      }
-
-      button:focus-visible,
-      [role="tab"]:focus-visible {
-        outline: 3px solid rgba(58, 110, 165, 0.35);
-        outline-offset: 2px;
-      }
-
-      .app {
-        min-height: 100vh;
-        max-width: 480px;
-        margin: 0 auto;
-        padding: 18px 18px 92px;
-      }
-
-      .topbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 8px 0 16px;
-        border-bottom: 1px solid var(--line);
-      }
-
-      h1,
-      h2,
-      h3,
-      p {
-        margin: 0;
-      }
-
-      h1 {
-        font-size: 22px;
-        letter-spacing: 0;
-      }
-
-      h2 {
-        font-size: 24px;
-        line-height: 1.25;
-      }
-
-      h3 {
-        font-size: 17px;
-      }
-
-      .muted {
-        color: var(--muted);
-      }
-
-      .badge {
-        min-width: 58px;
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        padding: 7px 10px;
-        background: var(--surface);
-        color: var(--forest);
-        font-size: 12px;
-        font-weight: 900;
-        text-align: center;
-      }
-
-      .screen {
-        display: none;
-        padding-top: 18px;
-      }
-
-      .screen.active {
-        display: block;
-      }
-
-      .hero {
-        padding: 20px;
-        border-radius: 8px;
-        background: var(--forest);
-        color: #fff8ec;
-        box-shadow: var(--shadow);
-      }
-
-      .hero p {
-        margin-top: 10px;
-        color: rgba(255, 248, 236, 0.78);
-        line-height: 1.6;
-      }
-
-      .primary {
-        width: 100%;
-        margin-top: 16px;
-        background: var(--amber);
-        color: #1f2522;
-      }
-
-      .ghost {
-        background: #eee8dc;
-        color: var(--forest);
-      }
-
-      .danger {
-        background: #f4dfdb;
-        color: var(--coral);
-      }
-
-      .section {
-        margin-top: 22px;
-      }
-
-      .compact-report {
-        margin-top: 10px;
-      }
-
-      .section-title {
-        display: flex;
-        align-items: end;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 10px;
-      }
-
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-      }
-
-      .panel,
-      .row,
-      .metric,
-      .chord-card {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--surface);
-      }
-
-      .metric {
-        min-height: 80px;
-        padding: 14px;
-      }
-
-      .metric strong {
-        display: block;
-        margin-top: 6px;
-        color: var(--forest);
-        font-size: 22px;
-      }
-
-      .list {
-        display: grid;
-        gap: 10px;
-      }
-
-      .row {
-        min-height: 64px;
-        padding: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-      }
-
-      .row strong {
-        color: var(--forest);
-      }
-
-      .practice-history-line {
-        min-height: auto;
-        margin-top: 10px;
-        padding: 10px 12px;
-        align-items: flex-start;
-      }
-
-      .practice-history-line .muted {
-        flex: 1;
-        text-align: right;
-        line-height: 1.35;
-      }
-
-      .practice-history-header {
-        margin-top: 10px;
-        min-height: 44px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-      }
-
-      .practice-history-overview {
-        margin-top: 8px;
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.45;
-      }
-
-      .lesson-progress-card {
-        margin-top: 10px;
-        padding: 10px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: #fff8ec;
-      }
-
-      .lesson-path {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 8px;
-      }
-
-      .lesson-path-node {
-        min-height: 118px;
-        padding: 10px 8px;
-        display: grid;
-        justify-items: center;
-        align-content: start;
-        gap: 5px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--surface);
-        text-align: center;
-      }
-
-      .lesson-path-dot {
-        width: 30px;
-        height: 30px;
-        display: grid;
-        place-items: center;
-        border: 1px solid var(--line);
-        border-radius: 50%;
-        background: #eee8dc;
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 950;
-      }
-
-      .lesson-path-node.done .lesson-path-dot {
-        border-color: var(--success);
-        background: var(--success);
-        color: #fff8ec;
-      }
-
-      .lesson-path-node.current .lesson-path-dot {
-        border-color: var(--amber);
-        background: var(--amber);
-        color: #fff8ec;
-      }
-
-      .lesson-path-node.locked {
-        opacity: 0.58;
-      }
-
-      .lesson-path-node.actionable {
-        cursor: pointer;
-        border-color: var(--amber);
-      }
-
-      .lesson-path-title {
-        color: var(--forest);
-        font-size: 13px;
-        font-weight: 950;
-      }
-
-      .lesson-path-detail {
-        color: var(--muted);
-        font-size: 11px;
-        line-height: 1.35;
-      }
-
-      .lesson-path-status {
-        margin-top: auto;
-        color: var(--muted);
-        font-size: 11px;
-        font-weight: 900;
-      }
-
-      .lesson-path-node.done .lesson-path-status {
-        color: var(--success);
-      }
-
-      .lesson-progress-head,
-      .lesson-progress-foot {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-      }
-
-      .lesson-progress-title {
-        color: var(--forest);
-        font-weight: 950;
-      }
-
-      .lesson-progress-status {
-        border-radius: 999px;
-        padding: 5px 8px;
-        background: #eee8dc;
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 950;
-      }
-
-      .lesson-progress-status.ready,
-      .lesson-progress-status.passed {
-        background: var(--mint);
-        color: var(--forest);
-      }
-
-      .lesson-progress-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 6px;
-        margin-top: 8px;
-      }
-
-      .lesson-progress-metric {
-        min-height: 42px;
-        padding: 7px 8px;
-        border-radius: 8px;
-        background: var(--surface);
-        color: var(--muted);
-        font-size: 11px;
-        font-weight: 800;
-      }
-
-      .lesson-progress-metric strong {
-        display: block;
-        margin-top: 3px;
-        color: var(--forest);
-        font-size: 16px;
-      }
-
-      .lesson-progress-foot {
-        margin-top: 8px;
-      }
-
-      .lesson-progress-criteria {
-        flex: 1;
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.35;
-      }
-
-      .lesson-pass-button {
-        min-height: 34px;
-        padding: 0 10px;
-        background: var(--forest);
-        color: #fff8ec;
-        font-size: 12px;
-      }
-
-      .lesson-pass-button[hidden] {
-        display: none;
-      }
-
-      .practice-history-header strong {
-        color: var(--ink);
-      }
-
-      .clear-history {
-        min-width: 64px;
-        background: #eee8dc;
-        color: var(--coral);
-      }
-
-      .clear-history:disabled {
-        opacity: 0.45;
-        color: var(--muted);
-      }
-
-      .practice-history-list {
-        display: grid;
-        gap: 6px;
-      }
-
-      .practice-history-empty {
-        color: var(--muted);
-        line-height: 1.4;
-      }
-
-      .practice-history-item {
-        min-height: 48px;
-        padding: 8px;
-        display: grid;
-        grid-template-columns: 28px 1fr;
-        gap: 8px;
-        align-items: center;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: #fff8ec;
-      }
-
-      .practice-history-index {
-        width: 28px;
-        height: 28px;
-        display: grid;
-        place-items: center;
-        border-radius: 8px;
-        background: #e0f2ee;
-        color: var(--forest);
-        font-weight: 900;
-      }
-
-      .practice-history-item strong,
-      .practice-history-item span {
-        display: block;
-      }
-
-      .practice-history-item span {
-        margin-top: 3px;
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.35;
-      }
-
-      .mic-panel {
-        min-height: 76px;
-        margin-bottom: 10px;
-        padding: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--surface);
-      }
-
-      .mic-panel strong {
-        display: block;
-        margin-bottom: 4px;
-        color: var(--forest);
-      }
-
-      .mic-panel p {
-        color: var(--muted);
-        line-height: 1.4;
-      }
-
-      .mic-button {
-        flex: 0 0 auto;
-        background: var(--forest);
-        color: #fff8ec;
-      }
-
-      .mic-button.ready {
-        background: var(--amber);
-        color: #1f2522;
-      }
-
-      .pipeline-panel {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 8px;
-        margin-bottom: 10px;
-      }
-
-      .pipeline-item {
-        min-height: 54px;
-        display: grid;
-        place-items: center;
-        padding: 6px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: #fffdf8;
-        text-align: center;
-      }
-
-      .pipeline-item.done {
-        border-color: var(--success);
-        background: #f0fdf4;
-      }
-
-      .pipeline-item strong {
-        color: var(--ink);
-        font-size: 13px;
-      }
-
-      .pipeline-item.done strong {
-        color: var(--success);
-      }
-
-      .pipeline-item span {
-        color: var(--muted);
-        font-size: 11px;
-        font-weight: 900;
-      }
-
-      .input-panel {
-        margin-top: 10px;
-        padding: 14px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--surface);
-      }
-
-      .input-header,
-      .input-meta {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-      }
-
-      .input-header strong {
-        display: block;
-        margin-bottom: 4px;
-        color: var(--forest);
-      }
-
-      .level-value {
-        color: var(--forest);
-        font-size: 24px;
-        font-weight: 900;
-      }
-
-      .level-track {
-        height: 12px;
-        margin: 12px 0 8px;
-        overflow: hidden;
-        border-radius: 999px;
-        background: #eee8dc;
-      }
-
-      .level-fill {
-        width: 0%;
-        height: 100%;
-        border-radius: 999px;
-        background: var(--amber);
-        transition: width 160ms ease;
-      }
-
-      .input-meta {
-        color: var(--muted);
-        font-size: 12px;
-      }
-
-      .gate-control {
-        margin-top: 12px;
-        padding: 12px;
-        border-radius: 8px;
-        background: #f7f1e7;
-      }
-
-      .gate-control label {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        color: var(--forest);
-        font-size: 13px;
-        font-weight: 900;
-      }
-
-      .gate-control input {
-        width: 100%;
-        margin-top: 10px;
-        accent-color: var(--forest);
-      }
-
-      .recorder-button {
-        width: 100%;
-        margin-top: 12px;
-        background: var(--forest);
-        color: #fff8ec;
-      }
-
-      .recorder-button.stop {
-        background: var(--coral);
-      }
-
-      .calibrate-button {
-        width: 100%;
-        margin-top: 8px;
-        background: #eee8dc;
-        color: var(--forest);
-      }
-
-      .tuner-dial {
-        min-height: 250px;
-        padding: 20px;
-        display: grid;
-        place-items: center;
-        text-align: center;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: radial-gradient(circle at 50% 35%, #ffffff 0, #fffdf8 48%, #efe8db 100%);
-      }
-
-      .note {
-        font-size: 78px;
-        font-weight: 950;
-        line-height: 1;
-        color: var(--forest);
-      }
-
-      .cents {
-        margin-top: 8px;
-        font-size: 22px;
-        font-weight: 900;
-      }
-
-      .status {
-        margin-top: 6px;
-        font-weight: 800;
-      }
-
-      .needle {
-        position: relative;
-        width: 100%;
-        height: 44px;
-        margin-top: 22px;
-      }
-
-      .needle-track {
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 20px;
-        height: 4px;
-        border-radius: 999px;
-        background: linear-gradient(90deg, var(--blue), var(--mint), var(--coral));
-      }
-
-      .needle-mark {
-        position: absolute;
-        top: 7px;
-        left: 50%;
-        width: 4px;
-        height: 30px;
-        border-radius: 999px;
-        background: var(--ink);
-        transform: translateX(-50%);
-        transition: transform 180ms ease;
-      }
-
-      .strings {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 8px;
-        margin-top: 10px;
-      }
-
-      .string-btn {
-        min-height: 70px;
-        padding: 9px 6px;
-        border: 1px solid var(--line);
-        background: var(--surface);
-        color: var(--ink);
-      }
-
-      .string-btn.active {
-        border-color: var(--forest);
-        background: var(--mint);
-        color: var(--forest);
-      }
-
-      .string-btn span {
-        display: block;
-        margin-top: 4px;
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 700;
-      }
-
-      .bpm-box {
-        padding: 22px;
-        text-align: center;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--surface);
-      }
-
-      .bpm {
-        margin: 8px 0 4px;
-        color: var(--forest);
-        font-size: 64px;
-        font-weight: 950;
-        line-height: 1;
-      }
-
-      .controls {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 10px;
-        margin-top: 14px;
-      }
-
-      .controls .primary {
-        margin-top: 0;
-      }
-
-      .beat-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 10px;
-        margin-top: 14px;
-      }
-
-      .beat {
-        min-height: 74px;
-        display: grid;
-        place-items: center;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--surface);
-        color: var(--muted);
-        font-size: 20px;
-        font-weight: 900;
-      }
-
-      .beat.active {
-        border-color: var(--forest);
-        background: var(--forest);
-        color: #fff8ec;
-      }
-
-      .chord-grid {
-        display: grid;
-        gap: 10px;
-      }
-
-      .chord-card {
-        padding: 14px;
-        display: grid;
-        grid-template-columns: 82px 1fr;
-        gap: 14px;
-        align-items: center;
-      }
-
-      .chord-name {
-        color: var(--forest);
-        font-size: 28px;
-        font-weight: 950;
-      }
-
-      .frets {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 5px;
-      }
-
-      .fret {
-        min-height: 28px;
-        display: grid;
-        place-items: center;
-        border-radius: 6px;
-        background: #eee8dc;
-        color: var(--forest);
-        font-weight: 900;
-      }
-
-      .timeline {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 6px;
-      }
-
-      .practice-session {
-        margin-bottom: 8px;
-        padding: 12px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--surface);
-      }
-
-      .session-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-      }
-
-      .session-eyebrow {
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 900;
-      }
-
-      .session-title {
-        margin-top: 3px;
-        color: var(--forest);
-        font-size: 17px;
-        font-weight: 950;
-      }
-
-      .session-pill {
-        border-radius: 999px;
-        padding: 7px 10px;
-        background: var(--mint);
-        color: var(--forest);
-        font-weight: 950;
-      }
-
-      .progress-track {
-        height: 7px;
-        margin-top: 9px;
-        overflow: hidden;
-        border-radius: 999px;
-        background: #eee8dc;
-      }
-
-      .progress-fill {
-        width: 0%;
-        height: 100%;
-        border-radius: 999px;
-        background: var(--success);
-        transition: width 160ms ease;
-      }
-
-      .session-meta {
-        margin-top: 6px;
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 800;
-      }
-
-      .practice-main-grid {
-        display: grid;
-        grid-template-columns: 1.08fr 0.92fr;
-        gap: 10px;
-        align-items: stretch;
-        margin-top: 8px;
-      }
-
-      .practice-coach-column {
-        display: grid;
-        gap: 8px;
-      }
-
-      .practice-option-panel {
-        display: grid;
-        gap: 6px;
-        margin-top: 8px;
-      }
-
-      .practice-template-panel {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 6px;
-        margin-top: 8px;
-      }
-
-      .template-button {
-        min-height: 46px;
-        padding: 7px 9px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: #fffdf8;
-        color: var(--forest);
-        text-align: left;
-        font-size: 11px;
-        font-weight: 950;
-      }
-
-      .template-button span {
-        display: block;
-        color: var(--muted);
-        font-size: 10px;
-      }
-
-      .template-button.active {
-        border-color: var(--forest);
-        background: var(--mint);
-      }
-
-      .segment-row {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 6px;
-      }
-
-      .segment-row.loop {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .segment-button {
-        min-height: 34px;
-        padding: 0 6px;
-        border-radius: 8px;
-        background: #eee8dc;
-        color: var(--muted);
-        font-size: 11px;
-        font-weight: 950;
-      }
-
-      .segment-button.active {
-        background: var(--forest);
-        color: #fff8ec;
-      }
-
-      .practice-beat-panel {
-        padding: 10px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: #f7f1e7;
-      }
-
-      .practice-beat-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-      }
-
-      .practice-beat-title {
-        color: var(--forest);
-        font-weight: 950;
-      }
-
-      .practice-beat-meta,
-      .practice-beat-hint {
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 800;
-      }
-
-      .practice-beat-grid {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 6px;
-        margin-top: 7px;
-      }
-
-      .practice-beat {
-        min-width: 28px;
-        display: grid;
-        justify-items: center;
-        gap: 4px;
-        color: var(--muted);
-        font-size: 11px;
-        font-weight: 950;
-      }
-
-      .beat-dot {
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        opacity: 0.48;
-      }
-
-      .beat-dot.accent {
-        background: #dc2626;
-      }
-
-      .beat-dot.light {
-        background: #2f7a9a;
-      }
-
-      .practice-beat.active .beat-dot {
-        width: 24px;
-        height: 24px;
-        border: 3px solid #fff8ec;
-        opacity: 1;
-      }
-
-      .practice-beat.active {
-        color: var(--forest);
-      }
-
-      .practice-bpm-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        align-items: center;
-        margin-top: 7px;
-      }
-
-      .practice-bpm-row button {
-        min-height: 38px;
-      }
-
-      .practice-beat-hint {
-        margin-top: 7px;
-        line-height: 1.35;
-      }
-
-      .sound-toggle {
-        width: 100%;
-        min-height: 34px;
-        margin-top: 7px;
-        background: #dcece2;
-        color: var(--forest);
-      }
-
-      .sound-toggle.off {
-        background: #eee8dc;
-        color: var(--muted);
-      }
-
-      .practice-sound-status {
-        margin-top: 5px;
-        color: var(--muted);
-        font-size: 10px;
-        font-weight: 800;
-        line-height: 1.3;
-      }
-
-      .practice-mic-toggle {
-        min-width: 116px;
-        min-height: 34px;
-        background: #eee8dc;
-        color: var(--forest);
-      }
-
-      .practice-mic-toggle.ready {
-        border: 1px solid var(--success);
-        background: #f0fdf4;
-        color: var(--success);
-      }
-
-      .practice-mic-panel {
-        min-height: 58px;
-        margin-top: 8px;
-        padding: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: #fffdf8;
-      }
-
-      .practice-mic-panel strong,
-      .practice-mic-panel span {
-        display: block;
-      }
-
-      .practice-mic-panel strong {
-        color: var(--forest);
-        font-size: 14px;
-        font-weight: 950;
-      }
-
-      .practice-mic-panel span {
-        margin-top: 3px;
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.35;
-      }
-
-      .fingering-guide {
-        padding: 12px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: #f7f1e7;
-      }
-
-      .fingering-guide.compact {
-        padding: 9px;
-      }
-
-      .fingering-help {
-        margin-top: 8px;
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 800;
-        line-height: 1.45;
-      }
-
-      .fingering-guide.compact .fingering-help {
-        margin-top: 5px;
-        font-size: 10px;
-        line-height: 1.3;
-      }
-
-      .chord-diagram {
-        display: grid;
-        justify-items: center;
-      }
-
-      .diagram-badge {
-        min-width: 90px;
-        min-height: 58px;
-        margin-bottom: -12px;
-        display: grid;
-        place-items: center;
-        border-radius: 24px;
-        background: #ff8a3d;
-        color: #fff;
-        font-size: 32px;
-        font-weight: 950;
-        z-index: 1;
-      }
-
-      .fingering-guide.compact .diagram-badge {
-        min-width: 58px;
-        min-height: 38px;
-        margin-bottom: -9px;
-        border-radius: 16px;
-        font-size: 22px;
-      }
-
-      .diagram-card {
-        width: 100%;
-        padding: 24px 18px 16px;
-        border: 1px solid #e5dfd3;
-        border-radius: 18px;
-        background: #fff;
-      }
-
-      .fingering-guide.compact .diagram-card {
-        padding: 17px 10px 9px;
-        border-radius: 12px;
-      }
-
-      .play-markers,
-      .diagram-string-labels {
-        margin-left: 34px;
-        display: grid;
-        grid-template-columns: repeat(4, 28px);
-        justify-content: space-between;
-      }
-
-      .play-marker {
-        color: var(--ink);
-        text-align: center;
-        font-size: 26px;
-        font-weight: 900;
-        line-height: 1;
-      }
-
-      .fingering-guide.compact .play-markers,
-      .fingering-guide.compact .diagram-string-labels {
-        margin-left: 24px;
-        grid-template-columns: repeat(4, 22px);
-      }
-
-      .fingering-guide.compact .play-marker {
-        font-size: 17px;
-      }
-
-      .board-row {
-        margin-top: 8px;
-        display: grid;
-        grid-template-columns: 28px 1fr;
-        gap: 6px;
-        align-items: stretch;
-      }
-
-      .fret-rail {
-        height: 210px;
-        display: grid;
-        grid-template-rows: repeat(4, 1fr);
-        color: #a19a91;
-        text-align: center;
-        font-size: 13px;
-        font-weight: 900;
-      }
-
-      .fingering-guide.compact .fret-rail {
-        height: 126px;
-        font-size: 10px;
-      }
-
-      .fret-rail span {
-        display: grid;
-        place-items: center;
-      }
-
-      .fretboard {
-        position: relative;
-        height: 210px;
-      }
-
-      .fingering-guide.compact .fretboard {
-        height: 126px;
-      }
-
-      .string-line {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 3px;
-        margin-left: -1.5px;
-        background: #697078;
-      }
-
-      .fret-line {
-        position: absolute;
-        left: 0;
-        right: 0;
-        height: 3px;
-        margin-top: -1.5px;
-        background: #697078;
-      }
-
-      .fret-line.nut {
-        height: 7px;
-        margin-top: -3.5px;
-        background: var(--ink);
-      }
-
-      .finger-dot {
-        position: absolute;
-        width: 38px;
-        height: 38px;
-        margin-left: -19px;
-        margin-top: -19px;
-        display: grid;
-        place-items: center;
-        border-radius: 50%;
-        background: #ff8a3d;
-        color: #fff;
-        font-size: 18px;
-        font-weight: 950;
-      }
-
-      .fingering-guide.compact .finger-dot {
-        width: 26px;
-        height: 26px;
-        margin-left: -13px;
-        margin-top: -13px;
-        font-size: 13px;
-      }
-
-      .diagram-string-labels {
-        margin-top: 8px;
-      }
-
-      .fingering-guide.compact .diagram-string-labels {
-        margin-top: 5px;
-      }
-
-      .diagram-string-labels span {
-        color: #a19a91;
-        text-align: center;
-        font-size: 16px;
-        font-weight: 900;
-      }
-
-      .fingering-guide.compact .diagram-string-labels span {
-        font-size: 11px;
-      }
-
-      .step {
-        min-height: 86px;
-        display: grid;
-        justify-items: center;
-        gap: 5px;
-        padding: 8px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--surface);
-        text-align: center;
-      }
-
-      .step.active {
-        border-color: var(--amber);
-        background: #fff4d9;
-      }
-
-      .step.done {
-        border-color: var(--success);
-        background: #f0fdf4;
-      }
-
-      .bar {
-        width: 28px;
-        height: 28px;
-        display: grid;
-        place-items: center;
-        border-radius: 8px;
-        background: var(--forest);
-        color: #fff8ec;
-        font-weight: 950;
-      }
-
-      .chord-pill {
-        justify-self: end;
-        border-radius: 999px;
-        padding: 6px 9px;
-        background: #eee8dc;
-        color: var(--forest);
-        font-weight: 950;
-      }
-
-      .step-chord {
-        display: grid;
-        justify-items: center;
-        gap: 4px;
-      }
-
-      .mini-frets {
-        display: grid;
-        grid-template-columns: repeat(4, 13px);
-        gap: 2px;
-      }
-
-      .mini-frets span {
-        min-height: 15px;
-        display: grid;
-        place-items: center;
-        border-radius: 5px;
-        background: #eee8dc;
-        color: var(--forest);
-        font-size: 9px;
-        font-weight: 950;
-      }
-
-      .report {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
-      }
-
-      .practice-controls {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 6px;
-        margin-top: 0;
-      }
-
-      .reset-practice {
-        width: 100%;
-        min-height: 34px;
-        margin-top: 8px;
-      }
-
-      .score {
-        min-height: 84px;
-        padding: 12px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--surface);
-        text-align: center;
-      }
-
-      .compact-report .score {
-        min-height: 56px;
-        padding: 8px;
-      }
-
-      .score strong {
-        display: block;
-        margin-top: 6px;
-        color: var(--forest);
-        font-size: 24px;
-      }
-
-      .bottom {
-        position: fixed;
-        left: 50%;
-        bottom: 12px;
-        transform: translateX(-50%);
-        width: min(456px, calc(100vw - 24px));
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 6px;
-        padding: 6px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: rgba(255, 253, 248, 0.96);
-        box-shadow: var(--shadow);
-        backdrop-filter: blur(10px);
-      }
-
-      .tab {
-        min-height: 50px;
-        padding: 0 4px;
-        background: transparent;
-        color: var(--muted);
-        font-size: 13px;
-      }
-
-      .tab.active {
-        background: var(--forest);
-        color: #fff8ec;
-      }
-
-      @media (max-width: 360px) {
-        .app {
-          padding-left: 12px;
-          padding-right: 12px;
-        }
-
-        .note {
-          font-size: 66px;
-        }
-
-        .bpm {
-          font-size: 56px;
-        }
-
-        .chord-card {
-          grid-template-columns: 70px 1fr;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <main class="app">
-      <header class="topbar">
-        <div>
-          <h1>AI 尤克里里学园</h1>
-          <p class="muted">MVP 互动预览</p>
-        </div>
-        <div class="badge">M0</div>
-      </header>
-
-      <section class="screen active" id="screen-today" aria-labelledby="tab-today">
-        <section class="section">
-          <div class="section-title">
-            <h3>课程路径</h3>
-            <span class="muted" id="lessonPathPercent">0/3 · 0%</span>
-          </div>
-          <div class="lesson-path" id="lessonPath">
-            <div class="lesson-path-node current" data-lesson-path-node="tuning">
-              <div class="lesson-path-dot">1</div>
-              <strong class="lesson-path-title">调音</strong>
-              <span class="lesson-path-detail">确认 G-C-E-A 标准调弦</span>
-              <span class="lesson-path-status">当前</span>
-            </div>
-            <div class="lesson-path-node locked" data-lesson-path-node="practice">
-              <div class="lesson-path-dot">2</div>
-              <strong class="lesson-path-title">跟练</strong>
-              <span class="lesson-path-detail">按节拍跑顺 C-Am-F-G7</span>
-              <span class="lesson-path-status">未解锁</span>
-            </div>
-            <div class="lesson-path-node locked" data-lesson-path-node="review" role="button" tabindex="0">
-              <div class="lesson-path-dot">3</div>
-              <strong class="lesson-path-title">复盘</strong>
-              <span class="lesson-path-detail">查看节奏和完成记录</span>
-              <span class="lesson-path-status">未解锁</span>
-            </div>
-          </div>
-        </section>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>尤克里里 AI 学园 · MVP 预览</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --orange: #FF8A3D;
+    --orange-dark: #FF6B2C;
+    --teal: #2DD4BF;
+    --purple: #7C3AED;
+    --ok: #22C55E;
+    --warn: #F59E0B;
+    --err: #EF4444;
+    --info: #3B82F6;
+    --text-1: #1F2937;
+    --text-2: #6B7280;
+    --text-3: #9CA3AF;
+    --line: #E5E7EB;
+    --bg: #F9FAFB;
+    --card: #FFFFFF;
+    --grad: linear-gradient(135deg, #FF8A3D, #FF6B2C);
+    --grad-island: linear-gradient(135deg, #FF8A3D, #2DD4BF);
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    --shadow-strong: 0 8px 24px rgba(255, 107, 44, 0.30);
+  }
+  html, body {
+    min-height: 100vh;
+    font-family: "PingFang SC", "HarmonyOS Sans", "Microsoft YaHei", system-ui, sans-serif;
+    color: var(--text-1);
+    background: linear-gradient(135deg, #E0E7FF, #FEF3C7);
+  }
+  button { border: 0; font: inherit; cursor: pointer; background: transparent; }
+  .stage { min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 24px 0; }
+  .phone {
+    position: relative;
+    width: 375px;
+    height: 760px;
+    overflow: hidden;
+    border-radius: 42px;
+    background: var(--bg);
+    box-shadow: 0 30px 70px rgba(0,0,0,.25), 0 0 0 11px #111, 0 0 0 13px #333;
+  }
+  @media (max-width: 480px) {
+    .stage { padding: 0; }
+    .phone { width: 100vw; height: 100vh; border-radius: 0; box-shadow: none; }
+  }
+  .statusbar {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 22px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    position: relative;
+    z-index: 5;
+  }
+  .statusbar .right { display: flex; gap: 6px; font-size: 12px; }
+  .pages { position: absolute; inset: 0; overflow: hidden; }
+  .page {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    padding-bottom: 92px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(20px);
+    transition: opacity .22s ease, transform .22s ease;
+  }
+  .page.active { opacity: 1; pointer-events: auto; transform: translateX(0); }
+  .page::-webkit-scrollbar, .scroll-x::-webkit-scrollbar, .filters::-webkit-scrollbar { display: none; }
+  .tabbar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 72px;
+    z-index: 50;
+    display: flex;
+    padding-bottom: 12px;
+    border-top: 1px solid var(--line);
+    background: rgba(255,255,255,.96);
+    backdrop-filter: blur(12px);
+  }
+  .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    color: var(--text-3);
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .tab .icon { font-size: 22px; line-height: 1; }
+  .tab.active { color: var(--orange); }
+  .tab.active .icon { transform: translateY(-1px); }
+  .hero {
+    padding: 8px 16px 26px;
+    color: #fff;
+    background: var(--grad);
+    border-radius: 0 0 28px 28px;
+  }
+  .hero.tight { padding-bottom: 18px; }
+  .hero .eyebrow { font-size: 13px; opacity: .9; margin-top: 4px; }
+  .hero h1 { font-size: 22px; line-height: 1.25; margin-top: 3px; }
+  .hero p { font-size: 13px; opacity: .92; margin-top: 4px; line-height: 1.5; }
+  .section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 18px 16px 12px;
+  }
+  .section-title h2 { font-size: 18px; }
+  .section-title span { font-size: 13px; color: var(--text-2); }
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+  }
+  .primary {
+    min-height: 48px;
+    border-radius: 999px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+    background: var(--grad);
+    box-shadow: var(--shadow-strong);
+  }
+  .ghost {
+    min-height: 40px;
+    border-radius: 12px;
+    padding: 0 16px;
+    color: var(--orange-dark);
+    font-size: 14px;
+    font-weight: 800;
+    background: #FFF1E6;
+  }
+  button:active, .clickable:active { transform: scale(.96); }
+  .checkin {
+    margin: -22px 16px 0;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 3;
+  }
+  .checkin b { font-size: 16px; }
+  .checkin small { display: block; margin-top: 3px; color: var(--text-2); font-size: 12px; }
+  .streak { display: flex; gap: 5px; }
+  .day {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 10px;
+    font-weight: 900;
+    color: var(--text-3);
+    background: #F3F4F6;
+  }
+  .day.done { color: #fff; background: var(--grad); }
+  .day.now { color: #fff; background: var(--warn); box-shadow: 0 0 0 3px #FEF3C7; }
+  .tool-shortcuts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin: 18px 16px;
+  }
+  .shortcut {
+    min-height: 78px;
+    padding: 12px 6px;
+    text-align: center;
+  }
+  .shortcut .emoji { font-size: 26px; }
+  .shortcut .label { margin-top: 4px; font-size: 11px; color: var(--text-2); font-weight: 800; }
+  .continue {
+    margin: 0 16px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: #fff;
+    background: var(--grad-island);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+  }
+  .continue .cover {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-size: 30px;
+    background: rgba(255,255,255,.25);
+  }
+  .continue .copy { flex: 1; }
+  .continue b { font-size: 15px; }
+  .continue p { margin-top: 3px; font-size: 12px; opacity: .92; }
+  .progress { height: 5px; margin-top: 8px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.3); }
+  .progress i { display: block; height: 100%; width: 62%; border-radius: 999px; background: #fff; }
+  .play-round {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: var(--orange-dark);
+    font-weight: 900;
+    background: rgba(255,255,255,.95);
+  }
+  .scroll-x {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 0 16px 4px;
+    scroll-snap-type: x mandatory;
+  }
+  .song-card { min-width: 120px; scroll-snap-align: start; }
+  .song-card .cover {
+    width: 120px;
+    height: 120px;
+    border-radius: 14px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 8px;
+    font-size: 28px;
+    box-shadow: var(--shadow);
+  }
+  .song-card b { display: block; margin-top: 8px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .song-card small { color: var(--text-2); font-size: 11px; }
+  .stars { color: var(--warn); font-size: 10px; }
+  .rank-row, .song-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+  }
+  .rank-row .no { width: 22px; text-align: center; color: var(--orange); font-weight: 900; }
+  .avatar-cover {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    flex: 0 0 auto;
+  }
+  .row-copy { flex: 1; min-width: 0; }
+  .row-copy b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row-copy small { color: var(--text-2); font-size: 11px; line-height: 1.5; }
+  .difficulty { text-align: right; color: var(--text-3); font-size: 11px; }
+  .course-tabs, .filters {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 12px 16px;
+  }
+  .pill-tab, .filter {
+    white-space: nowrap;
+    padding: 7px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    color: var(--text-2);
+    background: #fff;
+    box-shadow: var(--shadow);
+    font-weight: 800;
+  }
+  .pill-tab.active, .filter.active { color: #fff; background: var(--grad); }
+  .course-card {
+    margin: 0 16px 12px;
+    overflow: hidden;
+    display: flex;
+  }
+  .course-card .thumb {
+    width: 92px;
+    display: grid;
+    place-items: center;
+    font-size: 38px;
+  }
+  .course-card .body { flex: 1; padding: 14px 14px 14px 0; }
+  .tag { color: var(--teal); font-size: 10px; font-weight: 900; }
+  .member-tag {
+    display: inline-block;
+    margin-left: 5px;
+    padding: 1px 6px;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--purple), var(--orange));
+  }
+  .course-card h3 { margin: 3px 0 4px; font-size: 15px; }
+  .course-card p { color: var(--text-2); font-size: 12px; line-height: 1.45; }
+  .course-meta { display: flex; align-items: center; gap: 10px; margin-top: 8px; color: var(--text-3); font-size: 11px; }
+  .mini-progress { width: 62px; height: 6px; overflow: hidden; border-radius: 999px; background: #F3F4F6; }
+  .mini-progress i { display: block; height: 100%; border-radius: 999px; background: var(--grad); }
+  .practice-hero { padding: 14px 16px 60px; color: #fff; background: var(--grad); }
+  .practice-hero h1 { font-size: 20px; }
+  .practice-hero p { margin-top: 4px; font-size: 13px; opacity: .9; }
+  .tool-grid {
+    margin: -48px 16px 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    position: relative;
+    z-index: 3;
+  }
+  .tool-card {
+    min-height: 120px;
+    padding: 18px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .tool-card.feature {
+    grid-column: span 2;
+    min-height: 118px;
+    color: #fff;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    background: var(--grad-island);
+  }
+  .tool-card .big { font-size: 46px; }
+  .tool-card .emoji { font-size: 30px; }
+  .tool-card b { display: block; font-size: 14px; }
+  .tool-card.feature b { font-size: 17px; }
+  .tool-card p { margin-top: 3px; color: var(--text-2); font-size: 11px; line-height: 1.45; }
+  .tool-card.feature p { color: rgba(255,255,255,.92); font-size: 12px; }
+  .practice-plan { margin: 16px; padding: 16px; }
+  .plan-row { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .plan-row:last-child { border-bottom: 0; }
+  .step-dot {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 900;
+    background: var(--grad);
+  }
+  .search {
+    margin: 12px 16px;
+    padding: 11px 16px;
+    border-radius: 999px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    color: var(--text-3);
+    font-size: 14px;
+  }
+  .me-hero { padding: 10px 16px 70px; text-align: center; color: #fff; background: var(--grad); }
+  .me-hero .avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: inline-grid;
+    place-items: center;
+    margin-top: 6px;
+    font-size: 36px;
+    background: rgba(255,255,255,.25);
+  }
+  .me-hero h1 { margin-top: 8px; font-size: 18px; }
+  .level {
+    display: inline-flex;
+    margin-top: 6px;
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    background: rgba(255,255,255,.22);
+  }
+  .exp { height: 7px; margin: 10px 40px 0; border-radius: 999px; background: rgba(255,255,255,.3); overflow: hidden; }
+  .exp i { display: block; width: 68%; height: 100%; border-radius: 999px; background: #fff; }
+  .stat-grid {
+    margin: -56px 16px 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    position: relative;
+    z-index: 3;
+  }
+  .stat { padding: 14px 8px; text-align: center; }
+  .stat .n { color: var(--orange-dark); font-size: 22px; font-weight: 900; }
+  .stat .l { margin-top: 2px; color: var(--text-2); font-size: 11px; }
+  .calendar { margin: 16px; padding: 16px; }
+  .calendar-head { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 15px; font-weight: 900; }
+  .calendar-head span { color: var(--teal); font-size: 12px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .cal-day {
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    color: var(--text-3);
+    font-size: 9px;
+    background: #F3F4F6;
+  }
+  .cal-day.on { color: #fff; background: var(--grad); }
+  .cal-day.today { box-shadow: 0 0 0 2px var(--orange); }
+  .achievements { margin: 0 16px 16px; }
+  .achievement-row { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 4px; }
+  .badge { min-width: 62px; text-align: center; }
+  .badge .medal {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 28px;
+    background: var(--grad-island);
+    box-shadow: var(--shadow);
+  }
+  .badge.lock .medal { color: var(--text-3); background: #E5E7EB; filter: grayscale(1); }
+  .badge small { display: block; margin-top: 4px; color: var(--text-2); font-size: 11px; }
+  .sheet {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    overflow-y: auto;
+    background: #fff;
+    transform: translateX(100%);
+    transition: transform .28s ease;
+  }
+  .sheet.show { transform: translateX(0); }
+  .sheet-head { padding: 14px 16px 20px; color: #fff; background: var(--grad); }
+  .back { font-size: 22px; color: #fff; margin-bottom: 10px; }
+  .sheet-head h2 { font-size: 20px; }
+  .sheet-head p { margin-top: 4px; opacity: .9; font-size: 13px; }
+  .key-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .key-row span { padding: 3px 10px; border-radius: 999px; font-size: 12px; background: rgba(255,255,255,.22); }
+  .lyrics { padding: 16px; font-size: 15px; line-height: 2.35; }
+  .lyric-line.now { padding-left: 6px; border-radius: 6px; background: linear-gradient(90deg, #FFF3E0, transparent); }
+  .chord { display: inline-block; min-width: 20px; text-align: center; margin-right: 4px; padding: 1px 5px; border-radius: 5px; color: #fff; background: var(--orange); font-size: 12px; font-weight: 900; }
+  .sticky-actions { position: sticky; bottom: 0; display: flex; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--line); background: #fff; }
+  .sticky-actions .primary { flex: 1; }
+  .tuner-page { color: #fff; background: linear-gradient(180deg, #1F2937, #111827); }
+  .tuner-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; }
+  .mode-chip { padding: 4px 10px; border-radius: 999px; font-size: 12px; background: rgba(255,255,255,.1); }
+  .dial-wrap { display: flex; flex-direction: column; align-items: center; padding-top: 8px; }
+  .dial {
+    position: relative;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, rgba(255,255,255,.11), rgba(255,255,255,.02) 62%, rgba(255,255,255,.08));
+    border: 12px solid rgba(255,255,255,.06);
+  }
+  .dial::before {
+    content: "";
+    position: absolute;
+    inset: 16px;
+    border-radius: 50%;
+    border: 1px dashed rgba(255,255,255,.18);
+  }
+  .needle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 4px;
+    height: 112px;
+    transform-origin: bottom center;
+    transform: translate(-50%, -100%) rotate(0deg);
+    border-radius: 4px;
+    background: var(--err);
+    transition: transform .14s ease, background .2s;
+  }
+  .needle.ok { background: var(--ok); }
+  .dial-center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -40%);
+    text-align: center;
+  }
+  .dial-center .note { font-size: 64px; line-height: 1; font-weight: 900; }
+  .dial-center .hz { margin-top: 4px; color: var(--text-3); font-size: 12px; }
+  .dial-center .state { height: 20px; margin-top: 8px; font-size: 13px; font-weight: 900; }
+  .strings { display: flex; justify-content: center; gap: 14px; margin: 20px 0 4px; }
+  .string { display: flex; flex-direction: column; gap: 6px; align-items: center; color: var(--text-3); font-size: 10px; }
+  .string b {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 20px;
+    border: 2px solid transparent;
+    background: rgba(255,255,255,.08);
+  }
+  .string.on b { border-color: var(--orange); background: rgba(255,138,61,.18); box-shadow: 0 0 0 4px rgba(255,138,61,.15); }
+  .string.ok b { border-color: var(--ok); color: var(--ok); }
+  .tool-screen { padding: 16px; }
+  .tool-screen h3 { font-size: 18px; margin-bottom: 8px; }
+  .tool-panel { padding: 16px; margin-bottom: 12px; }
+  .beat-dots { display: flex; justify-content: space-between; margin: 14px 0; }
+  .beat-dot { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; color: #fff; font-weight: 900; background: #9CA3AF; }
+  .beat-dot.active { background: var(--orange); transform: scale(1.08); }
+  .chord-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .chord-card { padding: 14px; }
+  .frets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 10px; }
+  .frets span { min-height: 26px; border-radius: 7px; display: grid; place-items: center; color: var(--orange-dark); font-weight: 900; background: #FFF1E6; }
+  .toast {
+    position: absolute;
+    left: 50%;
+    top: 60px;
+    z-index: 200;
+    transform: translate(-50%, -20px);
+    opacity: 0;
+    pointer-events: none;
+    transition: .25s;
+    padding: 10px 18px;
+    color: #fff;
+    border-radius: 999px;
+    background: rgba(0,0,0,.82);
+    font-size: 13px;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="statusbar" id="statusbar"><span>9:41</span><span class="right">5G ▰▰▰ 100%</span></div>
+    <main class="pages">
+      <section class="page active" id="page-home">
         <div class="hero">
-          <h2>第一课：调准音，再弹 C-Am-F-G7</h2>
-          <p>8 分钟完成一次调音、慢速节拍、四和弦循环和模拟报告。</p>
-          <button class="primary" id="startPractice" type="button">开始 8 分钟练习</button>
+          <div class="eyebrow">☀️ 早上好</div>
+          <h1>练琴时间到啦 🎸</h1>
+          <p>今天也要开心弹琴，先完成 15 分钟小目标。</p>
         </div>
-
-        <section class="section">
-          <div class="section-title">
-            <h3>下次练习</h3>
-            <span class="muted" id="nextPracticeReason">还没有本地练习记录</span>
-          </div>
-          <div class="list">
-            <div class="row">
-              <strong id="nextPracticeTitle">从慢速循环开始</strong>
-              <span class="muted" id="nextPracticeDetail">用 60 BPM 自动循环，完整跑顺四和弦循环。</span>
-            </div>
-            <div class="grid">
-              <div class="metric">BPM<strong id="nextPracticeBpm">60</strong></div>
-              <div class="metric">模式<strong id="nextPracticeMode">循环</strong></div>
-              <div class="metric">目标<strong id="nextPracticeFocus">四和弦</strong></div>
-              <div class="metric">来源<strong>本地记录</strong></div>
-            </div>
-            <button class="primary" id="startRecommendedPractice" type="button">按建议开始</button>
-          </div>
-        </section>
-
-        <section class="section" id="reviewReport">
-          <div class="section-title">
-            <h3>复盘报告</h3>
-            <span class="muted">节奏和记录</span>
-          </div>
-          <div class="grid">
-            <div class="metric">调音状态<strong>3/4</strong></div>
-            <div class="metric">目标速度<strong>70 BPM</strong></div>
-            <div class="metric">和弦组<strong>C Am F G7</strong></div>
-            <div class="metric">预计用时<strong>8 分钟</strong></div>
-          </div>
-          <div class="row practice-history-line">
-            <strong>最近练习</strong>
-            <span class="muted" id="recentPracticeSummaryToday" data-practice-history-summary>暂无练习记录</span>
-          </div>
-          <p class="practice-history-overview" id="practiceHistoryOverview">累计 0 次 · 0s · 练习 0 天 · 连续 0 天</p>
-          <div class="lesson-progress-card" id="lessonOneProgressCard">
-            <div class="lesson-progress-head">
-              <strong class="lesson-progress-title">第一课进度</strong>
-              <span class="lesson-progress-status" id="lessonOneProgressStatus">无记录</span>
-            </div>
-            <div class="lesson-progress-grid">
-              <div class="lesson-progress-metric">最佳节奏<strong id="lessonOneBestRhythm">--</strong></div>
-              <div class="lesson-progress-metric">完成轮次<strong id="lessonOneCompletedRounds">0/4 · 0 次</strong></div>
-            </div>
-            <div class="lesson-progress-foot">
-              <span class="lesson-progress-criteria" id="lessonOnePassCriteria">通过条件：完整完成 4 个目标且节奏分 ≥ 70</span>
-              <button class="lesson-pass-button" id="markLessonOnePassed" type="button" hidden>标记通过</button>
-            </div>
-          </div>
-          <div class="practice-history-header">
-            <strong>最近记录</strong>
-            <button class="clear-history" id="clearPracticeHistory" type="button">清空</button>
-          </div>
-          <div class="practice-history-list" id="practiceHistoryList">
-            <p class="practice-history-empty">开始一次跟练后会自动保存到本机。</p>
-          </div>
-        </section>
-
-        <section class="section">
-          <div class="section-title">
-            <h3>P0 任务</h3>
-            <span class="muted">MVP</span>
-          </div>
-          <div class="list">
-            <div class="row"><strong>标准调弦</strong><span class="muted">G4 C4 E4 A4</span></div>
-            <div class="row"><strong>节拍跟练</strong><span class="muted">4/4 慢速循环</span></div>
-            <div class="row"><strong>练习评分</strong><span class="muted">音准 节奏 连续性</span></div>
-          </div>
-        </section>
+        <div class="checkin card">
+          <div><b>连续打卡 <span style="color:var(--orange-dark)">7</span> 天 🔥</b><small>今日已练 12 分钟 · 目标 15 分钟</small></div>
+          <div class="streak"><span class="day done">一</span><span class="day done">二</span><span class="day done">三</span><span class="day done">四</span><span class="day done">五</span><span class="day done">六</span><span class="day now">日</span></div>
+        </div>
+        <div class="tool-shortcuts">
+          <button class="shortcut card clickable" data-open="tuner"><div class="emoji">🎛️</div><div class="label">调音器</div></button>
+          <button class="shortcut card clickable" data-open="metronome"><div class="emoji">⏱️</div><div class="label">节拍器</div></button>
+          <button class="shortcut card clickable" data-open="chords"><div class="emoji">🎼</div><div class="label">和弦库</div></button>
+          <button class="shortcut card clickable" data-tab-go="practice"><div class="emoji">🎯</div><div class="label">练一组</div></button>
+        </div>
+        <button class="continue clickable" data-open-song="童年">
+          <div class="cover">🎶</div>
+          <div class="copy"><b>继续学习：第一首弹唱《童年》</b><p>C-Am-F-G7 · 还差 2 小节进入跟弹</p><div class="progress"><i></i></div></div>
+          <div class="play-round">▶</div>
+        </button>
+        <div class="section-title"><h2>🔥 热门弹唱</h2><span>更多</span></div>
+        <div class="scroll-x" id="hotSongs"></div>
+        <div class="section-title"><h2>🏆 本周榜单</h2><span>练过人数</span></div>
+        <div id="rankList"></div>
       </section>
 
-      <section class="screen" id="screen-tuner" aria-labelledby="tab-tuner">
-        <div class="section-title">
-          <h2>智能调音器</h2>
-          <span class="muted">标准 GCEA</span>
+      <section class="page" id="page-learn">
+        <div class="hero tight"><div class="eyebrow">🎓 互动课程</div><h1>从零开始弹唱第一首歌</h1><p>按调音、节奏、换和弦、歌曲片段逐步推进。</p></div>
+        <div class="course-tabs"><button class="pill-tab active">必修</button><button class="pill-tab">选修</button><button class="pill-tab">Pro</button></div>
+        <div id="courseList"></div>
+      </section>
+
+      <section class="page" id="page-practice">
+        <div class="practice-hero"><h1>🎸 练琴工具</h1><p>调好琴、找好拍、按真实弹唱路径练。</p></div>
+        <div class="tool-grid">
+          <button class="tool-card feature card clickable" data-open="tuner"><div class="big">🎛️</div><div><b>智能调音器</b><p>麦克风实时听音 · 标准 G-C-E-A</p></div></button>
+          <button class="tool-card card clickable" data-open="metronome"><div class="emoji">⏱️</div><div><b>节拍器</b><p>40-240 BPM · 重音/轻拍</p></div></button>
+          <button class="tool-card card clickable" data-open="chords"><div class="emoji">🎼</div><div><b>和弦库</b><p>指法图 · C/Am/F/G7</p></div></button>
+          <button class="tool-card card clickable" data-open="rhythm"><div class="emoji">🥁</div><div><b>节奏练习</b><p>下扫四拍 · 下下上上</p></div></button>
+          <button class="tool-card card clickable" data-open="transition"><div class="emoji">🔁</div><div><b>和弦转换</b><p>C-Am · Am-F · F-G7</p></div></button>
+          <button class="tool-card card clickable" data-open="follow"><div class="emoji">🎤</div><div><b>跟弹评分</b><p>节奏 · 和弦 · 完成度</p></div></button>
         </div>
-        <div class="mic-panel">
-          <div>
-            <strong id="micLabel">等待授权</strong>
-            <p id="micDetail">当前使用模拟拾音，真实 App 中会请求麦克风权限。</p>
-          </div>
-          <button class="mic-button" id="micButton" type="button">启用麦克风</button>
-        </div>
-        <div class="pipeline-panel">
-          <div class="pipeline-item" id="pipelinePermission"><strong>权限</strong><span>待授权</span></div>
-          <div class="pipeline-item" id="pipelineLevel"><strong>电平</strong><span>未启动</span></div>
-          <div class="pipeline-item" id="pipelinePitch"><strong>PitchFrame</strong><span>模拟</span></div>
-        </div>
-        <div class="tuner-dial">
-          <div>
-            <div class="note" id="tunerNote">A4</div>
-            <div class="cents" id="tunerCents">已准 3.1 cents · 不用调</div>
-            <div class="status" id="tunerStatus">在允许范围内，保持即可</div>
-            <p class="muted" id="tunerFreq">目标频率 440.00 Hz</p>
-            <div class="needle" aria-hidden="true">
-              <div class="needle-track"></div>
-              <div class="needle-mark" id="needleMark"></div>
-            </div>
-          </div>
-        </div>
-        <div class="input-panel">
-          <div class="input-header">
-            <div>
-              <strong>输入电平</strong>
-              <p class="muted" id="inputStatus">用 localhost 打开可请求真实浏览器麦克风</p>
-            </div>
-            <div class="level-value" id="levelValue">0%</div>
-          </div>
-          <div class="level-track" aria-hidden="true">
-            <div class="level-fill" id="levelFill"></div>
-          </div>
-          <div class="input-meta">
-            <span id="recordDuration">时长 0s</span>
-            <span id="meteringValue">metering --</span>
-          </div>
-          <div class="gate-control">
-            <label for="gateSlider">
-              <span>噪声门限</span>
-              <span id="gateValue">3.2x</span>
-            </label>
-            <input id="gateSlider" type="range" min="2" max="8" step="0.2" value="3.2" />
-            <p class="muted">风扇误触发时向右调；拨弦无反应时向左调。</p>
-          </div>
-          <button class="recorder-button" id="recorderButton" type="button">开始录音 PoC</button>
-          <button class="calibrate-button" id="calibrateButton" type="button">校准环境噪声</button>
-        </div>
-        <div class="strings" aria-label="尤克里里四根弦">
-          <button class="string-btn" type="button" data-string="G4">G4<span>392.00 Hz</span></button>
-          <button class="string-btn" type="button" data-string="C4">C4<span>261.63 Hz</span></button>
-          <button class="string-btn" type="button" data-string="E4">E4<span>329.63 Hz</span></button>
-          <button class="string-btn active" type="button" data-string="A4">A4<span>440.00 Hz</span></button>
+        <div class="practice-plan card">
+          <b>今日建议路径</b>
+          <div class="plan-row"><span class="step-dot">1</span><div class="row-copy"><b>调准四根弦</b><small>G-C-E-A 全部进绿色区</small></div></div>
+          <div class="plan-row"><span class="step-dot">2</span><div class="row-copy"><b>节奏型练习</b><small>60 BPM 下扫四拍，稳定 2 轮</small></div></div>
+          <div class="plan-row"><span class="step-dot">3</span><div class="row-copy"><b>歌曲片段跟弹</b><small>《童年》前 4 小节 C-Am-F-G7</small></div></div>
         </div>
       </section>
 
-      <section class="screen" id="screen-metro" aria-labelledby="tab-metro">
-        <div class="section-title">
-          <h2>节拍器</h2>
-          <span class="muted">4/4</span>
-        </div>
-        <div class="bpm-box">
-          <p class="muted">当前速度</p>
-          <div class="bpm"><span id="bpmValue">70</span></div>
-          <p class="muted">BPM</p>
-          <div class="controls">
-            <button class="ghost" id="bpmDown" type="button">-5</button>
-            <button class="primary" id="beatToggle" type="button">开始</button>
-            <button class="ghost" id="bpmUp" type="button">+5</button>
-          </div>
-        </div>
-        <section class="section">
-          <div class="section-title">
-            <h3>Beat Grid</h3>
-            <span class="muted">小节 <span id="barCount">1</span></span>
-          </div>
-          <div class="beat-grid" aria-label="四四拍节拍格">
-            <div class="beat active" data-beat="0">1</div>
-            <div class="beat" data-beat="1">2</div>
-            <div class="beat" data-beat="2">3</div>
-            <div class="beat" data-beat="3">4</div>
-          </div>
-        </section>
+      <section class="page" id="page-songs">
+        <div class="hero tight"><div class="eyebrow">🎵 曲谱库</div><h1>边弹边唱的歌单</h1><p>按难度、调式和节奏型筛选。</p></div>
+        <div class="search card">🔎 搜索歌名 / 歌手</div>
+        <div class="filters"><button class="filter active">全部</button><button class="filter">⭐ 入门</button><button class="filter">⭐⭐ 进阶</button><button class="filter">会员</button></div>
+        <div id="songList"></div>
       </section>
 
-      <section class="screen" id="screen-chords" aria-labelledby="tab-chords">
-        <div class="section-title">
-          <h2>基础和弦</h2>
-          <span class="muted">入门四组</span>
-        </div>
-        <div class="chord-grid">
-          <article class="chord-card">
-            <div>
-              <div class="chord-name">C</div>
-              <p class="muted">0-0-0-3</p>
-            </div>
-            <div class="frets" aria-label="C 和弦指法">
-              <span class="fret">0</span><span class="fret">0</span><span class="fret">0</span><span class="fret">3</span>
-            </div>
-          </article>
-          <article class="chord-card">
-            <div>
-              <div class="chord-name">Am</div>
-              <p class="muted">2-0-0-0</p>
-            </div>
-            <div class="frets" aria-label="Am 和弦指法">
-              <span class="fret">2</span><span class="fret">0</span><span class="fret">0</span><span class="fret">0</span>
-            </div>
-          </article>
-          <article class="chord-card">
-            <div>
-              <div class="chord-name">F</div>
-              <p class="muted">2-0-1-0</p>
-            </div>
-            <div class="frets" aria-label="F 和弦指法">
-              <span class="fret">2</span><span class="fret">0</span><span class="fret">1</span><span class="fret">0</span>
-            </div>
-          </article>
-          <article class="chord-card">
-            <div>
-              <div class="chord-name">G7</div>
-              <p class="muted">0-2-1-2</p>
-            </div>
-            <div class="frets" aria-label="G7 和弦指法">
-              <span class="fret">0</span><span class="fret">2</span><span class="fret">1</span><span class="fret">2</span>
-            </div>
-          </article>
-        </div>
+      <section class="page" id="page-me">
+        <div class="me-hero"><div class="avatar">🧑</div><h1>尤克里里练习生</h1><div class="level">Lv.4 · 海岛节奏</div><div class="exp"><i></i></div></div>
+        <div class="stat-grid"><div class="stat card"><div class="n">7</div><div class="l">连续天数</div></div><div class="stat card"><div class="n">126</div><div class="l">练习分钟</div></div><div class="stat card"><div class="n">8</div><div class="l">掌握和弦</div></div></div>
+        <div class="calendar card"><div class="calendar-head"><b>打卡日历</b><span>本月 21 天</span></div><div class="cal-grid" id="calendar"></div></div>
+        <div class="achievements"><div class="section-title" style="margin-left:0;margin-right:0"><h2>成就墙</h2><span>7/18</span></div><div class="achievement-row" id="badges"></div></div>
       </section>
-
-      <section class="screen" id="screen-practice" aria-labelledby="tab-practice">
-        <div class="section-title">
-          <h2>跟练</h2>
-          <span class="muted">C-Am-F-G7</span>
-        </div>
-        <div class="practice-session">
-          <div class="session-head">
-            <div>
-              <div class="session-eyebrow">当前任务</div>
-              <div class="session-title" id="sessionTitle">C · 下扫四拍</div>
-            </div>
-            <div class="session-pill" id="sessionPill">待开始</div>
-          </div>
-          <div class="progress-track" aria-hidden="true">
-            <div class="progress-fill" id="practiceProgress"></div>
-          </div>
-          <div class="session-meta" id="sessionMeta">已完成 0/4 · 第 1 小节</div>
-          <div class="practice-template-panel" aria-label="练习类型">
-            <button class="template-button" type="button" data-practice-template="practice-rhythm-down-four">节奏型<span>Down Strum Four</span></button>
-            <button class="template-button" type="button" data-practice-template="practice-transition-c-am">换和弦<span>C to Am</span></button>
-            <button class="template-button active" type="button" data-practice-template="practice-c-am-f-g7-loop">循环<span>C-Am-F-G7</span></button>
-            <button class="template-button" type="button" data-practice-template="practice-song-fragment-four-chord-hum">歌曲<span>Four Chord Hum</span></button>
-          </div>
-          <div class="practice-option-panel">
-            <div class="segment-row" aria-label="跟练速度模式">
-              <button class="segment-button" type="button" data-tempo-id="slow" data-tempo-bpm="60">慢速 60</button>
-              <button class="segment-button active" type="button" data-tempo-id="standard" data-tempo-bpm="70">标准 70</button>
-              <button class="segment-button" type="button" data-tempo-id="advanced" data-tempo-bpm="85">进阶 85</button>
-            </div>
-            <div class="segment-row loop" aria-label="跟练循环模式">
-              <button class="segment-button active" type="button" data-loop-mode="auto">自动循环</button>
-              <button class="segment-button" type="button" data-loop-mode="single">只练当前</button>
-            </div>
-          </div>
-          <div class="practice-mic-panel">
-            <div>
-              <strong>麦克风跟练</strong>
-              <span id="practiceMicStatus">打开后，扫弦会进入节奏评分。</span>
-            </div>
-            <button class="practice-mic-toggle" id="practiceMicButton" type="button">打开麦克风</button>
-          </div>
-          <div class="practice-main-grid">
-            <div class="fingering-guide compact" aria-live="polite">
-              <div class="chord-diagram" id="currentChordDiagram"></div>
-              <div class="fingering-help" id="currentFingeringHelp">指法 0-0-0-3 · 数字为手指</div>
-            </div>
-            <div class="practice-coach-column">
-              <div class="practice-beat-panel">
-                <div class="practice-beat-head">
-                  <div class="practice-beat-title">跟练节拍</div>
-                  <div class="practice-beat-meta"><span id="practiceBpmValue">70</span> BPM</div>
-                </div>
-                <div class="practice-beat-grid" aria-label="跟练四拍节拍圆点">
-                  <div class="practice-beat active" data-practice-beat="0"><span class="beat-dot accent"></span><span>1</span></div>
-                  <div class="practice-beat" data-practice-beat="1"><span class="beat-dot light"></span><span>2</span></div>
-                  <div class="practice-beat" data-practice-beat="2"><span class="beat-dot light"></span><span>3</span></div>
-                  <div class="practice-beat" data-practice-beat="3"><span class="beat-dot light"></span><span>4</span></div>
-                </div>
-                <div class="practice-beat-hint">红点是第一拍重音，蓝点跟轻拍。</div>
-                <div class="practice-bpm-row">
-                  <button class="ghost" id="practiceBpmDown" type="button">-5</button>
-                  <button class="ghost" id="practiceBpmUp" type="button">+5</button>
-                </div>
-                <button class="sound-toggle" id="practiceSoundToggle" type="button">节拍声 开</button>
-                <div class="practice-sound-status" id="practiceSoundStatus">节拍声已开启</div>
-              </div>
-              <div class="controls practice-controls">
-                <button class="ghost" id="prevStep" type="button">上一</button>
-                <button class="primary" id="togglePractice" type="button">开始</button>
-                <button class="ghost" id="completeStep" type="button">完成</button>
-              </div>
-              <button class="danger reset-practice" id="resetStep" type="button">重置练习</button>
-            </div>
-          </div>
-        </div>
-        <div class="timeline" id="practiceTimeline">
-          <div class="step active" data-step="0">
-            <div class="bar">1</div>
-            <div><strong>下扫四拍</strong><p class="muted">稳住第一拍</p></div>
-            <div class="step-chord"><div class="chord-pill">C</div><div class="mini-frets"><span>0</span><span>0</span><span>0</span><span>3</span></div></div>
-          </div>
-          <div class="step" data-step="1">
-            <div class="bar">2</div>
-            <div><strong>换到 Am</strong><p class="muted">提前准备二指</p></div>
-            <div class="step-chord"><div class="chord-pill">Am</div><div class="mini-frets"><span>2</span><span>0</span><span>0</span><span>0</span></div></div>
-          </div>
-          <div class="step" data-step="2">
-            <div class="bar">3</div>
-            <div><strong>换到 F</strong><p class="muted">保持节奏不抢拍</p></div>
-            <div class="step-chord"><div class="chord-pill">F</div><div class="mini-frets"><span>2</span><span>0</span><span>1</span><span>0</span></div></div>
-          </div>
-          <div class="step" data-step="3">
-            <div class="bar">4</div>
-            <div><strong>收在 G7</strong><p class="muted">最后一拍放轻</p></div>
-            <div class="step-chord"><div class="chord-pill">G7</div><div class="mini-frets"><span>0</span><span>2</span><span>1</span><span>2</span></div></div>
-          </div>
-        </div>
-        <section class="section compact-report">
-          <div class="section-title">
-            <h3>本次练习</h3>
-            <span class="muted" id="reportHint">循环</span>
-          </div>
-          <div class="report">
-            <div class="score">练过<strong id="practicedBars">0 小节</strong></div>
-            <div class="score">完成<strong id="completedClicks">0/4</strong></div>
-            <div class="score">时长<strong id="practiceDuration">0s</strong></div>
-            <div class="score">节奏<strong id="practiceRhythmScore">--</strong></div>
-          </div>
-          <div class="row practice-history-line" style="margin-top: 10px">
-            <strong>麦克风跟练</strong>
-            <span class="muted" id="practiceStrumStatus">扫弦 0 次 · 最近 --</span>
-          </div>
-          <div class="row" style="margin-top: 10px">
-            <strong>下次建议</strong>
-            <span class="muted" id="suggestion">F 到 G7 换和弦放慢 5 BPM</span>
-          </div>
-          <div class="row practice-history-line">
-            <strong>最近练习</strong>
-            <span class="muted" id="recentPracticeSummaryPractice" data-practice-history-summary>暂无练习记录</span>
-          </div>
-        </section>
-      </section>
-
-      <nav class="bottom" aria-label="主导航">
-        <button class="tab active" id="tab-today" type="button" role="tab" aria-selected="true" data-tab="today">今日</button>
-        <button class="tab" id="tab-tuner" type="button" role="tab" aria-selected="false" data-tab="tuner">调音</button>
-        <button class="tab" id="tab-metro" type="button" role="tab" aria-selected="false" data-tab="metro">节拍</button>
-        <button class="tab" id="tab-chords" type="button" role="tab" aria-selected="false" data-tab="chords">和弦</button>
-        <button class="tab" id="tab-practice" type="button" role="tab" aria-selected="false" data-tab="practice">跟练</button>
-      </nav>
     </main>
 
-    <script>
-      const tabs = Array.from(document.querySelectorAll(".tab"));
-      const screens = Array.from(document.querySelectorAll(".screen"));
-
-      function activateTab(name) {
-        tabs.forEach((tab) => {
-          const isActive = tab.dataset.tab === name;
-          tab.classList.toggle("active", isActive);
-          tab.setAttribute("aria-selected", String(isActive));
-        });
-        screens.forEach((screen) => {
-          screen.classList.toggle("active", screen.id === `screen-${name}`);
-        });
-      }
-
-      tabs.forEach((tab) => {
-        tab.addEventListener("click", () => activateTab(tab.dataset.tab));
-      });
-
-      lessonPathNodes.forEach((node) => {
-        const openReviewReport = () => {
-          if (node.dataset.lessonPathNode !== "review" || node.classList.contains("locked")) return;
-          reviewReport?.scrollIntoView({ behavior: "smooth", block: "start" });
-        };
-        node.addEventListener("click", openReviewReport);
-        node.addEventListener("keydown", (event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            openReviewReport();
-          }
-        });
-      });
-
-      document.getElementById("startPractice").addEventListener("click", () => {
-        activateTab("practice");
-      });
-
-      document.getElementById("micButton").addEventListener("click", () => {
-        document.getElementById("micLabel").textContent = "麦克风已授权";
-        document.getElementById("micDetail").textContent = "预览页仍显示模拟帧，Expo App 会在这里接真实 AudioEngine。";
-        document.getElementById("micButton").textContent = "已授权";
-        document.getElementById("micButton").classList.add("ready");
-        setPipelineStage("pipelinePermission", true, "已开通");
-      });
-
-      function setPipelineStage(id, done, detail) {
-        const node = document.getElementById(id);
-        if (!node) return;
-        node.classList.toggle("done", done);
-        const detailNode = node.querySelector("span");
-        if (detailNode) detailNode.textContent = detail;
-      }
-
-      let recorderTimer = null;
-      let recorderSeconds = 0;
-      let recorderStartedAt = 0;
-      let micStream = null;
-      let audioContext = null;
-      let processorNode = null;
-      let sourceNode = null;
-      let silentGainNode = null;
-      let noiseFloor = 0.018;
-      let calibrationSamples = [];
-      let isCalibrating = false;
-      let lastStablePitchAt = 0;
-      let statusHoldUntil = 0;
-      let lastRms = 0;
-      let lastOnsetAt = 0;
-      let onsetWindowUntil = 0;
-      let gateMultiplier = 3.2;
-      let pitchCentsHistory = [];
-      let pitchHistoryNote = null;
-      let pitchHistoryUpdatedAt = 0;
-      const IN_TUNE_CENTS = 8;
-      const ACTION_CENTS = 12;
-      const recorderButton = document.getElementById("recorderButton");
-      const calibrateButton = document.getElementById("calibrateButton");
-      const gateSlider = document.getElementById("gateSlider");
-      const gateValue = document.getElementById("gateValue");
-      const levelValue = document.getElementById("levelValue");
-      const levelFill = document.getElementById("levelFill");
-      const inputStatus = document.getElementById("inputStatus");
-      const recordDuration = document.getElementById("recordDuration");
-      const meteringValue = document.getElementById("meteringValue");
-
-      function renderInputLevel(level) {
-        const percent = Math.round(level * 100);
-        levelValue.textContent = `${percent}%`;
-        levelFill.style.width = `${percent}%`;
-        meteringValue.textContent = `metering ${Math.round(-60 + level * 60)} dB`;
-      }
-
-      function renderPracticeMicState(isActive, detail) {
-        if (!practiceMicButton || !practiceMicStatus) return;
-        practiceMicButton.textContent = isActive ? "停止麦克风跟练" : "打开麦克风跟练";
-        practiceMicButton.classList.toggle("ready", isActive);
-        practiceMicStatus.textContent = detail || (isActive ? "麦克风已开启，扫弦会进入节奏评分。" : "打开后，扫弦会进入节奏评分。");
-      }
-
-      recorderButton.addEventListener("click", async () => {
-        if (recorderTimer || micStream) {
-          stopBrowserMic();
-          return;
-        }
-
-        await startBrowserMic();
-      });
-
-      calibrateButton.addEventListener("click", () => {
-        startNoiseCalibration();
-      });
-
-      gateSlider.addEventListener("input", () => {
-        gateMultiplier = Number(gateSlider.value);
-        gateValue.textContent = `${gateMultiplier.toFixed(1)}x`;
-        if (!isCalibrating) {
-          inputStatus.textContent = `当前噪声门限 ${(getNoiseGate() * 100).toFixed(1)}%。风扇误触发就继续向右调。`;
-          tunerFreq.textContent = `噪声门限 ${(getNoiseGate() * 100).toFixed(1)}% · 等待拨弦触发`;
-        }
-      });
-
-      const tuning = {
-        G4: { note: "G4", freq: "392.00", cents: -8.4, status: "弦太松，稍微拧紧一点" },
-        C4: { note: "C4", freq: "261.63", cents: 0.8, status: "已命中，保持稳定" },
-        E4: { note: "E4", freq: "329.63", cents: -2.6, status: "略低，轻轻拧紧" },
-        A4: { note: "A4", freq: "440.00", cents: 3.1, status: "略高，轻轻松弦" },
-      };
-
-      const tunerNote = document.getElementById("tunerNote");
-      const tunerCents = document.getElementById("tunerCents");
-      const tunerStatus = document.getElementById("tunerStatus");
-      const tunerFreq = document.getElementById("tunerFreq");
-      const needleMark = document.getElementById("needleMark");
-      const stringButtons = Array.from(document.querySelectorAll(".string-btn"));
-      let selectedTunerNote = "A4";
-
-      function updateTuner(note) {
-        selectedTunerNote = note;
-        resetPitchHistory(note);
-        const item = tuning[note];
-        tunerNote.textContent = item.note;
-        tunerCents.textContent = formatTuningAction(item.cents);
-        tunerCents.style.color = tuningColor(item.cents);
-        tunerStatus.textContent = formatTuningStatus(item.cents);
-        tunerStatus.style.color = tuningColor(item.cents);
-        tunerFreq.textContent = `目标频率 ${item.freq} Hz`;
-        needleMark.style.transform = `translateX(calc(-50% + ${Math.max(-42, Math.min(42, item.cents * 3.4))}px))`;
-        stringButtons.forEach((button) => button.classList.toggle("active", button.dataset.string === note));
-      }
-
-      async function startBrowserMic() {
-        if (!window.isSecureContext) {
-          inputStatus.textContent = "当前地址不允许真实麦克风。请用 http://localhost:8082/preview.html 打开。";
-          renderPracticeMicState(false, "当前地址不允许真实麦克风，请用 localhost 打开。");
-          renderInputLevel(0);
-          return;
-        }
-
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          inputStatus.textContent = "当前浏览器不支持 getUserMedia，无法在预览页真实拾音。";
-          renderPracticeMicState(false, "当前浏览器不支持 getUserMedia。");
-          renderInputLevel(0);
-          return;
-        }
-
-        try {
-          recorderButton.textContent = "请求麦克风...";
-          if (practiceMicButton) {
-            practiceMicButton.textContent = "请求麦克风...";
-          }
-          if (practiceMicStatus) {
-            practiceMicStatus.textContent = "正在请求浏览器麦克风权限。";
-          }
-          micStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: false,
-              noiseSuppression: false,
-              autoGainControl: false
-            }
-          });
-
-          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-          audioContext = new AudioContextClass();
-          sourceNode = audioContext.createMediaStreamSource(micStream);
-          processorNode = audioContext.createScriptProcessor(4096, 1, 1);
-          silentGainNode = audioContext.createGain();
-          silentGainNode.gain.value = 0;
-
-          sourceNode.connect(processorNode);
-          processorNode.connect(silentGainNode);
-          silentGainNode.connect(audioContext.destination);
-
-          recorderStartedAt = Date.now();
-          recorderButton.textContent = "停止真实麦克风";
-          recorderButton.classList.add("stop");
-          renderPracticeMicState(true, "麦克风已开启；开始跟练后，拨弦会计入节奏分。");
-          setPipelineStage("pipelinePermission", true, "已开通");
-          setPipelineStage("pipelineLevel", true, "读取中");
-          setPipelineStage("pipelinePitch", false, "模拟");
-          lastRms = 0;
-          lastOnsetAt = 0;
-          onsetWindowUntil = 0;
-          startNoiseCalibration();
-
-          recorderTimer = setInterval(() => {
-            recorderSeconds = Math.round((Date.now() - recorderStartedAt) / 1000);
-            recordDuration.textContent = `时长 ${recorderSeconds}s`;
-          }, 250);
-
-          processorNode.onaudioprocess = (event) => {
-            const input = event.inputBuffer.getChannelData(0);
-            const rms = calculateRms(input);
-            if (isCalibrating) {
-              calibrationSamples.push(rms);
-            }
-            const gate = getNoiseGate();
-            const level = Math.min(1, Math.max(0, (rms - noiseFloor) / Math.max(0.01, gate * 2.2)));
-            renderInputLevel(level);
-
-            if (isCalibrating) {
-              lastRms = rms;
-              return;
-            }
-
-            const now = Date.now();
-            const onsetRatio = rms / Math.max(lastRms, noiseFloor, 0.004);
-            const hasPluckOnset = rms > gate && onsetRatio > 1.75 && now - lastOnsetAt > 260;
-            if (hasPluckOnset) {
-              lastOnsetAt = now;
-              onsetWindowUntil = now + 1200;
-              statusHoldUntil = now + 900;
-              if (practiceRunning) {
-                recordPracticeEvent("strum", practiceStep, { timestampMs: now, source: "mic-onset" });
-                renderPractice();
-              }
-              tunerStatus.textContent = "检测到拨弦，正在估算音高";
-              tunerStatus.style.color = "var(--muted)";
-            }
-
-            if (now < onsetWindowUntil) {
-              const pitch = detectPitch(input, audioContext.sampleRate, gate);
-              if (pitch) {
-                updateTunerFromPitch(pitch);
-              } else if (now > statusHoldUntil) {
-                tunerStatus.textContent = "拨弦信号还不够清晰";
-                tunerStatus.style.color = "var(--muted)";
-                tunerFreq.textContent = `当前 ${(rms * 100).toFixed(1)}% · 门限 ${(gate * 100).toFixed(1)}% · 请靠近麦克风`;
-              }
-            } else if (now > statusHoldUntil && now - lastStablePitchAt > 900 && rms <= gate) {
-              tunerStatus.textContent = "等待拨单根弦";
-              tunerStatus.style.color = "var(--muted)";
-              tunerFreq.textContent = `风扇作为底噪忽略中 · 门限 ${(gate * 100).toFixed(1)}% · 当前 ${(rms * 100).toFixed(1)}%`;
-            } else if (now > statusHoldUntil && now - lastStablePitchAt > 1400 && rms > gate) {
-              tunerStatus.textContent = "底噪偏高，但未检测到拨弦瞬态";
-              tunerStatus.style.color = "var(--muted)";
-              tunerFreq.textContent = `噪声门限 ${(gate * 100).toFixed(1)}% · 当前 ${(rms * 100).toFixed(1)}%`;
-            }
-            lastRms = rms;
-          };
-        } catch (error) {
-          stopBrowserMic();
-          inputStatus.textContent = `无法打开真实麦克风：${error && error.message ? error.message : "请检查浏览器权限"}`;
-          renderPracticeMicState(false, "无法打开麦克风，请检查浏览器权限。");
-          recorderButton.textContent = "开始录音 PoC";
-        }
-      }
-
-      function stopBrowserMic() {
-        if (recorderTimer) {
-          clearInterval(recorderTimer);
-          recorderTimer = null;
-        }
-        if (processorNode) {
-          processorNode.disconnect();
-          processorNode.onaudioprocess = null;
-          processorNode = null;
-        }
-        if (sourceNode) {
-          sourceNode.disconnect();
-          sourceNode = null;
-        }
-        if (silentGainNode) {
-          silentGainNode.disconnect();
-          silentGainNode = null;
-        }
-        if (micStream) {
-          micStream.getTracks().forEach((track) => track.stop());
-          micStream = null;
-        }
-        if (audioContext) {
-          audioContext.close();
-          audioContext = null;
-        }
-        recorderButton.textContent = "开始录音 PoC";
-        recorderButton.classList.remove("stop");
-        inputStatus.textContent = "真实麦克风已停止。";
-        renderPracticeMicState(false, "麦克风已停止；可再次打开后跟练。");
-        setPipelineStage("pipelineLevel", false, "未启动");
-        setPipelineStage("pipelinePitch", false, "模拟");
-        lastRms = 0;
-        lastOnsetAt = 0;
-        onsetWindowUntil = 0;
-        renderInputLevel(0);
-      }
-
-      function startNoiseCalibration() {
-        calibrationSamples = [];
-        isCalibrating = true;
-        lastRms = 0;
-        lastOnsetAt = 0;
-        onsetWindowUntil = 0;
-        statusHoldUntil = Date.now() + 1500;
-        inputStatus.textContent = "正在校准环境噪声：请先别拨弦，保持当前风扇/房间声音。";
-        window.setTimeout(() => {
-          if (!isCalibrating) return;
-          isCalibrating = false;
-          if (calibrationSamples.length) {
-            const sorted = [...calibrationSamples].sort((a, b) => a - b);
-            const highIndex = Math.min(sorted.length - 1, Math.floor(sorted.length * 0.8));
-            noiseFloor = Math.max(0.008, sorted[highIndex]);
-          }
-          statusHoldUntil = Date.now() + 3500;
-          inputStatus.textContent = `校准完成。现在用拨弦触发检测，底噪 ${(noiseFloor * 100).toFixed(1)}%。`;
-          tunerStatus.textContent = "校准完成，现在拨单根弦";
-          tunerStatus.style.color = "var(--muted)";
-          tunerFreq.textContent = `噪声门限 ${(getNoiseGate() * 100).toFixed(1)}% · 风扇误触发就调高门限`;
-        }, 1200);
-      }
-
-      function getNoiseGate() {
-        return Math.max(0.025, noiseFloor * gateMultiplier);
-      }
-
-      function calculateRms(buffer) {
-        let sum = 0;
-        for (let index = 0; index < buffer.length; index += 1) {
-          sum += buffer[index] * buffer[index];
-        }
-        return Math.sqrt(sum / buffer.length);
-      }
-
-      function detectPitch(buffer, sampleRate, gate) {
-        const rms = calculateRms(buffer);
-        if (rms < gate) return null;
-
-        const minFrequency = 180;
-        const maxFrequency = 520;
-        const minLag = Math.floor(sampleRate / maxFrequency);
-        const maxLag = Math.floor(sampleRate / minFrequency);
-        let bestLag = -1;
-        let bestCorrelation = 0;
-
-        for (let lag = minLag; lag <= maxLag; lag += 1) {
-          let correlation = 0;
-          let energyA = 0;
-          let energyB = 0;
-          for (let index = 0; index < buffer.length - lag; index += 1) {
-            const a = buffer[index];
-            const b = buffer[index + lag];
-            correlation += a * b;
-            energyA += a * a;
-            energyB += b * b;
-          }
-          const normalized = correlation / Math.sqrt(Math.max(1e-12, energyA * energyB));
-          if (normalized > bestCorrelation) {
-            bestCorrelation = normalized;
-            bestLag = lag;
-          }
-        }
-
-        if (bestLag <= 0 || bestCorrelation < 0.72) return null;
-        return {
-          frequency: sampleRate / bestLag,
-          clarity: bestCorrelation,
-          rms
-        };
-      }
-
-      function updateTunerFromPitch(pitch) {
-        const frequency = pitch.frequency;
-        const candidates = Object.values(tuning).map((item) => ({
-          ...item,
-          targetFrequency: Number(item.freq),
-          detectedCents: centsBetweenFrequencies(frequency, Number(item.freq))
-        }));
-        const best = candidates.reduce((winner, item) =>
-          Math.abs(item.detectedCents) < Math.abs(winner.detectedCents) ? item : winner
-        );
-        const rawCents = best.detectedCents;
-        if (Math.abs(rawCents) > 120) {
-          tunerStatus.textContent = "检测到声音，但不像当前调弦范围内的清晰单弦";
-          tunerStatus.style.color = "var(--muted)";
-          tunerFreq.textContent = `检测 ${frequency.toFixed(2)} Hz · clarity ${pitch.clarity.toFixed(2)}`;
-          return;
-        }
-        const cents = smoothDetectedCents(best.note, rawCents);
-        const status = formatTuningStatus(cents);
-
-        selectedTunerNote = best.note;
-        tunerNote.textContent = best.note;
-        tunerCents.textContent = formatTuningAction(cents);
-        tunerCents.style.color = tuningColor(cents);
-        tunerStatus.textContent = status;
-        tunerStatus.style.color = tuningColor(cents);
-        tunerFreq.textContent = `检测 ${frequency.toFixed(2)} Hz · 平滑 ${cents > 0 ? "+" : ""}${cents.toFixed(1)} cents · 目标 ${best.freq} Hz`;
-        needleMark.style.transform = `translateX(calc(-50% + ${Math.max(-42, Math.min(42, cents * 3.4))}px))`;
-        stringButtons.forEach((button) => button.classList.toggle("active", button.dataset.string === best.note));
-        setPipelineStage("pipelinePitch", true, "浏览器 PoC");
-        lastStablePitchAt = Date.now();
-      }
-
-      function centsBetweenFrequencies(frequency, targetFrequency) {
-        return 1200 * Math.log2(frequency / targetFrequency);
-      }
-
-      function formatTuningAction(cents) {
-        const amount = Math.abs(cents).toFixed(1);
-        if (Math.abs(cents) <= IN_TUNE_CENTS) {
-          return `已准 ${amount} cents · 不用调`;
-        }
-        if (Math.abs(cents) <= ACTION_CENTS) {
-          return `基本准 ${amount} cents · 先不动`;
-        }
-        return cents > 0
-          ? `偏高 ${amount} cents · 请松弦`
-          : `偏低 ${amount} cents · 请拧紧`;
-      }
-
-      function formatTuningStatus(cents) {
-        if (Math.abs(cents) <= IN_TUNE_CENTS) {
-          return "在允许范围内，保持即可";
-        }
-        if (Math.abs(cents) <= ACTION_CENTS) {
-          return "接近目标，多拨一次确认后再微调";
-        }
-        return cents > 0 ? "弦太紧，请松弦" : "弦太松，请拧紧";
-      }
-
-      function tuningColor(cents) {
-        if (Math.abs(cents) <= IN_TUNE_CENTS) return "var(--success)";
-        if (Math.abs(cents) <= ACTION_CENTS) return "var(--amber)";
-        return cents > 0 ? "var(--coral)" : "var(--blue)";
-      }
-
-      function smoothDetectedCents(note, cents) {
-        const now = Date.now();
-        if (pitchHistoryNote !== note || now - pitchHistoryUpdatedAt > 1800) {
-          pitchCentsHistory = [];
-          pitchHistoryNote = note;
-        }
-        pitchHistoryUpdatedAt = now;
-        pitchCentsHistory.push(cents);
-        if (pitchCentsHistory.length > 5) {
-          pitchCentsHistory.shift();
-        }
-        const sorted = [...pitchCentsHistory].sort((a, b) => a - b);
-        return sorted[Math.floor(sorted.length / 2)];
-      }
-
-      function resetPitchHistory(note) {
-        pitchCentsHistory = [];
-        pitchHistoryNote = note;
-        pitchHistoryUpdatedAt = 0;
-      }
-
-      stringButtons.forEach((button) => {
-        button.addEventListener("click", () => updateTuner(button.dataset.string));
-      });
-      updateTuner("A4");
-
-      let bpm = 70;
-      let beat = 0;
-      let bars = 1;
-      let timer = null;
-      const bpmValue = document.getElementById("bpmValue");
-      const beatToggle = document.getElementById("beatToggle");
-      const barCount = document.getElementById("barCount");
-      const beats = Array.from(document.querySelectorAll(".beat"));
-
-      function renderBeat() {
-        bpmValue.textContent = String(bpm);
-        barCount.textContent = String(bars);
-        beats.forEach((node, index) => node.classList.toggle("active", index === beat));
-      }
-
-      function tickBeat() {
-        beat = (beat + 1) % 4;
-        if (beat === 0) bars += 1;
-        renderBeat();
-      }
-
-      function restartTimer() {
-        if (!timer) return;
-        clearInterval(timer);
-        timer = setInterval(tickBeat, 60000 / bpm);
-      }
-
-      document.getElementById("bpmDown").addEventListener("click", () => {
-        bpm = Math.max(30, bpm - 5);
-        renderBeat();
-        restartTimer();
-      });
-
-      document.getElementById("bpmUp").addEventListener("click", () => {
-        bpm = Math.min(240, bpm + 5);
-        renderBeat();
-        restartTimer();
-      });
-
-      beatToggle.addEventListener("click", () => {
-        if (timer) {
-          clearInterval(timer);
-          timer = null;
-          beatToggle.textContent = "开始";
-        } else {
-          beatToggle.textContent = "暂停";
-          timer = setInterval(tickBeat, 60000 / bpm);
-        }
-      });
-      renderBeat();
-
-      let steps = Array.from(document.querySelectorAll(".step"));
-      const sessionTitle = document.getElementById("sessionTitle");
-      const sessionPill = document.getElementById("sessionPill");
-      const practiceProgress = document.getElementById("practiceProgress");
-      const sessionMeta = document.getElementById("sessionMeta");
-      const practiceBpmValue = document.getElementById("practiceBpmValue");
-      const practiceBeats = Array.from(document.querySelectorAll(".practice-beat"));
-      const currentChordDiagram = document.getElementById("currentChordDiagram");
-      const currentFingeringHelp = document.getElementById("currentFingeringHelp");
-      const practiceTimeline = document.getElementById("practiceTimeline");
-      const reportHint = document.getElementById("reportHint");
-      const practicedBars = document.getElementById("practicedBars");
-      const completedClicks = document.getElementById("completedClicks");
-      const practiceDuration = document.getElementById("practiceDuration");
-      const practiceRhythmScore = document.getElementById("practiceRhythmScore");
-      const practiceStrumStatus = document.getElementById("practiceStrumStatus");
-      const suggestion = document.getElementById("suggestion");
-      const togglePractice = document.getElementById("togglePractice");
-      const practiceTempoButtons = Array.from(document.querySelectorAll("[data-tempo-id]"));
-      const practiceLoopButtons = Array.from(document.querySelectorAll("[data-loop-mode]"));
-      const practiceTemplateButtons = Array.from(document.querySelectorAll("[data-practice-template]"));
-      const chordShapes = {
-        C: { fingering: [0, 0, 0, 3], fingers: [0, 0, 0, 3] },
-        Am: { fingering: [2, 0, 0, 0], fingers: [2, 0, 0, 0] },
-        F: { fingering: [2, 0, 1, 0], fingers: [2, 0, 1, 0] },
-        G7: { fingering: [0, 2, 1, 2], fingers: [0, 2, 1, 3] }
-      };
-      const practiceTemplates = [
-        {
-          id: "practice-rhythm-down-four",
-          type: "rhythm_pattern",
-          bpm: 60,
-          title: "Down Strum Four",
-          label: "节奏型",
-          targets: [
-            { chord: "C", action: "下扫第一拍", bar: 1, beat: 1, text: "第一拍重音要稳。" },
-            { chord: "C", action: "下扫第二拍", bar: 1, beat: 2, text: "轻拍贴住节拍。" },
-            { chord: "C", action: "下扫第三拍", bar: 1, beat: 3, text: "保持扫弦幅度一致。" },
-            { chord: "C", action: "下扫第四拍", bar: 1, beat: 4, text: "放松手腕，准备循环。" }
-          ]
-        },
-        {
-          id: "practice-transition-c-am",
-          type: "chord_transition",
-          bpm: 60,
-          title: "C to Am Transition",
-          label: "换和弦",
-          targets: [
-            { chord: "C", action: "稳住 C", bar: 1, beat: 1, text: "先把 C 的第三指落稳。" },
-            { chord: "Am", action: "换到 Am", bar: 2, beat: 1, text: "提前准备二指，落在第一拍。" }
-          ]
-        },
-        {
-          id: "practice-c-am-f-g7-loop",
-          type: "chord_switch",
-          bpm: 70,
-          title: "C-Am-F-G7 Chord Loop",
-          label: "循环",
-          targets: [
-            { chord: "C", action: "下扫四拍", bar: 1, beat: 1, text: "先稳住第一拍，右手扫弦不用急。" },
-            { chord: "Am", action: "换到 Am", bar: 2, beat: 1, text: "Am 进入很稳，保持手腕放松。" },
-            { chord: "F", action: "换到 F", bar: 3, beat: 1, text: "F 和弦按弦再靠近品丝一点。" },
-            { chord: "G7", action: "收在 G7", bar: 4, beat: 1, text: "G7 收尾清楚，可以升到 75 BPM。" }
-          ]
-        },
-        {
-          id: "practice-song-fragment-four-chord-hum",
-          type: "song_fragment",
-          bpm: 70,
-          title: "Four Chord Hum",
-          label: "歌曲",
-          targets: [
-            { chord: "C", action: "唱 la", bar: 1, beat: 1, text: "C 上轻声哼唱，扫弦别抢。" },
-            { chord: "Am", action: "唱 la", bar: 2, beat: 1, text: "换到 Am 前先准备二指。" },
-            { chord: "F", action: "唱 la", bar: 3, beat: 1, text: "保持歌词和扫弦同步。" },
-            { chord: "G7", action: "唱 la", bar: 4, beat: 1, text: "G7 收尾放轻，准备循环。" }
-          ]
-        }
-      ];
-      const withChordShape = (target, index) => ({
-        ...target,
-        id: `${target.bar || index + 1}-${target.beat || 1}-${target.chord}`,
-        pitch: [91, 93, 89, 92][index % 4],
-        rhythm: [86, 88, 84, 90][index % 4],
-        flow: [88, 90, 86, 91][index % 4],
-        ...(chordShapes[target.chord] || chordShapes.C)
-      });
-      let activePracticeTemplate = practiceTemplates.find((template) => template.id === "practice-c-am-f-g7-loop") || practiceTemplates[0];
-      let reports = activePracticeTemplate.targets.map(withChordShape);
-      let practiceStep = 0;
-      let practiceBpm = 70;
-      let practiceTempoId = "standard";
-      let practiceLoopMode = "auto";
-      let practiceBeat = 0;
-      let completedSteps = reports.map(() => false);
-      let practiceEvents = [];
-      let practiceSessionSaved = false;
-      let practiceRunning = false;
-      let practiceTimer = null;
-      let practiceSoundEnabled = true;
-      let practiceAudioContext = null;
-      const practiceSoundToggle = document.getElementById("practiceSoundToggle");
-      const practiceSoundStatus = document.getElementById("practiceSoundStatus");
-      const practiceMicButton = document.getElementById("practiceMicButton");
-      const practiceMicStatus = document.getElementById("practiceMicStatus");
-      const PRACTICE_HISTORY_KEY = "ukulele.practiceHistory.v1";
-      const PRACTICE_HISTORY_LIMIT = 20;
-      const practiceHistorySummaryNodes = Array.from(document.querySelectorAll("[data-practice-history-summary]"));
-      const practiceHistoryOverview = document.getElementById("practiceHistoryOverview");
-      const practiceHistoryList = document.getElementById("practiceHistoryList");
-      const clearPracticeHistoryButton = document.getElementById("clearPracticeHistory");
-      const nextPracticeReason = document.getElementById("nextPracticeReason");
-      const nextPracticeTitle = document.getElementById("nextPracticeTitle");
-      const nextPracticeDetail = document.getElementById("nextPracticeDetail");
-      const nextPracticeBpm = document.getElementById("nextPracticeBpm");
-      const nextPracticeMode = document.getElementById("nextPracticeMode");
-      const nextPracticeFocus = document.getElementById("nextPracticeFocus");
-      const startRecommendedPractice = document.getElementById("startRecommendedPractice");
-      const lessonOneProgressStatus = document.getElementById("lessonOneProgressStatus");
-      const lessonOneBestRhythm = document.getElementById("lessonOneBestRhythm");
-      const lessonOneCompletedRounds = document.getElementById("lessonOneCompletedRounds");
-      const lessonOnePassCriteria = document.getElementById("lessonOnePassCriteria");
-      const markLessonOnePassedButton = document.getElementById("markLessonOnePassed");
-      const lessonPathPercent = document.getElementById("lessonPathPercent");
-      const lessonPathNodes = Array.from(document.querySelectorAll("[data-lesson-path-node]"));
-      const reviewReport = document.getElementById("reviewReport");
-      const LESSON_ONE_ID = "lesson-1";
-      const LESSON_ONE_PASS_SCORE = 70;
-      let nextPracticeRecommendation = null;
-
-      function readPracticeHistory() {
-        try {
-          const raw = window.localStorage.getItem(PRACTICE_HISTORY_KEY);
-          if (!raw) return [];
-          const parsed = JSON.parse(raw);
-          return Array.isArray(parsed) ? parsed.filter((item) => item && typeof item === "object") : [];
-        } catch (error) {
-          return [];
-        }
-      }
-
-      function writePracticeHistory(records) {
-        try {
-          window.localStorage.setItem(PRACTICE_HISTORY_KEY, JSON.stringify(records.slice(0, PRACTICE_HISTORY_LIMIT)));
-          return true;
-        } catch (error) {
-          return false;
-        }
-      }
-
-      function getPracticeRecordRhythmScore(record) {
-        const value = Number(record.rhythmScore ?? record.rhythmSummary?.averageRhythmScore ?? 0);
-        return Number.isFinite(value) ? value : 0;
-      }
-
-      function getPracticeRecordCompletedCount(record) {
-        const values = [
-          record.completedCount,
-          record.completedTargets,
-          record.targetsCompleted,
-          record.completeEvents
-        ].map((value) => Number(value)).filter((value) => Number.isFinite(value));
-        return values.length > 0 ? Math.max(...values) : 0;
-      }
-
-      function isPracticeRecordPassed(record) {
-        return String(record.status || "").toLowerCase() === "passed"
-          || String(record.result || "").toLowerCase() === "passed";
-      }
-
-      function isLessonOneReadyRecord(record) {
-        return getPracticeRecordCompletedCount(record) >= reports.length
-          && getPracticeRecordRhythmScore(record) >= LESSON_ONE_PASS_SCORE;
-      }
-
-      function buildLessonOneProgress(history) {
-        const bestRhythmScore = history.reduce((best, record) => Math.max(best, getPracticeRecordRhythmScore(record)), 0);
-        const bestCompletedCount = history.reduce((best, record) => Math.max(best, getPracticeRecordCompletedCount(record)), 0);
-        const fullRounds = history.filter((record) => getPracticeRecordCompletedCount(record) >= reports.length).length;
-        const passedRecord = history.find(isPracticeRecordPassed);
-        const readyRecord = history.find(isLessonOneReadyRecord);
-        const state = !history.length
-          ? "empty"
-          : passedRecord
-            ? "passed"
-            : readyRecord
-              ? "ready"
-              : "practicing";
-        return {
-          state,
-          statusText: {
-            empty: "无记录",
-            practicing: "练习中",
-            ready: "可通过",
-            passed: "已通过"
-          }[state],
-          bestRhythmScore,
-          bestCompletedCount,
-          fullRounds,
-          passedRecord,
-          readyRecord
-        };
-      }
-
-      function renderLessonOneProgress(history) {
-        const progress = buildLessonOneProgress(history);
-        lessonOneProgressStatus.textContent = progress.statusText;
-        lessonOneProgressStatus.classList.toggle("ready", progress.state === "ready");
-        lessonOneProgressStatus.classList.toggle("passed", progress.state === "passed");
-        lessonOneBestRhythm.textContent = progress.bestRhythmScore > 0 ? String(progress.bestRhythmScore) : "--";
-        lessonOneCompletedRounds.textContent = `${Math.min(progress.bestCompletedCount, reports.length)}/${reports.length} · ${progress.fullRounds} 次`;
-        lessonOnePassCriteria.textContent = `通过条件：完整完成 ${reports.length} 个目标且节奏分 ≥ ${LESSON_ONE_PASS_SCORE}`;
-        markLessonOnePassedButton.hidden = progress.state !== "ready";
-      }
-
-      function lessonPathStatusLabel(status) {
-        if (status === "done") return "已完成";
-        if (status === "current") return "当前";
-        if (status === "pending") return "待继续";
-        return "未解锁";
-      }
-
-      function buildLessonPathProgress(history) {
-        const lessonProgress = buildLessonOneProgress(history);
-        const hasPractice = history.length > 0;
-        const practiceDone = lessonProgress.fullRounds > 0 || lessonProgress.state === "ready" || lessonProgress.state === "passed";
-        const reviewDone = lessonProgress.state === "passed";
-        const nodes = [
-          {
-            id: "tuning",
-            status: hasPractice ? "done" : "current",
-            detail: hasPractice ? "课前准备已完成" : "确认 G-C-E-A 标准调弦"
-          },
-          {
-            id: "practice",
-            status: practiceDone ? "done" : hasPractice ? "current" : "locked",
-            detail: practiceDone ? "四和弦循环已达标" : "按节拍跑顺 C-Am-F-G7"
-          },
-          {
-            id: "review",
-            status: reviewDone ? "done" : practiceDone ? "current" : "locked",
-            detail: reviewDone ? "第一课已标记通过" : "查看节奏和完成记录"
-          }
-        ];
-        const completedNodes = nodes.filter((node) => node.status === "done").length;
-        return {
-          nodes,
-          completedNodes,
-          totalNodes: nodes.length,
-          percent: Math.round((completedNodes / nodes.length) * 100)
-        };
-      }
-
-      function renderLessonPath(history) {
-        const progress = buildLessonPathProgress(history);
-        lessonPathPercent.textContent = `${progress.completedNodes}/${progress.totalNodes} · ${progress.percent}%`;
-        progress.nodes.forEach((node) => {
-          const element = lessonPathNodes.find((item) => item.dataset.lessonPathNode === node.id);
-          if (!element) return;
-          element.classList.toggle("done", node.status === "done");
-          element.classList.toggle("current", node.status === "current");
-          element.classList.toggle("locked", node.status === "locked");
-          element.classList.toggle("actionable", node.id === "review" && node.status !== "locked");
-          const detail = element.querySelector(".lesson-path-detail");
-          const status = element.querySelector(".lesson-path-status");
-          if (detail) detail.textContent = node.detail;
-          if (status) status.textContent = lessonPathStatusLabel(node.status);
-        });
-      }
-
-      function markLessonOnePassed() {
-        const history = readPracticeHistory();
-        const progress = buildLessonOneProgress(history);
-        if (progress.state !== "ready") {
-          renderLessonOneProgress(history);
-          return;
-        }
-        const now = new Date().toISOString();
-        const latest = history[0];
-        let nextHistory;
-        if (latest && isLessonOneReadyRecord(latest)) {
-          nextHistory = [
-            {
-              ...latest,
-              lessonId: LESSON_ONE_ID,
-              status: "passed",
-              result: "passed",
-              passedAt: now,
-              passSource: "latest-practice-record"
-            },
-            ...history.slice(1)
-          ];
-        } else {
-          const sourceRecord = progress.readyRecord;
-          nextHistory = [
-            {
-              id: `${LESSON_ONE_ID}-pass-${Date.now()}`,
-              lessonId: LESSON_ONE_ID,
-              status: "passed",
-              result: "passed",
-              reason: "lesson-pass",
-              startedAt: sourceRecord?.startedAt || now,
-              endedAt: now,
-              createdAt: now,
-              passedAt: now,
-              duration: 0,
-              durationSec: 0,
-              bpm: sourceRecord?.bpm || 70,
-              mode: sourceRecord?.mode || "auto",
-              completedCount: Math.max(reports.length, progress.bestCompletedCount),
-              completeEvents: sourceRecord?.completeEvents || reports.length,
-              strumCount: sourceRecord?.strumCount || 0,
-              triggerSource: "lesson-progress",
-              barsPracticed: sourceRecord?.barsPracticed || 0,
-              rhythmScore: progress.bestRhythmScore,
-              rhythmSummary: sourceRecord?.rhythmSummary || { averageRhythmScore: progress.bestRhythmScore },
-              chords: sourceRecord?.chords || reports.map((report) => report.chord),
-              targetSummary: "第一课通过",
-              sourceRecordId: sourceRecord?.id || null,
-              passSource: "lesson-progress-card"
-            },
-            ...history
-          ];
-        }
-        writePracticeHistory(nextHistory);
-        renderPracticeHistorySummary();
-      }
-
-      function formatPracticeHistoryTime(value) {
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return "刚刚";
-        return new Intl.DateTimeFormat("zh-CN", {
-          month: "numeric",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit"
-        }).format(date);
-      }
-
-      function formatPracticeMode(mode) {
-        return mode === "single" ? "只练当前" : "自动循环";
-      }
-
-      function createNextPracticeRecommendation(history) {
-        const latest = history[0];
-        if (!latest) {
-          return {
-            title: "从慢速循环开始",
-            detail: "用 60 BPM 自动循环，完整跑顺四和弦循环。",
-            bpm: 60,
-            tempoId: "slow",
-            loopMode: "auto",
-            focusChord: null,
-            reason: "还没有本地练习记录"
-          };
-        }
-        const rhythmScore = latest.rhythmScore || latest.rhythmSummary?.averageRhythmScore || 0;
-        const completedCount = latest.completedCount || 0;
-        const focusChord = latest.chords?.[0] || latest.targetSummary?.match(/C|Am|F|G7/)?.[0] || reports[0].chord;
-        if (completedCount < reports.length || rhythmScore < 70) {
-          return {
-            title: `稳住 ${focusChord}`,
-            detail: `用 60 BPM 只练 ${focusChord}，先把换指和完成时机练稳。`,
-            bpm: 60,
-            tempoId: "slow",
-            loopMode: "single",
-            focusChord,
-            reason: rhythmScore < 70 ? "最近节奏参考分偏低" : "上一轮还有目标未完成"
-          };
-        }
-        if (rhythmScore >= 85 && completedCount >= reports.length) {
-          return {
-            title: "升到进阶速度",
-            detail: "用 85 BPM 自动循环，完整跑顺四和弦循环。",
-            bpm: 85,
-            tempoId: "advanced",
-            loopMode: "auto",
-            focusChord: null,
-            reason: "上一轮完成度高，节奏稳定"
-          };
-        }
-        return {
-          title: "保持标准速度",
-          detail: "用 70 BPM 自动循环，目标是完整跑顺一轮。",
-          bpm: 70,
-          tempoId: "standard",
-          loopMode: "auto",
-          focusChord: null,
-          reason: "根据最近练习记录生成"
-        };
-      }
-
-      function renderNextPracticeRecommendation(history) {
-        nextPracticeRecommendation = createNextPracticeRecommendation(history);
-        nextPracticeReason.textContent = nextPracticeRecommendation.reason;
-        nextPracticeTitle.textContent = nextPracticeRecommendation.title;
-        nextPracticeDetail.textContent = nextPracticeRecommendation.detail;
-        nextPracticeBpm.textContent = String(nextPracticeRecommendation.bpm);
-        nextPracticeMode.textContent = nextPracticeRecommendation.loopMode === "single" ? "单练" : "循环";
-        nextPracticeFocus.textContent = nextPracticeRecommendation.focusChord || "四和弦";
-      }
-
-      function formatDurationLabel(durationSec) {
-        if (durationSec < 60) return `${durationSec}s`;
-        const minutes = Math.floor(durationSec / 60);
-        const seconds = durationSec % 60;
-        return seconds === 0 ? `${minutes}min` : `${minutes}min ${seconds}s`;
-      }
-
-      function practiceDayKey(value) {
-        const date = new Date(value);
-        return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
-      }
-
-      function previousDayKey(dayKey) {
-        const date = new Date(`${dayKey}T00:00:00.000Z`);
-        date.setUTCDate(date.getUTCDate() - 1);
-        return date.toISOString().slice(0, 10);
-      }
-
-      function summarizePracticeHistory(records) {
-        const dayKeys = Array.from(new Set(records.map((record) => practiceDayKey(record.endedAt || record.createdAt || record.startedAt)).filter(Boolean))).sort((a, b) => b.localeCompare(a));
-        const daySet = new Set(dayKeys);
-        let streak = 0;
-        for (let dayKey = dayKeys[0]; dayKey && daySet.has(dayKey); dayKey = previousDayKey(dayKey)) {
-          streak += 1;
-        }
-        return {
-          sessions: records.length,
-          durationSec: records.reduce((sum, record) => sum + Math.max(0, Math.round(record.durationSec || record.duration || 0)), 0),
-          days: dayKeys.length,
-          streak
-        };
-      }
-
-      function scoreTimingOffset(offsetMs) {
-        const abs = Math.abs(offsetMs);
-        if (abs <= 60) return 100;
-        if (abs <= 120) return Math.round(100 - ((abs - 60) / 60) * 50);
-        return Math.max(0, Math.round(50 - Math.min(50, (abs - 120) / 3)));
-      }
-
-      function classifyTimingOffset(offsetMs) {
-        if (offsetMs < -60) return "early";
-        if (offsetMs > 60) return "late";
-        return "on-time";
-      }
-
-      function buildRhythmSummary(events, bpm) {
-        const startEvent = events.find((event) => event.type === "start");
-        const strumEvents = events.filter((event) => event.type === "strum");
-        const completeEvents = events.filter((event) => event.type === "complete");
-        const rhythmEvents = strumEvents.length > 0 ? strumEvents : completeEvents;
-        const eventType = strumEvents.length > 0 ? "strum" : "complete";
-        if (!startEvent || rhythmEvents.length === 0) {
-          return {
-            averageRhythmScore: 0,
-            earlyCount: 0,
-            lateCount: 0,
-            onTimeCount: 0,
-            eventType,
-            eventCount: 0
-          };
-        }
-
-        const scored = rhythmEvents.map((event) => {
-          const eventBpm = event.bpm || bpm;
-          const beatMs = 60000 / eventBpm;
-          const beatIndex = Math.max(0, Math.round((event.timestampMs - startEvent.timestampMs) / beatMs));
-          const expectedTimeMs = startEvent.timestampMs + beatIndex * beatMs;
-          const offsetMs = event.timestampMs - expectedTimeMs;
-          return {
-            rhythmScore: scoreTimingOffset(offsetMs),
-            timingStatus: classifyTimingOffset(offsetMs)
-          };
-        });
-        const total = scored.reduce((sum, event) => sum + event.rhythmScore, 0);
-        return {
-          averageRhythmScore: Math.round(total / scored.length),
-          earlyCount: scored.filter((event) => event.timingStatus === "early").length,
-          lateCount: scored.filter((event) => event.timingStatus === "late").length,
-          onTimeCount: scored.filter((event) => event.timingStatus === "on-time").length,
-          eventType,
-          eventCount: scored.length
-        };
-      }
-
-      function rhythmAdvice(summary) {
-        const rhythmLabel = summary.eventType === "strum" ? "扫弦触发" : "完成点击";
-        if (!summary.averageRhythmScore) return "完成一次小节或扫弦后生成节奏参考。";
-        if (summary.onTimeCount >= summary.earlyCount + summary.lateCount) return `${rhythmLabel}基本贴住节拍，继续保持稳定四拍。`;
-        if (summary.earlyCount > summary.lateCount) return `${rhythmLabel}偏早，下一轮等节拍落稳后再切换。`;
-        if (summary.lateCount > summary.earlyCount) return `${rhythmLabel}偏晚，下一轮提前准备左手换指。`;
-        return `${rhythmLabel}时机有早有晚，先降 5 BPM 练稳定。`;
-      }
-
-      function renderPracticeHistorySummary() {
-        const history = readPracticeHistory();
-        const latest = history[0];
-        const text = latest
-          ? `${formatPracticeHistoryTime(latest.endedAt)} · ${latest.templateTitle || "跟练"} · ${latest.bpm} BPM · ${formatPracticeMode(latest.mode)} · 完成 ${Math.min(latest.completedCount || 0, reports.length)}/${reports.length} · 扫弦 ${latest.strumCount || 0} · 节奏 ${latest.rhythmScore || "--"} · ${latest.targetSummary}`
-          : "暂无练习记录";
-        practiceHistorySummaryNodes.forEach((node) => {
-          node.textContent = text;
-        });
-        const overview = summarizePracticeHistory(history);
-        practiceHistoryOverview.textContent = `累计 ${overview.sessions} 次 · ${formatDurationLabel(overview.durationSec)} · 练习 ${overview.days} 天 · 连续 ${overview.streak} 天`;
-        renderLessonOneProgress(history);
-        renderLessonPath(history);
-        renderNextPracticeRecommendation(history);
-        clearPracticeHistoryButton.disabled = history.length === 0;
-        if (history.length === 0) {
-          practiceHistoryList.innerHTML = '<p class="practice-history-empty">开始一次跟练后会自动保存到本机。</p>';
-          return;
-        }
-        practiceHistoryList.innerHTML = history.slice(0, 3).map((record, index) => `
-          <div class="practice-history-item">
-            <div class="practice-history-index">${index + 1}</div>
-            <div>
-              <strong>${formatPracticeHistoryTime(record.endedAt)} · ${record.templateTitle || "跟练"} · ${formatPracticeMode(record.mode)}</strong>
-              <span>完成 ${Math.min(record.completedCount || 0, reports.length)}/${reports.length} · 扫弦 ${record.strumCount || 0} · ${record.durationSec || 0}s · ${record.bpm || 70} BPM · 节奏 ${record.rhythmScore || "--"}</span>
-            </div>
-          </div>
-        `).join("");
-      }
-
-      function buildPracticeSessionRecord(reason) {
-        const progressEvents = practiceEvents.filter((event) => event.type === "bar" || event.type === "complete" || event.type === "strum");
-        if (progressEvents.length === 0) return null;
-
-        const endedAtMs = Date.now();
-        const firstEventAt = practiceEvents[0]?.timestampMs || endedAtMs;
-        const lastEventAt = practiceEvents[practiceEvents.length - 1]?.timestampMs || endedAtMs;
-        const startedAtMs = Math.min(firstEventAt, endedAtMs);
-        const durationSec = Math.max(0, Math.round((Math.max(lastEventAt, endedAtMs) - startedAtMs) / 1000));
-        const barsPracticed = practiceEvents.filter((event) => event.type === "bar").length;
-        const completedCount = completedSteps.filter(Boolean).length;
-        const completeEvents = practiceEvents.filter((event) => event.type === "complete").length;
-        const strumCount = practiceEvents.filter((event) => event.type === "strum").length;
-        const rhythmSummary = buildRhythmSummary(practiceEvents, practiceBpm);
-        const targetMap = new Map();
-        progressEvents.forEach((event) => {
-          const report = reports[event.step] || reports.find((item) => item.chord === event.chord);
-          const chord = event.chord || report?.chord;
-          if (chord && !targetMap.has(chord)) {
-            targetMap.set(chord, report?.action ? `${chord} ${report.action}` : chord);
-          }
-        });
-        const targets = Array.from(targetMap.values());
-
-        return {
-          id: `${startedAtMs}-${endedAtMs}`,
-          reason,
-          startedAt: new Date(startedAtMs).toISOString(),
-          endedAt: new Date(endedAtMs).toISOString(),
-          duration: durationSec,
-          durationSec,
-          exerciseId: activePracticeTemplate.id,
-          templateTitle: activePracticeTemplate.title,
-          templateType: activePracticeTemplate.type,
-          bpm: practiceBpm,
-          mode: practiceLoopMode,
-          completedCount,
-          completeEvents,
-          strumCount,
-          triggerSource: strumCount > 0 ? "mic-onset" : "tap-complete",
-          barsPracticed,
-          rhythmScore: rhythmSummary.averageRhythmScore,
-          rhythmSummary,
-          chords: Array.from(targetMap.keys()),
-          targetSummary: targets.length > 0 ? targets.join(" / ") : reports[practiceStep].chord
-        };
-      }
-
-      function savePracticeSession(reason) {
-        if (practiceSessionSaved) return false;
-        const record = buildPracticeSessionRecord(reason);
-        if (!record) return false;
-        const history = readPracticeHistory();
-        writePracticeHistory([record, ...history].slice(0, PRACTICE_HISTORY_LIMIT));
-        practiceSessionSaved = true;
-        renderPracticeHistorySummary();
-        return true;
-      }
-
-      function formatRecentStrumLabel(event, nowMs) {
-        if (!event) return "--";
-        const secondsAgo = Math.max(0, Math.round((nowMs - event.timestampMs) / 1000));
-        if (secondsAgo <= 1) return "刚刚";
-        if (secondsAgo < 60) return `${secondsAgo}s 前`;
-        return `${Math.round(secondsAgo / 60)}m 前`;
-      }
-
-      function renderPracticeTimeline() {
-        practiceTimeline.innerHTML = reports.map((report, index) => `
-          <div class="step" data-step="${index}">
-            <div class="bar">${completedSteps[index] ? "✓" : (report.bar || index + 1)}</div>
-            <div><strong>${report.action}</strong><p class="muted">第 ${report.bar || index + 1} 小节 · 第 ${report.beat || 1} 拍</p></div>
-            <div class="step-chord"><div class="chord-pill">${report.chord}</div><div class="mini-frets">${report.fingering.map((fret) => `<span>${fret}</span>`).join("")}</div></div>
-          </div>
-        `).join("");
-        steps = Array.from(document.querySelectorAll(".step"));
-      }
-
-      function renderPractice() {
-        const completedCount = completedSteps.filter(Boolean).length;
-        const barsPracticed = practiceEvents.filter((event) => event.type === "bar").length;
-        const completeCount = practiceEvents.filter((event) => event.type === "complete").length;
-        const strumEvents = practiceEvents.filter((event) => event.type === "strum");
-        const lastStrumEvent = strumEvents[strumEvents.length - 1];
-        const rhythmSummary = buildRhythmSummary(practiceEvents, practiceBpm);
-        const firstEventAt = practiceEvents[0]?.timestampMs;
-        const lastEventAt = practiceEvents[practiceEvents.length - 1]?.timestampMs;
-        const durationSec = firstEventAt && lastEventAt ? Math.max(0, Math.round((lastEventAt - firstEventAt) / 1000)) : 0;
-        const practiceAdvice = practiceLoopMode === "single"
-          ? `当前锁定 ${reports[practiceStep].chord}，适合把换指练熟后再切自动循环。`
-          : barsPracticed >= reports.length
-            ? "已经跑完一轮四和弦，可以尝试升到进阶 85。"
-            : "先保持稳定四拍，再追求更快换和弦。";
-        renderPracticeTimeline();
-        steps.forEach((step, index) => {
-          step.classList.toggle("active", index === practiceStep);
-          step.classList.toggle("done", completedSteps[index]);
-          const bar = step.querySelector(".bar");
-          if (bar) bar.textContent = completedSteps[index] ? "✓" : String(reports[index]?.bar || index + 1);
-        });
-        const report = reports[practiceStep];
-        practiceTemplateButtons.forEach((button) => button.classList.toggle("active", button.dataset.practiceTemplate === activePracticeTemplate.id));
-        sessionTitle.textContent = `${report.chord} · ${report.action}`;
-        sessionPill.textContent = practiceRunning ? "进行中" : "待开始";
-        practiceBpmValue.textContent = String(practiceBpm);
-        practiceTempoButtons.forEach((button) => button.classList.toggle("active", button.dataset.tempoId === practiceTempoId));
-        practiceLoopButtons.forEach((button) => button.classList.toggle("active", button.dataset.loopMode === practiceLoopMode));
-        practiceBeats.forEach((node, index) => node.classList.toggle("active", index === practiceBeat));
-        practiceProgress.style.width = `${Math.round((completedCount / reports.length) * 100)}%`;
-        sessionMeta.textContent = `已完成 ${completedCount}/${reports.length} · 第 ${practiceStep + 1} 小节 · 第 ${practiceBeat + 1} 拍`;
-        renderFingeringGuide(report);
-        reportHint.textContent = practiceLoopMode === "auto" ? "循环" : "单和弦";
-        practicedBars.textContent = `${barsPracticed} 小节`;
-        completedClicks.textContent = `${completedCount}/${reports.length}`;
-        practiceDuration.textContent = `${durationSec}s`;
-        practiceRhythmScore.textContent = rhythmSummary.averageRhythmScore ? String(rhythmSummary.averageRhythmScore) : "--";
-        practiceStrumStatus.textContent = `扫弦 ${strumEvents.length} 次 · 最近 ${formatRecentStrumLabel(lastStrumEvent, Date.now())}`;
-        suggestion.textContent = `${practiceBpm} BPM · ${practiceLoopMode === "auto" ? "自动循环" : `只练 ${report.chord}`} · ${rhythmAdvice(rhythmSummary)} · ${practiceAdvice}`;
-        togglePractice.textContent = practiceRunning ? "暂停" : "开始";
-      }
-
-      function recordPracticeEvent(type, step = practiceStep, options = {}) {
-        const report = reports[step] || reports[practiceStep];
-        practiceSessionSaved = false;
-        const event = {
-          type,
-          step,
-          chord: report.chord,
-          bpm: practiceBpm,
-          loopMode: practiceLoopMode,
-          timestampMs: options.timestampMs || Date.now()
-        };
-        if (options.source) {
-          event.source = options.source;
-        }
-        practiceEvents.push(event);
-      }
-
-      function renderFingeringGuide(report) {
-        currentChordDiagram.innerHTML = renderChordDiagram(report);
-        currentFingeringHelp.textContent = `指法 ${report.fingering.join("-")} · 数字为手指`;
-      }
-
-      function renderChordDiagram(report) {
-        const strings = ["G", "C", "E", "A"];
-        const fretsToShow = Math.max(4, Math.max(...report.fingering) + 1);
-        const markers = report.fingering.map((fret) => {
-          if (fret < 0) return "×";
-          return fret === 0 ? "○" : "●";
-        }).map((marker) => `<span class="play-marker">${marker}</span>`).join("");
-        const fretLabels = Array.from({ length: fretsToShow }, (_, index) => `<span>${index + 1}</span>`).join("");
-        const stringLines = strings.map((_, index) => {
-          const left = (index / (strings.length - 1)) * 100;
-          return `<span class="string-line" style="left:${left}%"></span>`;
-        }).join("");
-        const fretLines = Array.from({ length: fretsToShow + 1 }, (_, index) => {
-          const top = (index / fretsToShow) * 100;
-          return `<span class="fret-line ${index === 0 ? "nut" : ""}" style="top:${top}%"></span>`;
-        }).join("");
-        const dots = report.fingering.map((fret, index) => {
-          if (fret <= 0) return "";
-          const left = (index / (strings.length - 1)) * 100;
-          const top = ((fret - 0.5) / fretsToShow) * 100;
-          const finger = report.fingers[index] || fret;
-          return `<span class="finger-dot" style="left:${left}%;top:${top}%">${finger}</span>`;
-        }).join("");
-        const labels = strings.map((string) => `<span>${string}</span>`).join("");
-
-        return `
-          <div class="diagram-badge">${report.chord}</div>
-          <div class="diagram-card">
-            <div class="play-markers">${markers}</div>
-            <div class="board-row">
-              <div class="fret-rail">${fretLabels}</div>
-              <div class="fretboard">${stringLines}${fretLines}${dots}</div>
-            </div>
-            <div class="diagram-string-labels">${labels}</div>
-          </div>
-        `;
-      }
-
-      function stopPracticeTimer() {
-        if (practiceTimer) {
-          clearInterval(practiceTimer);
-          practiceTimer = null;
-        }
-      }
-
-      function setPracticeRunning(nextRunning) {
-        practiceRunning = nextRunning;
-        stopPracticeTimer();
-        if (practiceRunning) {
-          recordPracticeEvent("start");
-          if (practiceSoundEnabled) {
-            preparePracticeClickAudio();
-            playPracticeClick("accent");
-          }
-          practiceTimer = setInterval(() => {
-            practiceBeat = (practiceBeat + 1) % 4;
-            if (practiceSoundEnabled) {
-              playPracticeClick(practiceBeat === 0 ? "accent" : "light");
-            }
-            if (practiceBeat === 0 && practiceLoopMode === "auto") {
-              recordPracticeEvent("bar", practiceStep);
-              practiceStep = (practiceStep + 1) % steps.length;
-            } else if (practiceBeat === 0) {
-              recordPracticeEvent("bar", practiceStep);
-            }
-            renderPractice();
-          }, 60000 / practiceBpm);
-        }
-        renderPractice();
-      }
-
-      document.getElementById("prevStep").addEventListener("click", () => {
-        practiceStep = (practiceStep + steps.length - 1) % steps.length;
-        practiceBeat = 0;
-        renderPractice();
-      });
-
-      const nextStepButton = document.getElementById("nextStep");
-      if (nextStepButton) {
-        nextStepButton.addEventListener("click", () => {
-          practiceStep = (practiceStep + 1) % steps.length;
-          practiceBeat = 0;
-          renderPractice();
-        });
-      }
-
-      togglePractice.addEventListener("click", () => {
-        setPracticeRunning(!practiceRunning);
-      });
-
-      practiceSoundToggle.addEventListener("click", () => {
-        practiceSoundEnabled = !practiceSoundEnabled;
-        practiceSoundToggle.textContent = `节拍声 ${practiceSoundEnabled ? "开" : "关"}`;
-        practiceSoundToggle.classList.toggle("off", !practiceSoundEnabled);
-        practiceSoundStatus.textContent = practiceSoundEnabled ? "节拍声已开启" : "节拍声已关闭";
-        if (practiceSoundEnabled) {
-          preparePracticeClickAudio();
-          playPracticeClick(practiceBeat === 0 ? "accent" : "light");
-        }
-      });
-
-      practiceMicButton.addEventListener("click", async () => {
-        if (recorderTimer || micStream) {
-          stopBrowserMic();
-          return;
-        }
-        await startBrowserMic();
-      });
-
-      function preparePracticeClickAudio() {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) {
-          practiceSoundStatus.textContent = "当前浏览器不支持节拍声";
-          return null;
-        }
-        if (!practiceAudioContext) {
-          practiceAudioContext = new AudioContextClass();
-        }
-        if (practiceAudioContext.state === "suspended") {
-          practiceAudioContext.resume();
-        }
-        practiceSoundStatus.textContent = "节拍声已就绪";
-        return practiceAudioContext;
-      }
-
-      function playPracticeClick(kind) {
-        const context = preparePracticeClickAudio();
-        if (!context) return;
-        const now = context.currentTime;
-        const oscillator = context.createOscillator();
-        const gain = context.createGain();
-        const accent = kind === "accent";
-        oscillator.type = accent ? "triangle" : "sine";
-        oscillator.frequency.value = accent ? 1320 : 880;
-        gain.gain.setValueAtTime(accent ? 0.28 : 0.16, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + (accent ? 0.075 : 0.055));
-        oscillator.connect(gain);
-        gain.connect(context.destination);
-        oscillator.start(now);
-        oscillator.stop(now + (accent ? 0.08 : 0.06));
-      }
-
-      document.getElementById("completeStep").addEventListener("click", () => {
-        completedSteps[practiceStep] = true;
-        recordPracticeEvent("complete");
-        practiceBeat = 0;
-        if (practiceLoopMode === "single") {
-          savePracticeSession("completed");
-          setPracticeRunning(false);
-        } else if (practiceStep === steps.length - 1) {
-          savePracticeSession("completed");
-          setPracticeRunning(false);
-        } else {
-          practiceStep += 1;
-          renderPractice();
-        }
-      });
-
-      document.getElementById("resetStep").addEventListener("click", () => {
-        setPracticeRunning(false);
-        savePracticeSession("reset");
-        practiceStep = 0;
-        practiceBeat = 0;
-        completedSteps = reports.map(() => false);
-        practiceEvents = [];
-        practiceSessionSaved = false;
-        renderPractice();
-      });
-
-      document.getElementById("practiceBpmDown").addEventListener("click", () => {
-        practiceTempoId = "custom";
-        recordPracticeEvent("tempo");
-        practiceBpm = Math.max(40, practiceBpm - 5);
-        setPracticeRunning(practiceRunning);
-      });
-
-      document.getElementById("practiceBpmUp").addEventListener("click", () => {
-        practiceTempoId = "custom";
-        recordPracticeEvent("tempo");
-        practiceBpm = Math.min(140, practiceBpm + 5);
-        setPracticeRunning(practiceRunning);
-      });
-
-      practiceTempoButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-          practiceTempoId = button.dataset.tempoId;
-          recordPracticeEvent("tempo");
-          practiceBpm = Number(button.dataset.tempoBpm);
-          practiceBeat = 0;
-          setPracticeRunning(practiceRunning);
-        });
-      });
-
-      practiceLoopButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-          practiceLoopMode = button.dataset.loopMode;
-          recordPracticeEvent("mode");
-          practiceBeat = 0;
-          renderPractice();
-        });
-      });
-      practiceTemplateButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-          const nextTemplate = practiceTemplates.find((template) => template.id === button.dataset.practiceTemplate);
-          if (!nextTemplate || nextTemplate.id === activePracticeTemplate.id) return;
-          setPracticeRunning(false);
-          activePracticeTemplate = nextTemplate;
-          reports = activePracticeTemplate.targets.map(withChordShape);
-          practiceBpm = activePracticeTemplate.bpm || 70;
-          practiceTempoId = practiceBpm === 60 ? "slow" : practiceBpm === 85 ? "advanced" : "standard";
-          practiceLoopMode = "auto";
-          practiceStep = 0;
-          practiceBeat = 0;
-          completedSteps = reports.map(() => false);
-          practiceEvents = [];
-          practiceSessionSaved = false;
-          renderPractice();
-        });
-      });
-      startRecommendedPractice.addEventListener("click", () => {
-        const recommendation = nextPracticeRecommendation || createNextPracticeRecommendation(readPracticeHistory());
-        practiceBpm = recommendation.bpm;
-        practiceTempoId = recommendation.tempoId;
-        practiceLoopMode = recommendation.loopMode;
-        practiceStep = recommendation.focusChord
-          ? Math.max(0, reports.findIndex((report) => report.chord === recommendation.focusChord))
-          : 0;
-        practiceBeat = 0;
-        practiceEvents = [];
-        completedSteps = reports.map(() => false);
-        practiceSessionSaved = false;
-        setPracticeRunning(false);
-        activateTab("practice");
-        renderPractice();
-      });
-      clearPracticeHistoryButton.addEventListener("click", () => {
-        writePracticeHistory([]);
-        renderPracticeHistorySummary();
-      });
-      markLessonOnePassedButton.addEventListener("click", markLessonOnePassed);
-      renderPracticeHistorySummary();
-      renderPractice();
-    </script>
-  </body>
+    <nav class="tabbar">
+      <button class="tab active" data-tab="home"><span class="icon">🏠</span>首页</button>
+      <button class="tab" data-tab="learn"><span class="icon">🎓</span>学习</button>
+      <button class="tab" data-tab="practice"><span class="icon">🎸</span>练琴</button>
+      <button class="tab" data-tab="songs"><span class="icon">🎵</span>曲谱</button>
+      <button class="tab" data-tab="me"><span class="icon">👤</span>我的</button>
+    </nav>
+
+    <section class="sheet" id="songDetail">
+      <div class="sheet-head"><button class="back" data-close="songDetail">‹</button><h2 id="detailTitle">童年</h2><p id="detailArtist">罗大佑 · 入门弹唱</p><div class="key-row"><span>Key C</span><span>70 BPM</span><span>4/4</span><span>⭐ 入门</span></div></div>
+      <div class="tool-screen"><div class="tool-panel card"><b>滚动播放器</b><div class="beat-dots"><span class="beat-dot active">1</span><span class="beat-dot">2</span><span class="beat-dot">3</span><span class="beat-dot">4</span></div><button class="primary" style="width:100%" id="detailPlay">开始跟弹</button></div></div>
+      <div class="lyrics" id="lyrics"></div>
+      <div class="sticky-actions"><button class="ghost">变速 0.8x</button><button class="primary">跟弹评分</button></div>
+    </section>
+
+    <section class="sheet tuner-page" id="tuner">
+      <div class="tuner-head"><button class="back" data-close="tuner">‹</button><b>智能调音器</b><button class="mode-chip" id="gMode">High-G</button></div>
+      <div class="dial-wrap">
+        <div class="dial"><div class="needle" id="needle"></div><div class="dial-center"><div class="note" id="tNote">A</div><div class="hz" id="tHz">440.0 Hz</div><div class="state" id="tState">等待拨弦</div></div></div>
+        <div class="strings" id="strings"></div>
+        <p style="max-width:300px;text-align:center;color:var(--text-3);font-size:12px;line-height:1.7;margin-top:10px">真实拾音后接入现有 PitchFrame 管线；当前预览用模拟帧展示调音流程。</p>
+        <div style="width:100%;padding:20px 24px 32px"><button class="primary" style="width:100%" id="tunerBtn">🎙️ 开始调音</button></div>
+      </div>
+    </section>
+
+    <section class="sheet" id="metronome"><div class="sheet-head"><button class="back" data-close="metronome">‹</button><h2>节拍器</h2><p>第一拍重音，后面轻拍。</p></div><div class="tool-screen"><div class="tool-panel card"><h3><span id="bpm">70</span> BPM</h3><div class="beat-dots" id="metroDots"><span class="beat-dot active">1</span><span class="beat-dot">2</span><span class="beat-dot">3</span><span class="beat-dot">4</span></div><div style="display:flex;gap:10px"><button class="ghost" id="bpmDown">-5</button><button class="primary" id="metroToggle" style="flex:1">开始</button><button class="ghost" id="bpmUp">+5</button></div></div></div></section>
+    <section class="sheet" id="rhythm"><div class="sheet-head"><button class="back" data-close="rhythm">‹</button><h2>节奏型练习</h2><p>先把右手稳定下来，再换和弦。</p></div><div class="tool-screen"><div class="tool-panel card"><h3>下扫四拍</h3><div class="beat-dots"><span class="beat-dot active">强</span><span class="beat-dot">轻</span><span class="beat-dot">轻</span><span class="beat-dot">轻</span></div><button class="primary" style="width:100%">开始 60 BPM</button></div><div class="tool-panel card"><h3>下 下 上 上 下 上</h3><p style="color:var(--text-2);font-size:13px;line-height:1.6">后续歌曲常用节奏型，先慢速熟悉扫弦方向。</p></div></div></section>
+    <section class="sheet" id="transition"><div class="sheet-head"><button class="back" data-close="transition">‹</button><h2>和弦转换</h2><p>从两个和弦开始练，不直接上整首歌。</p></div><div class="tool-screen"><div class="tool-panel card"><h3>C → Am</h3><p style="color:var(--text-2);font-size:13px">提前准备二指，落在下一小节第一拍。</p><button class="primary" style="width:100%;margin-top:12px">开始转换练习</button></div><div class="tool-panel card"><h3>Am → F</h3><p style="color:var(--text-2);font-size:13px">保留二指，加上一指，减少左手大幅移动。</p></div><div class="tool-panel card"><h3>F → G7</h3><p style="color:var(--text-2);font-size:13px">提前半拍准备，第一拍前落稳。</p></div></div></section>
+    <section class="sheet" id="follow"><div class="sheet-head"><button class="back" data-close="follow">‹</button><h2>跟弹评分</h2><p>歌曲片段、节奏、和弦完成度统一反馈。</p></div><div class="tool-screen"><div class="tool-panel card"><h3>《童年》前 4 小节</h3><p style="color:var(--text-2);font-size:13px">C · Am · F · G7</p><div class="beat-dots"><span class="beat-dot active">C</span><span class="beat-dot">Am</span><span class="beat-dot">F</span><span class="beat-dot">G7</span></div><button class="primary" style="width:100%">开始跟弹</button></div></div></section>
+    <section class="sheet" id="chords"><div class="sheet-head"><button class="back" data-close="chords">‹</button><h2>和弦库</h2><p>点击和弦听音，练习前先看清指法。</p></div><div class="tool-screen"><div class="chord-grid" id="chordGrid"></div></div></section>
+    <div class="toast" id="toast">已完成</div>
+  </div>
+</div>
+<script>
+const songs = [
+  { title: "童年", artist: "罗大佑", emoji: "🌈", color: "#FCD34D", light: "#FDE68A", stars: 1, diff: "入门", key: "C", bpm: 70 },
+  { title: "小幸运", artist: "田馥甄", emoji: "🍀", color: "#86EFAC", light: "#BBF7D0", stars: 2, diff: "进阶", key: "C", bpm: 78 },
+  { title: "晴天", artist: "周杰伦", emoji: "☀️", color: "#FDBA74", light: "#FED7AA", stars: 2, diff: "进阶", key: "G", bpm: 76 },
+  { title: "Lemon", artist: "米津玄师", emoji: "🍋", color: "#FDE68A", light: "#FEF3C7", stars: 3, diff: "会员", key: "C", bpm: 88 },
+  { title: "Riptide", artist: "Vance Joy", emoji: "🌊", color: "#67E8F9", light: "#CFFAFE", stars: 3, diff: "会员", key: "Am", bpm: 102 }
+];
+const courses = [
+  { order: 1, emoji: "🎸", title: "认识你的尤克里里", subtitle: "持琴姿势 · 四根弦 · 基本发声", progress: 100, meta: "8 分钟 · 已完成", free: true },
+  { order: 2, emoji: "🎛️", title: "学会给琴调音", subtitle: "使用调音器把 G-C-E-A 调准", progress: 100, meta: "10 分钟 · 已完成", free: true },
+  { order: 3, emoji: "🥁", title: "第一个节奏型", subtitle: "下扫四拍，建立稳定节拍感", progress: 60, meta: "12 分钟 · 进行中", free: true },
+  { order: 4, emoji: "🔁", title: "C 与 Am 的切换", subtitle: "从双和弦转换进入四和弦循环", progress: 20, meta: "12 分钟 · 进行中", free: true },
+  { order: 5, emoji: "🎤", title: "第一首弹唱《童年》", subtitle: "C-Am-F-G7 歌曲片段跟弹", progress: 0, meta: "15 分钟 · 未开始", free: false }
+];
+const chords = [
+  { name: "C", frets: [0,0,0,3] },
+  { name: "Am", frets: [2,0,0,0] },
+  { name: "F", frets: [2,0,1,0] },
+  { name: "G7", frets: [0,2,1,2] },
+  { name: "Dm", frets: [2,2,1,0] },
+  { name: "Em", frets: [0,4,3,2] }
+];
+function $(sel) { return document.querySelector(sel); }
+function $all(sel) { return [...document.querySelectorAll(sel)]; }
+function toast(msg) {
+  const node = $("#toast");
+  node.textContent = msg;
+  node.classList.add("show");
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => node.classList.remove("show"), 1600);
+}
+function go(tab) {
+  $all(".page").forEach(page => page.classList.toggle("active", page.id === `page-${tab}`));
+  $all(".tab").forEach(node => node.classList.toggle("active", node.dataset.tab === tab));
+}
+function openSheet(id) { $(`#${id}`).classList.add("show"); }
+function closeSheet(id) { $(`#${id}`).classList.remove("show"); }
+function starText(n) { return "⭐".repeat(n) + "☆".repeat(3 - n); }
+function renderHome() {
+  $("#hotSongs").innerHTML = songs.map(song => `<button class="song-card clickable" data-open-song="${song.title}"><div class="cover" style="background:linear-gradient(135deg,${song.color},${song.light})">${song.emoji}</div><b>${song.title}</b><small>${song.artist}</small><div class="stars">${starText(song.stars)}</div></button>`).join("");
+  $("#rankList").innerHTML = songs.slice(0,4).map((song, index) => `<button class="rank-row clickable" data-open-song="${song.title}"><div class="no">${index + 1}</div><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light})">${song.emoji}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · ${12 - index * 2}.3 万人练过</small></div><div class="difficulty">练 ▶</div></button>`).join("");
+}
+function renderCourses() {
+  $("#courseList").innerHTML = courses.map(course => `<button class="course-card card clickable" data-course="${course.order}"><div class="thumb" style="background:linear-gradient(135deg,#FFE4D6,#fff)">${course.emoji}</div><div class="body"><div><span class="tag">必修 · 第 ${course.order} 课</span>${course.free ? "" : "<span class='member-tag'>会员</span>"}</div><h3>${course.title}</h3><p>${course.subtitle}</p><div class="course-meta"><span class="mini-progress"><i style="width:${course.progress}%"></i></span><span>${course.meta}</span></div></div></button>`).join("");
+}
+function renderSongs() {
+  $("#songList").innerHTML = songs.map(song => `<button class="song-row clickable" data-open-song="${song.title}"><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light});position:relative">${song.emoji}${song.diff === "会员" ? "<span class='member-tag' style='position:absolute;right:-8px;top:-5px'>会员</span>" : ""}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · ${song.key} 调 · ${song.bpm} BPM</small></div><div class="difficulty">${starText(song.stars)}<br>${song.diff}</div></button>`).join("");
+}
+function renderMe() {
+  const pattern = [1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,0,1,1,0,1];
+  $("#calendar").innerHTML = pattern.map((on, i) => `<span class="cal-day ${on ? "on" : ""} ${i === 26 ? "today" : ""}">${i + 1}</span>`).join("");
+  const badges = [["🔥","连续7天",1],["🎼","掌握10和弦",1],["🎤","首弹成功",1],["🏆","连续30天",0],["⭐","满分曲目",0],["💎","Lv.10",0]];
+  $("#badges").innerHTML = badges.map(([emoji, label, on]) => `<div class="badge ${on ? "" : "lock"}"><div class="medal">${emoji}</div><small>${label}</small></div>`).join("");
+}
+function renderChords() {
+  $("#chordGrid").innerHTML = chords.map(chord => `<button class="chord-card card clickable" data-chord="${chord.name}"><b style="font-size:24px;color:var(--orange-dark)">${chord.name}</b><div class="frets">${chord.frets.map(fret => `<span>${fret}</span>`).join("")}</div></button>`).join("");
+}
+function openSong(title) {
+  const song = songs.find(item => item.title === title) || songs[0];
+  $("#detailTitle").textContent = song.title;
+  $("#detailArtist").textContent = `${song.artist} · ${song.diff}弹唱`;
+  $("#lyrics").innerHTML = [
+    [["C","我听见雨滴落在青青草地"]],
+    [["Am","我听见远方下课钟声响起"]],
+    [["F","可是我没有听见你的声音"]],
+    [["G7","认真呼唤我姓名"]],
+    [["C","把四个和弦接成完整歌曲片段"]]
+  ].map((line, index) => `<div class="lyric-line ${index === 2 ? "now" : ""}">${line.map(([chord, text]) => `<span class="chord">${chord}</span>${text}`).join(" ")}</div>`).join("");
+  openSheet("songDetail");
+}
+let tuning = false;
+let tuneTimer = null;
+let tuneIndex = 0;
+const tuneFrames = [
+  { note: "G", hz: "392.0 Hz", cents: -18, state: "偏低 · 请拧紧" },
+  { note: "C", hz: "261.6 Hz", cents: 9, state: "接近 · 再确认" },
+  { note: "E", hz: "329.6 Hz", cents: 2, state: "已准 · 不用调" },
+  { note: "A", hz: "440.0 Hz", cents: 0, state: "已准 · 不用调" }
+];
+function renderStrings() {
+  $("#strings").innerHTML = ["G","C","E","A"].map((note, index) => `<button class="string ${index === tuneIndex ? "on" : ""} ${index < tuneIndex ? "ok" : ""}" data-string="${index}"><b>${note}</b><span>${4 - index}弦</span></button>`).join("");
+}
+function applyTuneFrame() {
+  const frame = tuneFrames[tuneIndex % tuneFrames.length];
+  $("#tNote").textContent = frame.note;
+  $("#tHz").textContent = frame.hz;
+  $("#tState").textContent = frame.state;
+  const angle = Math.max(-60, Math.min(60, frame.cents * 2.4));
+  $("#needle").style.transform = `translate(-50%, -100%) rotate(${angle}deg)`;
+  $("#needle").classList.toggle("ok", Math.abs(frame.cents) <= 5);
+  renderStrings();
+  tuneIndex = (tuneIndex + 1) % tuneFrames.length;
+}
+function toggleTuner() {
+  tuning = !tuning;
+  $("#tunerBtn").textContent = tuning ? "停止调音" : "🎙️ 开始调音";
+  clearInterval(tuneTimer);
+  if (tuning) {
+    applyTuneFrame();
+    tuneTimer = setInterval(applyTuneFrame, 1200);
+  }
+}
+let metroTimer = null;
+let beat = 0;
+let bpm = 70;
+function renderMetro() {
+  $("#bpm").textContent = bpm;
+  $all("#metroDots .beat-dot").forEach((node, index) => node.classList.toggle("active", index === beat));
+}
+function toggleMetro() {
+  if (metroTimer) {
+    clearInterval(metroTimer);
+    metroTimer = null;
+    $("#metroToggle").textContent = "开始";
+    return;
+  }
+  $("#metroToggle").textContent = "暂停";
+  metroTimer = setInterval(() => {
+    beat = (beat + 1) % 4;
+    renderMetro();
+  }, 60000 / bpm);
+}
+$all(".tab").forEach(node => node.addEventListener("click", () => go(node.dataset.tab)));
+document.addEventListener("click", event => {
+  const open = event.target.closest("[data-open]");
+  const close = event.target.closest("[data-close]");
+  const tabGo = event.target.closest("[data-tab-go]");
+  const song = event.target.closest("[data-open-song]");
+  const chord = event.target.closest("[data-chord]");
+  const course = event.target.closest("[data-course]");
+  if (open) openSheet(open.dataset.open);
+  if (close) closeSheet(close.dataset.close);
+  if (tabGo) go(tabGo.dataset.tabGo);
+  if (song) openSong(song.dataset.openSong);
+  if (chord) toast(`${chord.dataset.chord} 和弦示范音`);
+  if (course) toast(`进入第 ${course.dataset.course} 课`);
+});
+$("#tunerBtn").addEventListener("click", toggleTuner);
+$("#gMode").addEventListener("click", () => {
+  $("#gMode").textContent = $("#gMode").textContent === "High-G" ? "Low-G" : "High-G";
+  toast(`已切换 ${$("#gMode").textContent}`);
+});
+$("#metroToggle").addEventListener("click", toggleMetro);
+$("#bpmDown").addEventListener("click", () => { bpm = Math.max(40, bpm - 5); renderMetro(); });
+$("#bpmUp").addEventListener("click", () => { bpm = Math.min(240, bpm + 5); renderMetro(); });
+$("#detailPlay").addEventListener("click", () => toast("进入歌曲片段跟弹"));
+renderHome();
+renderCourses();
+renderSongs();
+renderMe();
+renderChords();
+renderStrings();
+renderMetro();
+</script>
+</body>
 </html>
