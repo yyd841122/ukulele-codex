@@ -1525,6 +1525,30 @@ function PracticeScreen({
             })}
           </View>
         </View>
+        <View style={styles.practiceMicPanel}>
+          <View style={styles.practiceMicCopy}>
+            <Text style={styles.practiceMicTitle}>麦克风跟练</Text>
+            <Text style={styles.practiceMicDetail}>
+              {practiceMicAccess.granted
+                ? "权限已开通；Expo App 后续接入实时扫弦 PCM。"
+                : "用于后续真实扫弦节奏评分，网页预览可直接拾音。"}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            disabled={practiceMicBusy || practiceMicAccess.granted}
+            style={[
+              styles.practiceMicButton,
+              practiceMicAccess.granted && styles.practiceMicButtonReady,
+              practiceMicBusy && styles.disabledButton
+            ]}
+            onPress={enablePracticeMicrophone}
+          >
+            <Text style={[styles.practiceMicButtonText, practiceMicAccess.granted && styles.practiceMicButtonTextReady]}>
+              {practiceMicBusy ? "请求中" : practiceMicAccess.granted ? "已开通" : "打开麦克风"}
+            </Text>
+          </Pressable>
+        </View>
         <View style={styles.practiceMainGrid}>
           <View style={styles.practiceChordColumn}>
             <ChordFingeringGuide chordName={activeTarget.chord} compact />
@@ -1589,25 +1613,6 @@ function PracticeScreen({
                 </Text>
               </Pressable>
               <Text style={styles.practiceSoundStatus}>{beatSoundStatus}</Text>
-              <Pressable
-                accessibilityRole="button"
-                disabled={practiceMicBusy || practiceMicAccess.granted}
-                style={[
-                  styles.practiceMicButton,
-                  practiceMicAccess.granted && styles.practiceMicButtonReady,
-                  practiceMicBusy && styles.disabledButton
-                ]}
-                onPress={enablePracticeMicrophone}
-              >
-                <Text style={[styles.practiceMicButtonText, practiceMicAccess.granted && styles.practiceMicButtonTextReady]}>
-                  {practiceMicBusy ? "请求中" : practiceMicAccess.granted ? "麦克风已开通" : "打开麦克风跟练"}
-                </Text>
-              </Pressable>
-              <Text style={styles.practiceSoundStatus}>
-                {practiceMicAccess.granted
-                  ? "权限已开通；Expo App 后续接入实时扫弦 PCM。"
-                  : "用于后续真实扫弦节奏评分，网页预览可直接拾音。"}
-              </Text>
             </View>
             <View style={styles.practiceControlGrid}>
               <Pressable
@@ -2556,7 +2561,35 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 13
   },
+  practiceMicPanel: {
+    minHeight: 58,
+    marginTop: 8,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10
+  },
+  practiceMicCopy: {
+    flex: 1
+  },
+  practiceMicTitle: {
+    color: colors.forest,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  practiceMicDetail: {
+    marginTop: 3,
+    color: "#756D64",
+    fontSize: 12,
+    lineHeight: 16
+  },
   practiceMicButton: {
+    minWidth: 104,
     minHeight: 34,
     borderRadius: 8,
     alignItems: "center",
