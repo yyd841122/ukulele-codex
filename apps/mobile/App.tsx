@@ -864,6 +864,19 @@ function HomeScreen({
         </Pressable>
       </View>
 
+      <SectionTitle title="复盘报告" detail="节奏和记录" />
+      <View style={styles.reviewReportPanel}>
+        <View style={styles.reportGrid}>
+          <ScoreBox label="最近节奏" value={latestPracticeSummary?.rhythmLabel ?? "--"} />
+          <ScoreBox label="最近完成" value={latestPracticeSummary?.completedStepsLabel ?? "0/4"} />
+          <ScoreBox label="累计练习" value={`${practiceHistorySummary.totalSessions}`} />
+          <ScoreBox label="连续" value={`${practiceHistorySummary.currentStreakDays} 天`} />
+        </View>
+        <Text style={styles.reviewReportNote}>
+          {latestPracticeSummary?.advice ?? "完成一次跟练后，这里会汇总节奏、完成度和下一步建议。"}
+        </Text>
+      </View>
+
       <SectionTitle title="第一课进度" detail={practiceMilestone.title} />
       <View style={styles.milestonePanel}>
         <View style={styles.milestoneTopRow}>
@@ -1989,6 +2002,20 @@ const styles = StyleSheet.create({
   },
   lessonPathStatusDone: {
     color: successGreen
+  },
+  reviewReportPanel: {
+    borderRadius: 8,
+    padding: 12,
+    backgroundColor: "#FFFDF8",
+    borderWidth: 1,
+    borderColor: colors.line,
+    gap: 8
+  },
+  reviewReportNote: {
+    color: "#756D64",
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: "700"
   },
   primaryButton: {
     minHeight: 48,

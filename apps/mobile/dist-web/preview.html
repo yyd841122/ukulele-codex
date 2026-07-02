@@ -287,6 +287,11 @@
         opacity: 0.58;
       }
 
+      .lesson-path-node.actionable {
+        cursor: pointer;
+        border-color: var(--amber);
+      }
+
       .lesson-path-title {
         color: var(--forest);
         font-size: 13px;
@@ -1420,7 +1425,7 @@
               <span class="lesson-path-detail">按节拍跑顺 C-Am-F-G7</span>
               <span class="lesson-path-status">未解锁</span>
             </div>
-            <div class="lesson-path-node locked" data-lesson-path-node="review">
+            <div class="lesson-path-node locked" data-lesson-path-node="review" role="button" tabindex="0">
               <div class="lesson-path-dot">3</div>
               <strong class="lesson-path-title">复盘</strong>
               <span class="lesson-path-detail">查看节奏和完成记录</span>
@@ -1454,10 +1459,10 @@
           </div>
         </section>
 
-        <section class="section">
+        <section class="section" id="reviewReport">
           <div class="section-title">
-            <h3>今日闭环</h3>
-            <span class="muted">本地模拟拾音</span>
+            <h3>复盘报告</h3>
+            <span class="muted">节奏和记录</span>
           </div>
           <div class="grid">
             <div class="metric">调音状态<strong>3/4</strong></div>
@@ -1786,6 +1791,20 @@
 
       tabs.forEach((tab) => {
         tab.addEventListener("click", () => activateTab(tab.dataset.tab));
+      });
+
+      lessonPathNodes.forEach((node) => {
+        const openReviewReport = () => {
+          if (node.dataset.lessonPathNode !== "review" || node.classList.contains("locked")) return;
+          reviewReport?.scrollIntoView({ behavior: "smooth", block: "start" });
+        };
+        node.addEventListener("click", openReviewReport);
+        node.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openReviewReport();
+          }
+        });
       });
 
       document.getElementById("startPractice").addEventListener("click", () => {
@@ -2337,6 +2356,7 @@
       const markLessonOnePassedButton = document.getElementById("markLessonOnePassed");
       const lessonPathPercent = document.getElementById("lessonPathPercent");
       const lessonPathNodes = Array.from(document.querySelectorAll("[data-lesson-path-node]"));
+      const reviewReport = document.getElementById("reviewReport");
       const LESSON_ONE_ID = "lesson-1";
       const LESSON_ONE_PASS_SCORE = 70;
       let nextPracticeRecommendation = null;
@@ -2473,6 +2493,7 @@
           element.classList.toggle("done", node.status === "done");
           element.classList.toggle("current", node.status === "current");
           element.classList.toggle("locked", node.status === "locked");
+          element.classList.toggle("actionable", node.id === "review" && node.status !== "locked");
           const detail = element.querySelector(".lesson-path-detail");
           const status = element.querySelector(".lesson-path-status");
           if (detail) detail.textContent = node.detail;
