@@ -1671,7 +1671,7 @@ function PracticeScreen({
         </View>
         <View style={styles.reportGrid}>
           <ScoreBox label="练过" value={`${barsPracticed} 小节`} />
-          <ScoreBox label="完成" value={`${completedClicks}/${chordLoopPractice.targets.length}`} />
+          <ScoreBox label="完成" value={`${completedCount}/${chordLoopPractice.targets.length}`} />
           <ScoreBox label="时长" value={`${practiceDurationSec}s`} />
           <ScoreBox label="节奏" value={rhythmScoreLabel} />
         </View>

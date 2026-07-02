@@ -2710,7 +2710,7 @@
         const history = readPracticeHistory();
         const latest = history[0];
         const text = latest
-          ? `${formatPracticeHistoryTime(latest.endedAt)} · ${latest.bpm} BPM · ${formatPracticeMode(latest.mode)} · 完成 ${latest.completedCount}/${reports.length} · 扫弦 ${latest.strumCount || 0} · 节奏 ${latest.rhythmScore || "--"} · ${latest.targetSummary}`
+          ? `${formatPracticeHistoryTime(latest.endedAt)} · ${latest.bpm} BPM · ${formatPracticeMode(latest.mode)} · 完成 ${Math.min(latest.completedCount || 0, reports.length)}/${reports.length} · 扫弦 ${latest.strumCount || 0} · 节奏 ${latest.rhythmScore || "--"} · ${latest.targetSummary}`
           : "暂无练习记录";
         practiceHistorySummaryNodes.forEach((node) => {
           node.textContent = text;
@@ -2730,7 +2730,7 @@
             <div class="practice-history-index">${index + 1}</div>
             <div>
               <strong>${formatPracticeHistoryTime(record.endedAt)} · ${formatPracticeMode(record.mode)}</strong>
-              <span>完成 ${record.completedCount || 0}/${reports.length} · 扫弦 ${record.strumCount || 0} · ${record.durationSec || 0}s · ${record.bpm || 70} BPM · 节奏 ${record.rhythmScore || "--"}</span>
+              <span>完成 ${Math.min(record.completedCount || 0, reports.length)}/${reports.length} · 扫弦 ${record.strumCount || 0} · ${record.durationSec || 0}s · ${record.bpm || 70} BPM · 节奏 ${record.rhythmScore || "--"}</span>
             </div>
           </div>
         `).join("");
@@ -2833,7 +2833,7 @@
         renderFingeringGuide(report);
         reportHint.textContent = practiceLoopMode === "auto" ? "循环" : "单和弦";
         practicedBars.textContent = `${barsPracticed} 小节`;
-        completedClicks.textContent = `${completeCount}/${reports.length}`;
+        completedClicks.textContent = `${completedCount}/${reports.length}`;
         practiceDuration.textContent = `${durationSec}s`;
         practiceRhythmScore.textContent = rhythmSummary.averageRhythmScore ? String(rhythmSummary.averageRhythmScore) : "--";
         practiceStrumStatus.textContent = `扫弦 ${strumEvents.length} 次 · 最近 ${formatRecentStrumLabel(lastStrumEvent, Date.now())}`;
