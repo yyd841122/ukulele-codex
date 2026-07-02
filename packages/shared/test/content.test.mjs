@@ -5,6 +5,7 @@ import {
   appendPracticeRecord,
   beginnerChords,
   chordLoopPractice,
+  createNextPracticeRecommendation,
   createPracticeSessionRecord,
   designTokens,
   formatPracticeDayKey,
@@ -287,4 +288,80 @@ test("practice history summary totals app and preview record fields", () => {
 test("practice day key formats date-like input", () => {
   assert.equal(formatPracticeDayKey("2026-07-05T10:30:00.000Z"), "2026-07-05");
   assert.equal(formatPracticeDayKey("not-a-date"), null);
+});
+
+test("next practice recommendation starts empty history with slow auto loop", () => {
+  assert.deepEqual(createNextPracticeRecommendation([]), {
+    title: "Start slow loop",
+    detail: "Practice C-Am-F-G7 at 60 BPM with automatic looping.",
+    bpm: 60,
+    tempoId: "slow",
+    loopMode: "auto",
+    focusChord: null,
+    reason: "No practice history yet."
+  });
+});
+
+test("next practice recommendation slows down for low rhythm score", () => {
+  const recommendation = createNextPracticeRecommendation([
+    {
+      endedAt: "2026-07-05T10:00:00.000Z",
+      bpm: 70,
+      mode: "auto",
+      totalSteps: 4,
+      completedCount: 4,
+      rhythmScore: 62,
+      chords: ["F"]
+    }
+  ]);
+
+  assert.equal(recommendation.bpm, 60);
+  assert.equal(recommendation.tempoId, "slow");
+  assert.equal(recommendation.loopMode, "single");
+  assert.equal(recommendation.focusChord, "F");
+  assert.match(recommendation.reason, /62/);
+});
+
+test("next practice recommendation raises tempo after complete high score", () => {
+  const recommendation = createNextPracticeRecommendation([
+    {
+      endedAt: "2026-07-05T10:00:00.000Z",
+      bpm: 70,
+      mode: "auto",
+      totalSteps: 4,
+      completedCount: 4,
+      rhythmSummary: { averageRhythmScore: 90 }
+    }
+  ]);
+
+  assert.deepEqual(recommendation, {
+    title: "Raise the tempo",
+    detail: "Practice C-Am-F-G7 at 85 BPM with automatic looping.",
+    bpm: 85,
+    tempoId: "advanced",
+    loopMode: "auto",
+    focusChord: null,
+    reason: "Latest practice was complete with rhythm score 90."
+  });
+});
+
+test("next practice recommendation keeps single mode on unfinished weak chord", () => {
+  const recommendation = createNextPracticeRecommendation([
+    {
+      endedAt: "2026-07-05T10:00:00.000Z",
+      bpm: 70,
+      mode: "single",
+      totalSteps: 4,
+      completedCount: 0,
+      rhythmSummary: { averageRhythmScore: 80 },
+      events: [{ type: "bar", step: 2, chord: "F" }]
+    }
+  ]);
+
+  assert.equal(recommendation.title, "Slow focus: F");
+  assert.equal(recommendation.bpm, 60);
+  assert.equal(recommendation.tempoId, "slow");
+  assert.equal(recommendation.loopMode, "single");
+  assert.equal(recommendation.focusChord, "F");
+  assert.equal(recommendation.reason, "Latest single-mode practice was not complete.");
 });

@@ -416,6 +416,201 @@ export const summarizePracticeHistory = (history = [], currentDate) => {
   };
 };
 
+const numberOrNull = (value) => (typeof value === "number" && Number.isFinite(value) ? value : null);
+
+const averageNumbers = (values) => {
+  const numbers = values.filter((value) => typeof value === "number" && Number.isFinite(value));
+  return numbers.length === 0
+    ? null
+    : Math.round(numbers.reduce((total, value) => total + value, 0) / numbers.length);
+};
+
+const practiceTargetsForTemplate = (template) =>
+  Array.isArray(template?.targets) && template.targets.length > 0 ? template.targets : chordLoopPractice.targets;
+
+const practiceTempoPresetForId = (template, id, fallbackBpm) =>
+  (template?.tempoPresets ?? practiceTempoPresets).find((preset) => preset.id === id) ?? {
+    id,
+    bpm: fallbackBpm
+  };
+
+const practiceTargetLabel = (template) =>
+  practiceTargetsForTemplate(template)
+    .map((target) => target.chord)
+    .filter((chord) => typeof chord === "string" && chord.length > 0)
+    .join("-");
+
+const practiceRecordTargetCount = (record, template) => {
+  const totalSteps = numberOrNull(record?.totalSteps);
+  if (totalSteps !== null) {
+    return Math.max(0, Math.round(totalSteps));
+  }
+  if (Array.isArray(record?.targets) && record.targets.length > 0) {
+    return record.targets.length;
+  }
+  return practiceTargetsForTemplate(template).length;
+};
+
+const practiceRecordRhythmScore = (record) => {
+  for (const value of [
+    record?.rhythmScore,
+    record?.averageRhythmScore,
+    record?.rhythmAccuracy,
+    record?.rhythmSummary?.averageRhythmScore,
+    record?.score?.rhythmScore,
+    record?.score?.rhythmAccuracy
+  ]) {
+    const score = numberOrNull(value);
+    if (score !== null) {
+      return Math.round(score);
+    }
+  }
+
+  return averageNumbers((record?.events ?? []).map((event) => event?.rhythmScore));
+};
+
+const chordFromPracticeStep = (record, template) => {
+  const targets = practiceTargetsForTemplate(template);
+  const explicitStep = numberOrNull(record?.practiceStep);
+  if (explicitStep !== null && targets[explicitStep]?.chord) {
+    return targets[explicitStep].chord;
+  }
+
+  const events = Array.isArray(record?.events) ? record.events : [];
+  for (const event of [...events].reverse()) {
+    if (typeof event?.chord === "string" && event.chord.length > 0) {
+      return event.chord;
+    }
+    const step = numberOrNull(event?.step);
+    if (step !== null && targets[step]?.chord) {
+      return targets[step].chord;
+    }
+  }
+
+  return null;
+};
+
+const practiceRecordCurrentChord = (record, template) => {
+  for (const value of [record?.focusChord, record?.currentChord, record?.activeChord]) {
+    if (typeof value === "string" && value.length > 0) {
+      return value;
+    }
+  }
+  if (Array.isArray(record?.chords) && typeof record.chords[0] === "string") {
+    return record.chords[0];
+  }
+  return chordFromPracticeStep(record, template);
+};
+
+const practiceRecordWeakPoint = (record, template) => {
+  if (typeof record?.weakPoint === "string" && record.weakPoint.length > 0) {
+    return record.weakPoint;
+  }
+
+  const mode = record?.mode ?? record?.loopMode;
+  const currentChord = practiceRecordCurrentChord(record, template);
+  if (mode === "single" && currentChord !== null) {
+    return currentChord;
+  }
+
+  if (Array.isArray(record?.completedSteps)) {
+    const targets = practiceTargetsForTemplate(template);
+    const missingIndex = record.completedSteps.findIndex((isComplete) => !isComplete);
+    if (missingIndex >= 0) {
+      return targets[missingIndex]?.chord ?? currentChord;
+    }
+  }
+
+  return summarizePracticeRecord(record).weakPoint ?? currentChord;
+};
+
+const makePracticeRecommendation = ({ title, detail, bpm, tempoId, loopMode, focusChord, reason }) => ({
+  title,
+  detail,
+  bpm,
+  tempoId,
+  loopMode,
+  focusChord,
+  reason
+});
+
+export const createNextPracticeRecommendation = (history = [], options = {}) => {
+  const template = options.template ?? chordLoopPractice;
+  const targetsLabel = practiceTargetLabel(template);
+  const slowPreset = practiceTempoPresetForId(template, "slow", 60);
+  const standardPreset = practiceTempoPresetForId(template, "standard", 70);
+  const advancedPreset = practiceTempoPresetForId(template, "advanced", 85);
+  const rawHistory = Array.isArray(history) ? history.filter((record) => record && typeof record === "object") : [];
+  const normalizedHistory = normalizePracticeHistory(rawHistory, rawHistory.length);
+  const records = normalizedHistory.length > 0 ? normalizedHistory : rawHistory;
+  const latestRecord = records[0] ?? null;
+
+  if (latestRecord === null) {
+    return makePracticeRecommendation({
+      title: "Start slow loop",
+      detail: `Practice ${targetsLabel} at ${slowPreset.bpm} BPM with automatic looping.`,
+      bpm: slowPreset.bpm,
+      tempoId: slowPreset.id,
+      loopMode: "auto",
+      focusChord: null,
+      reason: "No practice history yet."
+    });
+  }
+
+  const rhythmScore = practiceRecordRhythmScore(latestRecord);
+  const completedCount = practiceRecordCompletedCount(latestRecord);
+  const targetCount = practiceRecordTargetCount(latestRecord, template);
+  const completedAll = targetCount > 0 && completedCount >= targetCount;
+  const latestBpm = numberOrNull(latestRecord.bpm) ?? standardPreset.bpm;
+  const weakPoint = practiceRecordWeakPoint(latestRecord, template);
+  const latestMode = latestRecord.mode ?? latestRecord.loopMode ?? "auto";
+  const needsSlowFocus = (rhythmScore !== null && rhythmScore < 70) || !completedAll;
+
+  if (needsSlowFocus) {
+    const focusChord = weakPoint ?? practiceRecordCurrentChord(latestRecord, template);
+    return makePracticeRecommendation({
+      title: focusChord ? `Slow focus: ${focusChord}` : "Slow steady loop",
+      detail: focusChord
+        ? `Practice only ${focusChord} at ${slowPreset.bpm} BPM before returning to the full loop.`
+        : `Practice ${targetsLabel} at ${slowPreset.bpm} BPM with automatic looping.`,
+      bpm: slowPreset.bpm,
+      tempoId: slowPreset.id,
+      loopMode: focusChord ? "single" : "auto",
+      focusChord,
+      reason:
+        rhythmScore !== null && rhythmScore < 70
+          ? `Latest rhythm score was ${rhythmScore}, below the 70 passing target.`
+          : latestMode === "single"
+            ? "Latest single-mode practice was not complete."
+            : `Latest practice completed ${completedCount}/${targetCount} targets.`
+    });
+  }
+
+  if (rhythmScore !== null && rhythmScore >= 85 && completedAll) {
+    const nextBpm =
+      latestBpm >= advancedPreset.bpm ? Math.min(240, Math.round(latestBpm + 5)) : advancedPreset.bpm;
+    return makePracticeRecommendation({
+      title: "Raise the tempo",
+      detail: `Practice ${targetsLabel} at ${nextBpm} BPM with automatic looping.`,
+      bpm: nextBpm,
+      tempoId: nextBpm === advancedPreset.bpm ? advancedPreset.id : "custom",
+      loopMode: "auto",
+      focusChord: null,
+      reason: `Latest practice was complete with rhythm score ${rhythmScore}.`
+    });
+  }
+
+  return makePracticeRecommendation({
+    title: "Keep standard loop",
+    detail: `Practice ${targetsLabel} at ${standardPreset.bpm} BPM with automatic looping.`,
+    bpm: standardPreset.bpm,
+    tempoId: standardPreset.id,
+    loopMode: "auto",
+    focusChord: null,
+    reason: "Latest practice is stable enough to continue, but not ready for a tempo increase."
+  });
+};
+
 export const designPrinciples = [
   "练习入口优先，不做营销式首页",
   "调音和跟练反馈必须大、清楚、低干扰",

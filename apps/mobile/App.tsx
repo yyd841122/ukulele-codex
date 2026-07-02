@@ -24,8 +24,7 @@ import {
   midiToFrequency,
   noteNameToMidi,
   scorePitchEvent,
-  scoreRhythmEvent,
-  summarizeRhythmEvents
+  scoreRhythmTimeline
 } from "@ukulele/audio-core";
 import {
   ensureMicrophoneAccess,
@@ -162,11 +161,37 @@ type PracticeHistorySummary = {
   currentStreakDays: number;
 };
 
+type NextPracticeRecommendation = {
+  title: string;
+  detail: string;
+  bpm: number;
+  tempoId: PracticeTempoId;
+  loopMode: PracticeLoopMode;
+  focusChord?: string | null;
+  reason: string;
+};
+
+type PracticeLaunchConfig = {
+  bpm: number;
+  tempoId: PracticeTempoId;
+  loopMode: PracticeLoopMode;
+  focusChord?: string | null;
+  token: number;
+};
+
 type SharedPracticeTools = Partial<{
   createPracticeSessionRecord: (input: Record<string, unknown>) => SharedPracticeRecord;
   summarizePracticeRecord: (record: Record<string, unknown>) => SharedPracticeSummary;
   normalizePracticeHistory: <TRecord>(history: TRecord[], limit?: number) => TRecord[];
   summarizePracticeHistory: (history: Array<Record<string, unknown>>) => PracticeHistorySummary;
+  createNextPracticeRecommendation: (
+    history: Array<Record<string, unknown>>,
+    options?: Record<string, unknown>
+  ) => NextPracticeRecommendation;
+  recommendNextPractice: (
+    history: Array<Record<string, unknown>>,
+    template?: Record<string, unknown>
+  ) => NextPracticeRecommendation;
 }>;
 
 const sharedPracticeTools = sharedPractice as unknown as SharedPracticeTools;
@@ -259,27 +284,29 @@ function translateRhythmSuggestion(summary: RhythmPracticeSummary) {
   return "完成时机有早有晚，先降 5 BPM 练稳定。";
 }
 
-function buildPracticeRhythmEvents(events: PracticeLogEvent[], bpm: number) {
+function summarizePracticeRhythm(events: PracticeLogEvent[], bpm: number): RhythmPracticeSummary {
   const startEvent = events.find((event) => event.type === "start");
-  if (!startEvent) return [];
+  if (!startEvent) {
+    return {
+      averageRhythmScore: 0,
+      earlyCount: 0,
+      lateCount: 0,
+      onTimeCount: 0,
+      suggestion: "Start practicing to build a rhythm baseline."
+    };
+  }
 
-  return events
-    .filter((event) => event.type === "complete")
-    .map((event) => {
-      const eventBpm = event.bpm || bpm;
-      const beatMs = 60000 / eventBpm;
-      const beatIndex = Math.max(0, Math.round((event.timestampMs - startEvent.timestampMs) / beatMs));
-      return scoreRhythmEvent({
-        eventTimeMs: event.timestampMs,
-        startedAtMs: startEvent.timestampMs,
-        bpm: eventBpm,
-        beatIndex
-      });
-    });
+  return scoreRhythmTimeline({
+    startedAtMs: startEvent.timestampMs,
+    bpm,
+    events: events.filter((event) => event.type === "complete")
+  }).summary as RhythmPracticeSummary;
 }
 
-function summarizePracticeRhythm(events: PracticeLogEvent[], bpm: number): RhythmPracticeSummary {
-  return summarizeRhythmEvents(buildPracticeRhythmEvents(events, bpm)) as RhythmPracticeSummary;
+function findPracticeStepByChord(chordName?: string | null) {
+  if (!chordName) return 0;
+  const index = chordLoopPractice.targets.findIndex((target) => target.chord === chordName);
+  return index >= 0 ? index : 0;
 }
 
 function normalizeLocalPracticeHistory(history: PracticeSessionRecord[]) {
@@ -306,9 +333,120 @@ function summarizeLocalPracticeHistory(history: PracticeSessionRecord[]): Practi
   };
 }
 
+function createLocalNextPracticeRecommendation(history: PracticeSessionRecord[]): NextPracticeRecommendation {
+  const sharedRecommendation =
+    sharedPracticeTools.createNextPracticeRecommendation?.(history, { template: chordLoopPractice })
+    ?? sharedPracticeTools.recommendNextPractice?.(history, chordLoopPractice);
+  if (sharedRecommendation) {
+    return normalizeRecommendation(sharedRecommendation);
+  }
+
+  const latestRecord = history[0];
+  if (!latestRecord) {
+    return {
+      title: "从慢速四和弦开始",
+      detail: "先用 60 BPM 自动循环，熟悉 C-Am-F-G7 的换指顺序。",
+      bpm: 60,
+      tempoId: "slow",
+      loopMode: "auto",
+      focusChord: null,
+      reason: "还没有本地练习记录"
+    };
+  }
+
+  const rhythmScore = latestRecord.rhythmSummary?.averageRhythmScore ?? 0;
+  const completedCount = latestRecord.completedCount ?? 0;
+  const totalSteps = latestRecord.totalSteps ?? chordLoopPractice.targets.length;
+  const weakTarget = chordLoopPractice.targets.find((target, index) => !latestRecord.completedSteps?.[index]);
+
+  if (completedCount < totalSteps || rhythmScore < 70) {
+    const focusChord = weakTarget?.chord ?? latestRecord.events?.at(-1)?.chord ?? chordLoopPractice.targets[0].chord;
+    return {
+      title: `稳住 ${focusChord}`,
+      detail: `用 60 BPM 只练 ${focusChord}，先把完成时机贴近节拍。`,
+      bpm: 60,
+      tempoId: "slow",
+      loopMode: "single",
+      focusChord,
+      reason: rhythmScore < 70 ? "最近节奏参考分偏低" : "上一轮还有目标未完成"
+    };
+  }
+
+  if (completedCount >= totalSteps && rhythmScore >= 85) {
+    return {
+      title: "升到进阶速度",
+      detail: "上一轮完成度和节奏都不错，可以试 85 BPM 自动循环。",
+      bpm: 85,
+      tempoId: "advanced",
+      loopMode: "auto",
+      focusChord: null,
+      reason: "上一轮完成度高，节奏稳定"
+    };
+  }
+
+  return {
+    title: "保持标准速度",
+    detail: "继续 70 BPM 自动循环，目标是完整跑顺一轮。",
+    bpm: 70,
+    tempoId: "standard",
+    loopMode: "auto",
+    focusChord: null,
+    reason: "当前表现适合巩固标准速度"
+  };
+}
+
+function normalizeRecommendation(recommendation: NextPracticeRecommendation): NextPracticeRecommendation {
+  const tempoId = recommendation.tempoId === "custom" ? tempoIdFromBpm(recommendation.bpm) : recommendation.tempoId;
+  const normalized = {
+    ...recommendation,
+    bpm: recommendation.bpm ?? chordLoopPractice.bpm,
+    tempoId,
+    loopMode: recommendation.loopMode ?? "auto",
+    focusChord: recommendation.focusChord ?? null
+  };
+  return localizeRecommendation(normalized);
+}
+
+function localizeRecommendation(recommendation: NextPracticeRecommendation): NextPracticeRecommendation {
+  const modeLabel = recommendation.loopMode === "single" ? "只练当前" : "自动循环";
+  const targetLabel = recommendation.focusChord ?? "C-Am-F-G7";
+  const title = recommendation.loopMode === "single"
+    ? `稳住 ${targetLabel}`
+    : recommendation.bpm >= 85
+      ? "升到进阶速度"
+      : recommendation.bpm <= 60
+        ? "从慢速循环开始"
+        : "保持标准速度";
+  const detail = recommendation.loopMode === "single"
+    ? `用 ${recommendation.bpm} BPM ${modeLabel}，先把 ${targetLabel} 的换指和完成时机练稳。`
+    : `用 ${recommendation.bpm} BPM ${modeLabel}，完整跑顺四和弦循环。`;
+
+  return {
+    ...recommendation,
+    title,
+    detail,
+    reason: localizeRecommendationReason(recommendation)
+  };
+}
+
+function localizeRecommendationReason(recommendation: NextPracticeRecommendation) {
+  const reason = recommendation.reason.toLowerCase();
+  if (reason.includes("no practice")) return "还没有本地练习记录";
+  if (reason.includes("rhythm score") || reason.includes("below")) return "最近节奏参考分偏低";
+  if (reason.includes("not complete") || reason.includes("completed")) return "上一轮还有目标未完成";
+  if (reason.includes("tempo") || reason.includes("complete with rhythm")) return "上一轮完成度高，节奏稳定";
+  return "根据最近练习记录生成";
+}
+
+function tempoIdFromBpm(bpm: number): PracticeTempoId {
+  const preset = practiceTempoPresets.find((item) => item.bpm === bpm);
+  return preset?.id ?? "custom";
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [practiceHistory, setPracticeHistory] = useState<PracticeSessionRecord[]>([]);
+  const [practiceLaunchConfig, setPracticeLaunchConfig] = useState<PracticeLaunchConfig | undefined>();
   const latestPracticeSummary = useMemo(() => {
     const latestRecord = practiceHistory[0];
     return latestRecord ? summarizePracticeRecord(latestRecord) : undefined;
@@ -319,6 +457,10 @@ export default function App() {
   );
   const practiceHistorySummary = useMemo(
     () => summarizeLocalPracticeHistory(practiceHistory),
+    [practiceHistory]
+  );
+  const nextPracticeRecommendation = useMemo(
+    () => createLocalNextPracticeRecommendation(practiceHistory),
     [practiceHistory]
   );
 
@@ -347,6 +489,13 @@ export default function App() {
     void clearPracticeHistory();
   }
 
+  function startPractice(config?: Omit<PracticeLaunchConfig, "token">) {
+    if (config) {
+      setPracticeLaunchConfig({ ...config, token: Date.now() });
+    }
+    setActiveTab("practice");
+  }
+
   return (
     <SafeAreaView style={styles.shell}>
       <StatusBar barStyle="dark-content" />
@@ -364,8 +513,10 @@ export default function App() {
         {activeTab === "home" && (
           <HomeScreen
             latestPracticeSummary={latestPracticeSummary}
+            nextPracticeRecommendation={nextPracticeRecommendation}
             onClearHistory={clearPracticeRecords}
-            onStart={() => setActiveTab("practice")}
+            onStart={() => startPractice()}
+            onStartRecommendation={() => startPractice(nextPracticeRecommendation)}
             practiceHistorySummary={practiceHistorySummary}
             recentPracticeSummaries={recentPracticeSummaries}
           />
@@ -373,7 +524,9 @@ export default function App() {
         {activeTab === "tuner" && <TunerScreen />}
         {activeTab === "metronome" && <MetronomeScreen />}
         {activeTab === "chords" && <ChordScreen />}
-        {activeTab === "practice" && <PracticeScreen onPracticeRecord={appendPracticeRecord} />}
+        {activeTab === "practice" && (
+          <PracticeScreen launchConfig={practiceLaunchConfig} onPracticeRecord={appendPracticeRecord} />
+        )}
       </ScrollView>
 
       <View style={styles.tabBar}>
@@ -399,13 +552,17 @@ export default function App() {
 
 function HomeScreen({
   latestPracticeSummary,
+  nextPracticeRecommendation,
   onClearHistory,
+  onStartRecommendation,
   practiceHistorySummary,
   recentPracticeSummaries,
   onStart
 }: {
   latestPracticeSummary?: PracticeRecordSummary;
+  nextPracticeRecommendation: NextPracticeRecommendation;
   onClearHistory: () => void;
+  onStartRecommendation: () => void;
   practiceHistorySummary: PracticeHistorySummary;
   recentPracticeSummaries: PracticeRecordSummary[];
   onStart: () => void;
@@ -417,6 +574,22 @@ function HomeScreen({
         <Text style={styles.heroCopy}>8 分钟完成一次调音、慢速节拍、四和弦循环和模拟报告。</Text>
         <Pressable accessibilityRole="button" onPress={onStart} style={styles.primaryButton}>
           <Text style={styles.primaryButtonText}>开始 8 分钟练习</Text>
+        </Pressable>
+      </View>
+
+      <SectionTitle title="下次练习" detail={nextPracticeRecommendation.reason} />
+      <View style={styles.recommendationPanel}>
+        <View style={styles.recommendationCopy}>
+          <Text style={styles.recommendationTitle}>{nextPracticeRecommendation.title}</Text>
+          <Text style={styles.recommendationDetail}>{nextPracticeRecommendation.detail}</Text>
+        </View>
+        <View style={styles.recommendationMetaRow}>
+          <ScoreBox label="BPM" value={`${nextPracticeRecommendation.bpm}`} />
+          <ScoreBox label="模式" value={nextPracticeRecommendation.loopMode === "auto" ? "循环" : "单练"} />
+          <ScoreBox label="目标" value={nextPracticeRecommendation.focusChord ?? "四和弦"} />
+        </View>
+        <Pressable accessibilityRole="button" onPress={onStartRecommendation} style={styles.recommendationButton}>
+          <Text style={styles.recommendationButtonText}>按建议开始</Text>
         </Pressable>
       </View>
 
@@ -765,11 +938,18 @@ function ChordScreen() {
   );
 }
 
-function PracticeScreen({ onPracticeRecord }: { onPracticeRecord: (record: PracticeSessionRecord) => void }) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [practiceBpm, setPracticeBpm] = useState(chordLoopPractice.bpm);
-  const [practiceTempoId, setPracticeTempoId] = useState<PracticeTempoId>("standard");
-  const [practiceLoopMode, setPracticeLoopMode] = useState<PracticeLoopMode>("auto");
+function PracticeScreen({
+  launchConfig,
+  onPracticeRecord
+}: {
+  launchConfig?: PracticeLaunchConfig;
+  onPracticeRecord: (record: PracticeSessionRecord) => void;
+}) {
+  const initialStep = findPracticeStepByChord(launchConfig?.focusChord);
+  const [currentStep, setCurrentStep] = useState(initialStep);
+  const [practiceBpm, setPracticeBpm] = useState(launchConfig?.bpm ?? chordLoopPractice.bpm);
+  const [practiceTempoId, setPracticeTempoId] = useState<PracticeTempoId>(launchConfig?.tempoId ?? "standard");
+  const [practiceLoopMode, setPracticeLoopMode] = useState<PracticeLoopMode>(launchConfig?.loopMode ?? "auto");
   const [practiceBeat, setPracticeBeat] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [beatSoundEnabled, setBeatSoundEnabled] = useState(true);
@@ -822,6 +1002,19 @@ function PracticeScreen({ onPracticeRecord }: { onPracticeRecord: (record: Pract
     : barsPracticed >= chordLoopPractice.targets.length
       ? "已经跑完一轮四和弦，可以尝试升到进阶 85。"
       : "先保持稳定四拍，再追求更快换和弦。";
+
+  useEffect(() => {
+    if (!launchConfig) return;
+    setIsRunning(false);
+    setPracticeBpm(launchConfig.bpm);
+    setPracticeTempoId(launchConfig.tempoId);
+    setPracticeLoopMode(launchConfig.loopMode);
+    setCurrentStep(findPracticeStepByChord(launchConfig.focusChord));
+    setPracticeBeat(0);
+    setPracticeEvents([]);
+    setCompletedSteps(chordLoopPractice.targets.map(() => false));
+    setSessionClosed(false);
+  }, [launchConfig?.token]);
 
   function createPracticeEvent(type: PracticeLogEvent["type"], step = currentStep): PracticeLogEvent {
     const target = chordLoopPractice.targets[step] ?? activeTarget;
@@ -2286,6 +2479,41 @@ const styles = StyleSheet.create({
   reportGrid: {
     flexDirection: "row",
     gap: 6
+  },
+  recommendationPanel: {
+    borderRadius: 8,
+    padding: 12,
+    gap: 10,
+    backgroundColor: "#F7F1E7",
+    borderWidth: 1,
+    borderColor: colors.line
+  },
+  recommendationCopy: {
+    gap: 4
+  },
+  recommendationTitle: {
+    color: colors.forest,
+    fontSize: 17,
+    fontWeight: "900"
+  },
+  recommendationDetail: {
+    color: "#756D64",
+    lineHeight: 20
+  },
+  recommendationMetaRow: {
+    flexDirection: "row",
+    gap: 6
+  },
+  recommendationButton: {
+    minHeight: 44,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.forest
+  },
+  recommendationButtonText: {
+    color: "#FFF8EC",
+    fontWeight: "900"
   },
   practiceHistoryHeader: {
     marginTop: 6,

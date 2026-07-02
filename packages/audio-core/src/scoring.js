@@ -53,6 +53,48 @@ export function calculateTimingOffsetMs({ eventTimeMs, startedAtMs, bpm, beatInd
   return eventTimeMs - expectedBeatTimeMs({ startedAtMs, bpm, beatIndex });
 }
 
+export function findNearestBeatIndex({ eventTimeMs, startedAtMs, bpm }) {
+  return Math.max(0, Math.round((eventTimeMs - startedAtMs) / beatDurationMs(bpm)));
+}
+
+export function createRhythmEventFromTimestamp({
+  eventTimeMs,
+  startedAtMs,
+  bpm,
+  beatsPerBar = 4,
+  targetBeatIndex = null
+}) {
+  const beatIndex = targetBeatIndex ?? findNearestBeatIndex({ eventTimeMs, startedAtMs, bpm });
+  const scoredEvent = scoreRhythmEvent({ eventTimeMs, startedAtMs, bpm, beatIndex });
+
+  return {
+    ...scoredEvent,
+    beatIndex,
+    barIndex: Math.floor(beatIndex / beatsPerBar),
+    beatInBar: beatIndex % beatsPerBar
+  };
+}
+
+export function scoreRhythmTimeline({ startedAtMs, bpm, events, beatsPerBar = 4 }) {
+  const scoredEvents = events.map((event) => {
+    const eventTimeMs = rhythmEventTimeMs(event);
+    const targetBeatIndex = event.targetBeatIndex ?? event.beatIndex ?? null;
+
+    return createRhythmEventFromTimestamp({
+      eventTimeMs,
+      startedAtMs,
+      bpm,
+      beatsPerBar,
+      targetBeatIndex
+    });
+  });
+
+  return {
+    scoredEvents,
+    summary: summarizeRhythmEvents(scoredEvents)
+  };
+}
+
 export function scoreRhythmEvent({ eventTimeMs, startedAtMs, bpm, beatIndex }) {
   const expectedTimeMs = expectedBeatTimeMs({ startedAtMs, bpm, beatIndex });
   const timingOffsetMs = eventTimeMs - expectedTimeMs;
@@ -144,6 +186,20 @@ function rhythmSuggestion({ earlyCount, lateCount, onTimeCount }) {
     return "You tend to play late. Prepare the next beat a little sooner.";
   }
   return "Rhythm is mixed. Slow the tempo down and aim for consistent beat placement.";
+}
+
+function beatDurationMs(bpm) {
+  return 60000 / bpm;
+}
+
+function rhythmEventTimeMs(event) {
+  const eventTimeMs = event.eventTimeMs ?? event.timestampMs ?? event.timeMs;
+
+  if (eventTimeMs == null) {
+    throw new TypeError("Rhythm timeline events require eventTimeMs, timestampMs, or timeMs.");
+  }
+
+  return eventTimeMs;
 }
 
 function average(values) {
