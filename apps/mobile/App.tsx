@@ -8,6 +8,7 @@ import {
   Text,
   View
 } from "react-native";
+import * as sharedPractice from "@ukulele/shared";
 import {
   beginnerChords,
   chordLoopPractice,
@@ -70,7 +71,7 @@ const practiceLoopModes = [
 type PracticeTempoId = "custom" | typeof practiceTempoPresets[number]["id"];
 type PracticeLoopMode = typeof practiceLoopModes[number]["id"];
 type PracticeLogEvent = {
-  type: "start" | "bar" | "complete" | "reset" | "tempo" | "mode";
+  type: "start" | "bar" | "complete" | "reset" | "tempo" | "mode" | "end";
   step: number;
   chord: string;
   bpm: number;
@@ -78,8 +79,144 @@ type PracticeLogEvent = {
   timestampMs: number;
 };
 
+type PracticeSessionInput = {
+  events: PracticeLogEvent[];
+  completedSteps: boolean[];
+  bpm: number;
+  mode: PracticeLoopMode;
+  lessonId: string;
+  exerciseId: string;
+};
+
+type PracticeSessionRecord = PracticeSessionInput & {
+  id: string;
+  startedAt: string;
+  endedAt: string;
+  durationSec: number;
+  completedCount: number;
+  totalSteps: number;
+};
+
+type PracticeRecordSummary = {
+  title: string;
+  durationLabel: string;
+  completedStepsLabel: string;
+  bpmLabel: string;
+  advice: string;
+};
+
+type SharedPracticeRecord = {
+  version?: number;
+  exerciseId?: string;
+  startedAt?: string;
+  endedAt?: string;
+  createdAt?: string;
+  bpm?: number;
+  loopMode?: PracticeLoopMode;
+  targets?: typeof chordLoopPractice.targets;
+  events?: Array<PracticeLogEvent & { targetId?: string; bar?: number; beat?: number }>;
+};
+
+type SharedPracticeSummary = Partial<{
+  durationSec: number;
+  barsPracticed: number;
+  completedCount: number;
+  completedTargetCount: number;
+  weakPoint: string | null;
+  suggestion: string;
+}>;
+
+type SharedPracticeTools = Partial<{
+  createPracticeSessionRecord: (input: Record<string, unknown>) => SharedPracticeRecord;
+  summarizePracticeRecord: (record: Record<string, unknown>) => SharedPracticeSummary;
+}>;
+
+const sharedPracticeTools = sharedPractice as unknown as SharedPracticeTools;
+
+function createPracticeSessionRecord(input: PracticeSessionInput): PracticeSessionRecord {
+  const startedAtMs = input.events[0]?.timestampMs ?? Date.now();
+  const endedAtMs = input.events[input.events.length - 1]?.timestampMs ?? startedAtMs;
+  const completedCount = input.completedSteps.filter(Boolean).length;
+  const sharedInput = {
+    exerciseId: input.exerciseId,
+    startedAt: new Date(startedAtMs).toISOString(),
+    endedAt: new Date(endedAtMs).toISOString(),
+    bpm: input.bpm,
+    mode: input.mode,
+    targets: chordLoopPractice.targets,
+    events: input.events.map((event) => {
+      const target = chordLoopPractice.targets[event.step];
+      return {
+        ...event,
+        targetId: target?.id,
+        bar: target?.bar,
+        beat: target?.beat
+      };
+    })
+  };
+  const sharedRecord = sharedPracticeTools.createPracticeSessionRecord?.(sharedInput) ?? {};
+
+  return {
+    ...input,
+    ...sharedRecord,
+    id: `practice-${startedAtMs}-${Math.random().toString(36).slice(2, 8)}`,
+    startedAt: sharedRecord.startedAt ?? new Date(startedAtMs).toISOString(),
+    endedAt: sharedRecord.endedAt ?? new Date(endedAtMs).toISOString(),
+    durationSec: Math.max(0, Math.round((endedAtMs - startedAtMs) / 1000)),
+    completedCount,
+    totalSteps: input.completedSteps.length
+  };
+}
+
+function summarizePracticeRecord(record: PracticeSessionRecord): PracticeRecordSummary {
+  const sharedSummary = sharedPracticeTools.summarizePracticeRecord?.(record) ?? {};
+  const completedAll = record.completedCount >= record.totalSteps;
+  const modeLabel = record.mode === "auto" ? "自动循环" : "只练当前";
+  const durationLabel = formatPracticeDuration(sharedSummary.durationSec ?? record.durationSec);
+  const completedTargetCount = sharedSummary.completedTargetCount ?? record.completedCount;
+  const advice = completedAll
+    ? "四个小节都完成了，下次可以尝试提高 5 BPM。"
+    : record.mode === "single"
+      ? "单小节练习已记录，继续把当前换指练稳。"
+      : sharedSummary.weakPoint
+        ? `下次优先稳住 ${sharedSummary.weakPoint}，先慢速再升速。`
+        : "先保持四拍稳定，再追求更快换和弦。";
+
+  return {
+    title: `${modeLabel} · ${new Date(record.endedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`,
+    durationLabel,
+    completedStepsLabel: `${completedTargetCount}/${record.totalSteps}`,
+    bpmLabel: `${record.bpm} BPM`,
+    advice
+  };
+}
+
+function formatPracticeDuration(durationSec: number) {
+  if (durationSec < 60) return `${durationSec}s`;
+  const minutes = Math.floor(durationSec / 60);
+  const seconds = durationSec % 60;
+  return seconds === 0 ? `${minutes}min` : `${minutes}min ${seconds}s`;
+}
+
+function persistPracticeHistory(_history: PracticeSessionRecord[]) {
+  // AsyncStorage can be wired here later without changing the screen data flow.
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
+  const [practiceHistory, setPracticeHistory] = useState<PracticeSessionRecord[]>([]);
+  const latestPracticeSummary = useMemo(() => {
+    const latestRecord = practiceHistory[0];
+    return latestRecord ? summarizePracticeRecord(latestRecord) : undefined;
+  }, [practiceHistory]);
+
+  function appendPracticeRecord(record: PracticeSessionRecord) {
+    setPracticeHistory((history) => {
+      const nextHistory = [record, ...history].slice(0, 20);
+      persistPracticeHistory(nextHistory);
+      return nextHistory;
+    });
+  }
 
   return (
     <SafeAreaView style={styles.shell}>
@@ -95,11 +232,11 @@ export default function App() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {activeTab === "home" && <HomeScreen onStart={() => setActiveTab("practice")} />}
+        {activeTab === "home" && <HomeScreen latestPracticeSummary={latestPracticeSummary} onStart={() => setActiveTab("practice")} />}
         {activeTab === "tuner" && <TunerScreen />}
         {activeTab === "metronome" && <MetronomeScreen />}
         {activeTab === "chords" && <ChordScreen />}
-        {activeTab === "practice" && <PracticeScreen />}
+        {activeTab === "practice" && <PracticeScreen onPracticeRecord={appendPracticeRecord} />}
       </ScrollView>
 
       <View style={styles.tabBar}>
@@ -123,7 +260,13 @@ export default function App() {
   );
 }
 
-function HomeScreen({ onStart }: { onStart: () => void }) {
+function HomeScreen({
+  latestPracticeSummary,
+  onStart
+}: {
+  latestPracticeSummary?: PracticeRecordSummary;
+  onStart: () => void;
+}) {
   return (
     <View style={styles.stack}>
       <View style={styles.heroBand}>
@@ -132,6 +275,18 @@ function HomeScreen({ onStart }: { onStart: () => void }) {
         <Pressable accessibilityRole="button" onPress={onStart} style={styles.primaryButton}>
           <Text style={styles.primaryButtonText}>开始 8 分钟练习</Text>
         </Pressable>
+      </View>
+
+      <SectionTitle title="最近练习" detail={latestPracticeSummary ? latestPracticeSummary.title : "还没有本地跟练记录"} />
+      <View style={styles.practiceSession}>
+        <View style={styles.reportGrid}>
+          <ScoreBox label="时长" value={latestPracticeSummary?.durationLabel ?? "--"} />
+          <ScoreBox label="完成" value={latestPracticeSummary?.completedStepsLabel ?? "0/4"} />
+          <ScoreBox label="BPM" value={latestPracticeSummary?.bpmLabel ?? `${chordLoopPractice.bpm} BPM`} />
+        </View>
+        <Text style={styles.sessionMeta}>
+          建议：{latestPracticeSummary?.advice ?? "完成一次跟练或重置后，这里会显示最近摘要。"}
+        </Text>
       </View>
 
       <SectionTitle title="今日闭环" detail="本地模拟拾音" />
@@ -433,7 +588,7 @@ function ChordScreen() {
   );
 }
 
-function PracticeScreen() {
+function PracticeScreen({ onPracticeRecord }: { onPracticeRecord: (record: PracticeSessionRecord) => void }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [practiceBpm, setPracticeBpm] = useState(chordLoopPractice.bpm);
   const [practiceTempoId, setPracticeTempoId] = useState<PracticeTempoId>("standard");
@@ -443,6 +598,7 @@ function PracticeScreen() {
   const [beatSoundEnabled, setBeatSoundEnabled] = useState(true);
   const [beatSoundStatus, setBeatSoundStatus] = useState("节拍声已开启");
   const [practiceEvents, setPracticeEvents] = useState<PracticeLogEvent[]>([]);
+  const [sessionClosed, setSessionClosed] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<boolean[]>(() =>
     chordLoopPractice.targets.map(() => false)
   );
@@ -482,19 +638,41 @@ function PracticeScreen() {
       ? "已经跑完一轮四和弦，可以尝试升到进阶 85。"
       : "先保持稳定四拍，再追求更快换和弦。";
 
-  function recordPracticeEvent(type: PracticeLogEvent["type"], step = currentStep) {
+  function createPracticeEvent(type: PracticeLogEvent["type"], step = currentStep): PracticeLogEvent {
     const target = chordLoopPractice.targets[step] ?? activeTarget;
-    setPracticeEvents((events) => [
-      ...events,
-      {
-        type,
-        step,
-        chord: target.chord,
-        bpm: practiceBpm,
-        loopMode: practiceLoopMode,
-        timestampMs: Date.now()
-      }
-    ]);
+    return {
+      type,
+      step,
+      chord: target.chord,
+      bpm: practiceBpm,
+      loopMode: practiceLoopMode,
+      timestampMs: Date.now()
+    };
+  }
+
+  function recordPracticeEvent(type: PracticeLogEvent["type"], step = currentStep) {
+    const event = createPracticeEvent(type, step);
+    setPracticeEvents((events) => [...events, event]);
+    return event;
+  }
+
+  function commitPracticeSession(events: PracticeLogEvent[], steps: boolean[]) {
+    const hasPracticeActivity = events.some((event) => event.type === "start" || event.type === "bar" || event.type === "complete")
+      || steps.some(Boolean);
+    if (!hasPracticeActivity) {
+      return;
+    }
+
+    const record = createPracticeSessionRecord({
+      events,
+      completedSteps: steps,
+      bpm: practiceBpm,
+      mode: practiceLoopMode,
+      lessonId: mvpLesson.id,
+      exerciseId: chordLoopPractice.id
+    });
+    onPracticeRecord(record);
+    setSessionClosed(true);
   }
 
   useEffect(() => {
@@ -521,6 +699,8 @@ function PracticeScreen() {
 
   async function togglePracticeRunning() {
     if (isRunning) {
+      const endEvent = recordPracticeEvent("end");
+      commitPracticeSession([...practiceEvents, endEvent], completedSteps);
       setIsRunning(false);
       return;
     }
@@ -531,7 +711,14 @@ function PracticeScreen() {
       void playPracticeBeatClick("accent");
     }
 
+    if (sessionClosed) {
+      setPracticeEvents([]);
+      setCompletedSteps(chordLoopPractice.targets.map(() => false));
+      setCurrentStep(0);
+      setPracticeBeat(0);
+    }
     recordPracticeEvent("start");
+    setSessionClosed(false);
     setIsRunning(true);
   }
 
@@ -549,14 +736,17 @@ function PracticeScreen() {
   }
 
   function completeCurrentStep() {
-    setCompletedSteps((steps) => steps.map((done, index) => (index === currentStep ? true : done)));
-    recordPracticeEvent("complete");
+    const nextCompletedSteps = completedSteps.map((done, index) => (index === currentStep ? true : done));
+    const completeEvent = recordPracticeEvent("complete");
+    setCompletedSteps(nextCompletedSteps);
     setPracticeBeat(0);
     if (practiceLoopMode === "single") {
+      commitPracticeSession([...practiceEvents, completeEvent], nextCompletedSteps);
       setIsRunning(false);
       return;
     }
     if (currentStep === chordLoopPractice.targets.length - 1) {
+      commitPracticeSession([...practiceEvents, completeEvent], nextCompletedSteps);
       setIsRunning(false);
       return;
     }
@@ -564,11 +754,15 @@ function PracticeScreen() {
   }
 
   function resetPractice() {
+    const resetEvent = createPracticeEvent("reset");
+    if (!sessionClosed) {
+      commitPracticeSession([...practiceEvents, resetEvent], completedSteps);
+    }
     setIsRunning(false);
-    recordPracticeEvent("reset");
     setCurrentStep(0);
     setPracticeBeat(0);
     setPracticeEvents([]);
+    setSessionClosed(false);
     setCompletedSteps(chordLoopPractice.targets.map(() => false));
   }
 

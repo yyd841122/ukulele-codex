@@ -106,6 +106,163 @@ export const chordLoopPractice = {
   ]
 };
 
+export const practiceRecordVersion = 1;
+
+const copyIfPresent = (source, target, key) => {
+  const value = source?.[key];
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    value === null
+  ) {
+    target[key] = value;
+  }
+};
+
+const sanitizePracticeTarget = (target) => {
+  const cleanTarget = {};
+  for (const key of ["id", "bar", "beat", "chord", "primaryNote"]) {
+    copyIfPresent(target, cleanTarget, key);
+  }
+  return cleanTarget;
+};
+
+const sanitizePracticeEvent = (event) => {
+  const cleanEvent = {
+    type: typeof event?.type === "string" ? event.type : "unknown"
+  };
+  for (const key of [
+    "step",
+    "targetId",
+    "bar",
+    "beat",
+    "chord",
+    "bpm",
+    "loopMode",
+    "at",
+    "timestamp",
+    "timestampMs",
+    "timeMs",
+    "offsetMs",
+    "status",
+    "score",
+    "accuracy"
+  ]) {
+    copyIfPresent(event, cleanEvent, key);
+  }
+  return cleanEvent;
+};
+
+const isCompletedPracticeEvent = (event) => {
+  const type = String(event?.type ?? "").toLowerCase();
+  return (
+    type === "complete" ||
+    type === "completed" ||
+    type.endsWith("_complete") ||
+    type.endsWith("_completed")
+  );
+};
+
+const toTimeMs = (value) => {
+  if (typeof value !== "string" && typeof value !== "number") {
+    return null;
+  }
+  const timeMs = new Date(value).getTime();
+  return Number.isFinite(timeMs) ? timeMs : null;
+};
+
+const eventTimeMs = (event) => {
+  for (const key of ["timestampMs", "timeMs", "timestamp", "at"]) {
+    const value = event?.[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+    const parsed = toTimeMs(value);
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+  return null;
+};
+
+export const createPracticeSessionRecord = ({
+  exerciseId,
+  startedAt,
+  endedAt,
+  bpm,
+  mode,
+  loopMode = "guided",
+  targets = [],
+  events = [],
+  createdAt
+} = {}) => {
+  const cleanEvents = Array.isArray(events) ? events.map(sanitizePracticeEvent) : [];
+  const eventTimes = cleanEvents.map(eventTimeMs).filter((value) => value !== null);
+  const inferredStartedAt =
+    startedAt ?? (eventTimes.length > 0 ? new Date(Math.min(...eventTimes)).toISOString() : undefined);
+  const inferredEndedAt =
+    endedAt ?? (eventTimes.length > 0 ? new Date(Math.max(...eventTimes)).toISOString() : inferredStartedAt);
+
+  return {
+    version: practiceRecordVersion,
+    exerciseId,
+    startedAt: inferredStartedAt,
+    endedAt: inferredEndedAt,
+    createdAt: createdAt ?? inferredEndedAt ?? inferredStartedAt,
+    bpm,
+    loopMode: mode ?? loopMode,
+    targets: Array.isArray(targets) ? targets.map(sanitizePracticeTarget) : [],
+    events: cleanEvents
+  };
+};
+
+export const summarizePracticeRecord = (record = {}) => {
+  const startedMs = toTimeMs(record.startedAt);
+  const endedMs = toTimeMs(record.endedAt);
+  const durationSec =
+    startedMs === null || endedMs === null ? 0 : Math.max(0, Math.round((endedMs - startedMs) / 1000));
+  const targetById = new Map((record.targets ?? []).map((target) => [target.id, target]));
+  const targetByStep = new Map((record.targets ?? []).map((target, index) => [index, target]));
+  const practicedBars = new Set();
+  const completedTargetIds = new Set();
+  let completedCount = 0;
+
+  for (const event of record.events ?? []) {
+    const target = targetById.get(event.targetId) ?? targetByStep.get(event.step);
+    const bar = event.bar ?? target?.bar;
+    if (typeof bar === "number") {
+      practicedBars.add(bar);
+    }
+    if (isCompletedPracticeEvent(event)) {
+      completedCount += 1;
+      if (event.targetId || target?.id) {
+        completedTargetIds.add(event.targetId ?? target.id);
+      }
+    }
+  }
+
+  const missingTarget = (record.targets ?? []).find((target) => !completedTargetIds.has(target.id));
+  const weakPoint = missingTarget?.chord ?? missingTarget?.id ?? null;
+  const suggestion =
+    (record.events ?? []).length === 0
+      ? "Start with one slow loop and record each bar."
+      : weakPoint
+        ? `Focus on ${weakPoint} at a slower tempo before the next loop.`
+        : "All targets were completed; repeat once or raise the tempo slightly.";
+
+  return {
+    durationSec,
+    barsPracticed: practicedBars.size,
+    completedCount,
+    completedTargetCount: completedTargetIds.size,
+    weakPoint,
+    suggestion
+  };
+};
+
+export const appendPracticeRecord = (history = [], record) => [...history, record];
+
 export const designPrinciples = [
   "练习入口优先，不做营销式首页",
   "调音和跟练反馈必须大、清楚、低干扰",

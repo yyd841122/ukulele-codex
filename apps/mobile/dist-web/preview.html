@@ -202,6 +202,19 @@
         color: var(--forest);
       }
 
+      .practice-history-line {
+        min-height: auto;
+        margin-top: 10px;
+        padding: 10px 12px;
+        align-items: flex-start;
+      }
+
+      .practice-history-line .muted {
+        flex: 1;
+        text-align: right;
+        line-height: 1.35;
+      }
+
       .mic-panel {
         min-height: 76px;
         margin-bottom: 10px;
@@ -1132,6 +1145,10 @@
             <div class="metric">和弦组<strong>C Am F G7</strong></div>
             <div class="metric">预计用时<strong>8 分钟</strong></div>
           </div>
+          <div class="row practice-history-line">
+            <strong>最近练习</strong>
+            <span class="muted" id="recentPracticeSummaryToday" data-practice-history-summary>暂无练习记录</span>
+          </div>
         </section>
 
         <section class="section">
@@ -1381,6 +1398,10 @@
           <div class="row" style="margin-top: 10px">
             <strong>下次建议</strong>
             <span class="muted" id="suggestion">F 到 G7 换和弦放慢 5 BPM</span>
+          </div>
+          <div class="row practice-history-line">
+            <strong>最近练习</strong>
+            <span class="muted" id="recentPracticeSummaryPractice" data-practice-history-summary>暂无练习记录</span>
           </div>
         </section>
       </section>
@@ -1909,12 +1930,111 @@
       let practiceBeat = 0;
       let completedSteps = reports.map(() => false);
       let practiceEvents = [];
+      let practiceSessionSaved = false;
       let practiceRunning = false;
       let practiceTimer = null;
       let practiceSoundEnabled = true;
       let practiceAudioContext = null;
       const practiceSoundToggle = document.getElementById("practiceSoundToggle");
       const practiceSoundStatus = document.getElementById("practiceSoundStatus");
+      const PRACTICE_HISTORY_KEY = "ukulele.practiceHistory.v1";
+      const PRACTICE_HISTORY_LIMIT = 20;
+      const practiceHistorySummaryNodes = Array.from(document.querySelectorAll("[data-practice-history-summary]"));
+
+      function readPracticeHistory() {
+        try {
+          const raw = window.localStorage.getItem(PRACTICE_HISTORY_KEY);
+          if (!raw) return [];
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed.filter((item) => item && typeof item === "object") : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function writePracticeHistory(records) {
+        try {
+          window.localStorage.setItem(PRACTICE_HISTORY_KEY, JSON.stringify(records.slice(0, PRACTICE_HISTORY_LIMIT)));
+          return true;
+        } catch (error) {
+          return false;
+        }
+      }
+
+      function formatPracticeHistoryTime(value) {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "刚刚";
+        return new Intl.DateTimeFormat("zh-CN", {
+          month: "numeric",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        }).format(date);
+      }
+
+      function formatPracticeMode(mode) {
+        return mode === "single" ? "只练当前" : "自动循环";
+      }
+
+      function renderPracticeHistorySummary() {
+        const latest = readPracticeHistory()[0];
+        const text = latest
+          ? `${formatPracticeHistoryTime(latest.endedAt)} · ${latest.bpm} BPM · ${formatPracticeMode(latest.mode)} · 完成 ${latest.completedCount}/${reports.length} · ${latest.barsPracticed} 小节 · ${latest.targetSummary}`
+          : "暂无练习记录";
+        practiceHistorySummaryNodes.forEach((node) => {
+          node.textContent = text;
+        });
+      }
+
+      function buildPracticeSessionRecord(reason) {
+        const progressEvents = practiceEvents.filter((event) => event.type === "bar" || event.type === "complete");
+        if (progressEvents.length === 0) return null;
+
+        const endedAtMs = Date.now();
+        const firstEventAt = practiceEvents[0]?.timestampMs || endedAtMs;
+        const lastEventAt = practiceEvents[practiceEvents.length - 1]?.timestampMs || endedAtMs;
+        const startedAtMs = Math.min(firstEventAt, endedAtMs);
+        const durationSec = Math.max(0, Math.round((Math.max(lastEventAt, endedAtMs) - startedAtMs) / 1000));
+        const barsPracticed = practiceEvents.filter((event) => event.type === "bar").length;
+        const completedCount = completedSteps.filter(Boolean).length;
+        const completeEvents = practiceEvents.filter((event) => event.type === "complete").length;
+        const targetMap = new Map();
+        progressEvents.forEach((event) => {
+          const report = reports[event.step] || reports.find((item) => item.chord === event.chord);
+          const chord = event.chord || report?.chord;
+          if (chord && !targetMap.has(chord)) {
+            targetMap.set(chord, report?.action ? `${chord} ${report.action}` : chord);
+          }
+        });
+        const targets = Array.from(targetMap.values());
+
+        return {
+          id: `${startedAtMs}-${endedAtMs}`,
+          reason,
+          startedAt: new Date(startedAtMs).toISOString(),
+          endedAt: new Date(endedAtMs).toISOString(),
+          duration: durationSec,
+          durationSec,
+          bpm: practiceBpm,
+          mode: practiceLoopMode,
+          completedCount,
+          completeEvents,
+          barsPracticed,
+          chords: Array.from(targetMap.keys()),
+          targetSummary: targets.length > 0 ? targets.join(" / ") : reports[practiceStep].chord
+        };
+      }
+
+      function savePracticeSession(reason) {
+        if (practiceSessionSaved) return false;
+        const record = buildPracticeSessionRecord(reason);
+        if (!record) return false;
+        const history = readPracticeHistory();
+        writePracticeHistory([record, ...history].slice(0, PRACTICE_HISTORY_LIMIT));
+        practiceSessionSaved = true;
+        renderPracticeHistorySummary();
+        return true;
+      }
 
       function renderPractice() {
         const completedCount = completedSteps.filter(Boolean).length;
@@ -1954,6 +2074,7 @@
 
       function recordPracticeEvent(type, step = practiceStep) {
         const report = reports[step] || reports[practiceStep];
+        practiceSessionSaved = false;
         practiceEvents.push({
           type,
           step,
@@ -2108,8 +2229,10 @@
         recordPracticeEvent("complete");
         practiceBeat = 0;
         if (practiceLoopMode === "single") {
+          savePracticeSession("completed");
           setPracticeRunning(false);
         } else if (practiceStep === steps.length - 1) {
+          savePracticeSession("completed");
           setPracticeRunning(false);
         } else {
           practiceStep += 1;
@@ -2119,10 +2242,12 @@
 
       document.getElementById("resetStep").addEventListener("click", () => {
         setPracticeRunning(false);
+        savePracticeSession("reset");
         practiceStep = 0;
         practiceBeat = 0;
         completedSteps = reports.map(() => false);
         practiceEvents = [];
+        practiceSessionSaved = false;
         renderPractice();
       });
 
@@ -2158,6 +2283,7 @@
           renderPractice();
         });
       });
+      renderPracticeHistorySummary();
       renderPractice();
     </script>
   </body>
