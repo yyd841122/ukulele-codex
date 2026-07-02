@@ -1254,6 +1254,8 @@ function PracticeScreen({
   const [isRunning, setIsRunning] = useState(false);
   const [beatSoundEnabled, setBeatSoundEnabled] = useState(true);
   const [beatSoundStatus, setBeatSoundStatus] = useState("节拍声已开启");
+  const [practiceMicAccess, setPracticeMicAccess] = useState(initialMicrophoneAccessState);
+  const [practiceMicBusy, setPracticeMicBusy] = useState(false);
   const [practiceEvents, setPracticeEvents] = useState<PracticeLogEvent[]>([]);
   const [sessionClosed, setSessionClosed] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<boolean[]>(() =>
@@ -1412,6 +1414,15 @@ function PracticeScreen({
     const audioState = await preparePracticeBeatAudio();
     setBeatSoundStatus(audioState === "web-ready" ? "节拍声已开启" : "当前平台先显示节拍，后续接本地 click 声");
     void playPracticeBeatClick(practiceBeat === 0 ? "accent" : "light");
+  }
+
+  async function enablePracticeMicrophone() {
+    setPracticeMicBusy(true);
+    try {
+      setPracticeMicAccess(await ensureMicrophoneAccess());
+    } finally {
+      setPracticeMicBusy(false);
+    }
   }
 
   function completeCurrentStep() {
@@ -1578,6 +1589,25 @@ function PracticeScreen({
                 </Text>
               </Pressable>
               <Text style={styles.practiceSoundStatus}>{beatSoundStatus}</Text>
+              <Pressable
+                accessibilityRole="button"
+                disabled={practiceMicBusy || practiceMicAccess.granted}
+                style={[
+                  styles.practiceMicButton,
+                  practiceMicAccess.granted && styles.practiceMicButtonReady,
+                  practiceMicBusy && styles.disabledButton
+                ]}
+                onPress={enablePracticeMicrophone}
+              >
+                <Text style={[styles.practiceMicButtonText, practiceMicAccess.granted && styles.practiceMicButtonTextReady]}>
+                  {practiceMicBusy ? "请求中" : practiceMicAccess.granted ? "麦克风已开通" : "打开麦克风跟练"}
+                </Text>
+              </Pressable>
+              <Text style={styles.practiceSoundStatus}>
+                {practiceMicAccess.granted
+                  ? "权限已开通；Expo App 后续接入实时扫弦 PCM。"
+                  : "用于后续真实扫弦节奏评分，网页预览可直接拾音。"}
+              </Text>
             </View>
             <View style={styles.practiceControlGrid}>
               <Pressable
@@ -2525,6 +2555,25 @@ const styles = StyleSheet.create({
     color: "#756D64",
     fontSize: 10,
     lineHeight: 13
+  },
+  practiceMicButton: {
+    minHeight: 34,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EEE8DC"
+  },
+  practiceMicButtonReady: {
+    borderWidth: 1,
+    borderColor: successGreen,
+    backgroundColor: "#F0FDF4"
+  },
+  practiceMicButtonText: {
+    color: colors.forest,
+    fontWeight: "900"
+  },
+  practiceMicButtonTextReady: {
+    color: successGreen
   },
   fingeringGuide: {
     marginTop: 2,
