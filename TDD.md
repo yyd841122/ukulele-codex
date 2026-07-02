@@ -44,6 +44,16 @@
 - 推荐系统的输入不应只有总分，还应包含节奏型、和弦转换对、歌曲片段、BPM、完成轮次、提前/滞后统计。
 - 页面开发优先消费共享内容模型，不再为每个练习在 UI 中硬编码独立数据。
 
+### 1.2 当前技术执行顺序
+
+1. `packages/shared` 先定义内容目录：课程路径、练习模板、曲谱条目、页面模块元数据和查询 helper。
+2. `apps/mobile/dist-web/preview.html` 继续保留自包含预览，但逐步对齐 shared 字段，作为交互验证场。
+3. 调音器不重写算法：复用 `audio-core` 的 MPM/YIN、调音匹配、`createTunerFrameFromFrequency`、`medianCents` 和 App 侧 `TunerFrame` 管线。
+4. 调音页面按当前设计重做，UI 只消费权限、电平、PitchFrame、弦状态和调音建议，不直接耦合具体算法。
+5. `apps/mobile/App.tsx` 改为消费 shared 内容模型，减少页面内硬编码。
+6. `PracticeEngine` 和本地 `practiceHistory` 只处理结构化 practice template 与 practice session record。
+7. 真实拾音接入延后到内容路径稳定之后，再把麦克风 onset/PitchFrame 作为 practice event 输入。
+
 ## 2. 推荐技术栈
 
 ### 2.1 客户端

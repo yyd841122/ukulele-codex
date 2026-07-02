@@ -364,6 +364,125 @@ export const chordLoopPractice = {
   action: chordLoopExercise.action
 };
 
+export const beginnerSongCatalog = [
+  {
+    id: "song-four-chord-hum",
+    title: "Four Chord Hum",
+    artist: "AI Ukulele Academy",
+    instrument: "ukulele",
+    level: "P0",
+    key: "C",
+    bpm: 70,
+    timeSignature: "4/4",
+    difficulty: 1,
+    access: "free",
+    chordIds: ["uke-c", "uke-am", "uke-f", "uke-g7"],
+    rhythmPatternIds: ["rhythm-down-four"],
+    songFragmentIds: ["song-fragment-four-chord-hum"],
+    practiceTemplateIds: ["practice-song-fragment-four-chord-hum"],
+    tags: ["beginner", "four-chord", "song-fragment"]
+  },
+  {
+    id: "song-island-strum-demo",
+    title: "Island Strum Demo",
+    artist: "AI Ukulele Academy",
+    instrument: "ukulele",
+    level: "P1",
+    key: "C",
+    bpm: 70,
+    timeSignature: "4/4",
+    difficulty: 2,
+    access: "free",
+    chordIds: ["uke-c", "uke-am", "uke-f", "uke-g7"],
+    rhythmPatternIds: ["rhythm-down-down-up-up"],
+    songFragmentIds: [],
+    practiceTemplateIds: ["practice-c-am-f-g7-loop"],
+    tags: ["beginner", "rhythm-pattern", "strumming"]
+  },
+  {
+    id: "song-riptide-style-progression",
+    title: "Riptide Style Progression",
+    artist: "AI Ukulele Academy",
+    instrument: "ukulele",
+    level: "P2",
+    key: "Am",
+    bpm: 85,
+    timeSignature: "4/4",
+    difficulty: 3,
+    access: "pro",
+    chordIds: ["uke-am", "uke-f", "uke-c", "uke-g7"],
+    rhythmPatternIds: ["rhythm-down-down-up-up"],
+    songFragmentIds: [],
+    practiceTemplateIds: ["practice-c-am-f-g7-loop"],
+    tags: ["pro", "song-practice", "progression"]
+  }
+];
+
+export const mvpContentModules = [
+  {
+    id: "today",
+    tab: "home",
+    title: "Today",
+    purpose: "Recommend one concrete practice path.",
+    primaryTemplateId: "practice-rhythm-down-four",
+    linkedSongId: "song-four-chord-hum"
+  },
+  {
+    id: "learn",
+    tab: "learn",
+    title: "Learning Path",
+    purpose: "Show required, optional and Pro lessons.",
+    skillPathIds: mvpSkillPath.map((step) => step.id)
+  },
+  {
+    id: "practice",
+    tab: "practice",
+    title: "Practice Tools",
+    purpose: "Open tuner, metronome, rhythm, transition and song fragment practice.",
+    practiceTemplateIds: mvpPracticeTemplates.map((template) => template.id)
+  },
+  {
+    id: "songs",
+    tab: "songs",
+    title: "Song Library",
+    purpose: "Browse beginner song fragments and locked Pro examples.",
+    songIds: beginnerSongCatalog.map((song) => song.id)
+  },
+  {
+    id: "profile",
+    tab: "me",
+    title: "Practice Profile",
+    purpose: "Review local stats, achievements and recent practice history."
+  }
+];
+
+export const mvpPracticeContent = {
+  version: "mvp-content-v1",
+  instrumentId: ukuleleInstrument.id,
+  skillPath: mvpSkillPath,
+  modules: mvpContentModules,
+  rhythmPatterns: beginnerRhythmPatterns,
+  chordTransitions: chordTransitionExercises,
+  songFragments: beginnerSongFragments,
+  practiceTemplates: mvpPracticeTemplates,
+  songs: beginnerSongCatalog
+};
+
+export const getRhythmPatternById = (id) =>
+  beginnerRhythmPatterns.find((pattern) => pattern.id === id) ?? null;
+
+export const getChordTransitionExerciseById = (id) =>
+  chordTransitionExercises.find((exercise) => exercise.id === id) ?? null;
+
+export const getSongFragmentById = (id) =>
+  beginnerSongFragments.find((fragment) => fragment.id === id) ?? null;
+
+export const getBeginnerSongById = (id) =>
+  beginnerSongCatalog.find((song) => song.id === id) ?? null;
+
+export const getContentModuleById = (id) =>
+  mvpContentModules.find((module) => module.id === id) ?? null;
+
 export const practiceRecordVersion = 1;
 
 const copyIfPresent = (source, target, key) => {

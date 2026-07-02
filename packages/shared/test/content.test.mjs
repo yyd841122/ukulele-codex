@@ -11,12 +11,18 @@ import {
   evaluateMvpLessonProgress,
   evaluatePracticeMilestone,
   formatPracticeDayKey,
+  getBeginnerSongById,
+  getContentModuleById,
   getMvpPracticeTemplate,
   getPracticeTemplatesByType,
+  getRhythmPatternById,
+  getSongFragmentById,
   m0AgentTasks,
   beginnerRhythmPatterns,
   beginnerSongFragments,
   chordTransitionExercises,
+  mvpContentModules,
+  mvpPracticeContent,
   mvpSkillPath,
   mvpPracticeTemplates,
   normalizePracticeHistory,
@@ -91,6 +97,33 @@ test("MVP practice targets reference beginner chord ids", () => {
     for (const target of template.targets) {
       assert.ok(chordIds.has(target.chordId));
     }
+  }
+});
+
+test("MVP content modules cover the current app tabs", () => {
+  assert.deepEqual(
+    mvpContentModules.map((module) => module.tab),
+    ["home", "learn", "practice", "songs", "me"]
+  );
+  assert.equal(getContentModuleById("practice").practiceTemplateIds.length, mvpPracticeTemplates.length);
+  assert.equal(getContentModuleById("songs").songIds.length, mvpPracticeContent.songs.length);
+});
+
+test("MVP shared content links songs fragments rhythms and templates", () => {
+  const song = getBeginnerSongById("song-four-chord-hum");
+  assert.ok(song);
+  assert.equal(song.access, "free");
+
+  for (const rhythmPatternId of song.rhythmPatternIds) {
+    assert.ok(getRhythmPatternById(rhythmPatternId));
+  }
+  for (const fragmentId of song.songFragmentIds) {
+    const fragment = getSongFragmentById(fragmentId);
+    assert.ok(fragment);
+    assert.ok(getRhythmPatternById(fragment.rhythmPatternId));
+  }
+  for (const templateId of song.practiceTemplateIds) {
+    assert.ok(getMvpPracticeTemplate(templateId));
   }
 });
 

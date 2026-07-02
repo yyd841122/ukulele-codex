@@ -445,63 +445,94 @@
   .chord { display: inline-block; min-width: 20px; text-align: center; margin-right: 4px; padding: 1px 5px; border-radius: 5px; color: #fff; background: var(--orange); font-size: 12px; font-weight: 900; }
   .sticky-actions { position: sticky; bottom: 0; display: flex; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--line); background: #fff; }
   .sticky-actions .primary { flex: 1; }
-  .tuner-page { color: #fff; background: linear-gradient(180deg, #1F2937, #111827); }
-  .tuner-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; }
-  .mode-chip { padding: 4px 10px; border-radius: 999px; font-size: 12px; background: rgba(255,255,255,.1); }
-  .dial-wrap { display: flex; flex-direction: column; align-items: center; padding-top: 8px; }
-  .dial {
-    position: relative;
-    width: 260px;
-    height: 260px;
-    border-radius: 50%;
-    background: radial-gradient(circle at center, rgba(255,255,255,.11), rgba(255,255,255,.02) 62%, rgba(255,255,255,.08));
-    border: 12px solid rgba(255,255,255,.06);
+  .tuner-page { color: var(--text-1); background: linear-gradient(180deg, #FFFDF8 0%, #F5F0E6 100%); }
+  .tuner-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px 8px; }
+  .tuner-head b { font-size: 20px; }
+  .mode-chip {
+    padding: 7px 12px;
+    color: var(--text-1);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+    background: #fff;
+    box-shadow: var(--shadow);
   }
-  .dial::before {
+  .tuner-body { padding: 0 16px 24px; }
+  .tuner-status-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 8px 0 12px;
+  }
+  .tuner-status-card {
+    min-height: 64px;
+    padding: 10px 8px;
+    border: 1px solid rgba(16,185,129,.42);
+    border-radius: 12px;
+    text-align: center;
+    background: #ECFDF5;
+  }
+  .tuner-status-card b { display: block; color: #059669; font-size: 12px; }
+  .tuner-status-card span { display: block; margin-top: 4px; color: var(--text-2); font-size: 11px; font-weight: 800; }
+  .tuner-main-card { padding: 18px; text-align: center; }
+  .tuner-note { font-size: 72px; line-height: 1; color: var(--teal); font-weight: 950; }
+  .tuner-state { margin-top: 8px; color: #16A34A; font-size: 19px; font-weight: 950; }
+  .tuner-hz { margin-top: 6px; color: var(--text-2); font-size: 12px; font-weight: 800; }
+  .tuner-meter { position: relative; height: 34px; margin: 22px 24px 2px; }
+  .tuner-meter::before {
     content: "";
     position: absolute;
-    inset: 16px;
-    border-radius: 50%;
-    border: 1px dashed rgba(255,255,255,.18);
+    left: 0;
+    right: 0;
+    top: 16px;
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #3B82F6, #D1D5DB 48%, #16A34A 50%, #D1D5DB 52%, #EF4444);
   }
   .needle {
     position: absolute;
+    z-index: 2;
     left: 50%;
-    top: 50%;
+    top: 4px;
     width: 4px;
-    height: 112px;
-    transform-origin: bottom center;
-    transform: translate(-50%, -100%) rotate(0deg);
-    border-radius: 4px;
-    background: var(--err);
-    transition: transform .14s ease, background .2s;
+    height: 28px;
+    border-radius: 999px;
+    transform: translateX(-50%);
+    background: var(--text-1);
+    transition: transform .24s ease, background .2s;
   }
-  .needle.ok { background: var(--ok); }
-  .dial-center {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -40%);
-    text-align: center;
+  .needle.ok { background: #16A34A; }
+  .tuner-input-card { margin-top: 12px; padding: 14px; }
+  .tuner-input-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .tuner-input-row b { font-size: 15px; }
+  .tuner-input-row span { color: var(--teal); font-size: 22px; font-weight: 950; }
+  .level-track {
+    height: 10px;
+    overflow: hidden;
+    margin-top: 10px;
+    border-radius: 999px;
+    background: #EEE7DA;
   }
-  .dial-center .note { font-size: 64px; line-height: 1; font-weight: 900; }
-  .dial-center .hz { margin-top: 4px; color: var(--text-3); font-size: 12px; }
-  .dial-center .state { height: 20px; margin-top: 8px; font-size: 13px; font-weight: 900; }
-  .strings { display: flex; justify-content: center; gap: 14px; margin: 20px 0 4px; }
-  .string { display: flex; flex-direction: column; gap: 6px; align-items: center; color: var(--text-3); font-size: 10px; }
-  .string b {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
+  .level-track i { display: block; width: 0%; height: 100%; border-radius: 999px; background: var(--grad); transition: .35s; }
+  .strings {
     display: grid;
-    place-items: center;
-    color: #fff;
-    font-size: 20px;
-    border: 2px solid transparent;
-    background: rgba(255,255,255,.08);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin: 12px 0;
   }
-  .string.on b { border-color: var(--orange); background: rgba(255,138,61,.18); box-shadow: 0 0 0 4px rgba(255,138,61,.15); }
-  .string.ok b { border-color: var(--ok); color: var(--ok); }
+  .string {
+    min-height: 72px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    color: var(--text-2);
+    background: #fff;
+    box-shadow: var(--shadow);
+  }
+  .string b { display: block; font-size: 26px; color: var(--text-1); }
+  .string span { font-size: 11px; font-weight: 800; }
+  .string.on { border-color: #FBBF24; background: #FFFBEB; }
+  .string.ok { border-color: #16A34A; background: #ECFDF5; }
+  .tuner-actions { display: grid; gap: 10px; margin-top: 10px; }
   .tool-screen { padding: 16px; }
   .tool-screen h3 { font-size: 18px; margin-bottom: 8px; }
   .tool-panel { padding: 16px; margin-bottom: 12px; }
@@ -1071,27 +1102,52 @@ const tuneFrames = [
   { note: "E", hz: "329.6 Hz", cents: 2, state: "已准 · 不用调" },
   { note: "A", hz: "440.0 Hz", cents: 0, state: "已准 · 不用调" }
 ];
-function renderStrings() {
-  $("#strings").innerHTML = ["G","C","E","A"].map((note, index) => `<button class="string ${index === tuneIndex ? "on" : ""} ${index < tuneIndex ? "ok" : ""}" data-string="${index}"><b>${note}</b><span>${4 - index}弦</span></button>`).join("");
+function renderStrings(activeIndex = tuneIndex) {
+  const tunedCount = tuning ? Math.min(activeIndex, 4) : 0;
+  $("#strings").innerHTML = ["G","C","E","A"].map((note, index) => {
+    const state = index < tunedCount ? "ok" : index === activeIndex ? "on" : "";
+    const label = index < tunedCount ? "已准" : index === activeIndex ? "检测中" : `${4 - index} 弦`;
+    return `<button class="string ${state}" data-string="${index}"><b>${note}</b><span>${label}</span></button>`;
+  }).join("");
+}
+function tunerAdvice(cents) {
+  if (Math.abs(cents) <= 8) return `已准 ${Math.abs(cents).toFixed(1)} cents · 不用调`;
+  return cents > 0 ? `偏高 ${cents.toFixed(1)} cents · 请松弦` : `偏低 ${Math.abs(cents).toFixed(1)} cents · 请拧紧`;
 }
 function applyTuneFrame() {
-  const frame = tuneFrames[tuneIndex % tuneFrames.length];
+  const activeIndex = tuneIndex % tuneFrames.length;
+  const frame = tuneFrames[activeIndex];
+  const level = Math.max(8, Math.min(92, 34 + activeIndex * 14 + Math.abs(frame.cents)));
   $("#tNote").textContent = frame.note;
-  $("#tHz").textContent = frame.hz;
-  $("#tState").textContent = frame.state;
-  const angle = Math.max(-60, Math.min(60, frame.cents * 2.4));
-  $("#needle").style.transform = `translate(-50%, -100%) rotate(${angle}deg)`;
-  $("#needle").classList.toggle("ok", Math.abs(frame.cents) <= 5);
-  renderStrings();
+  $("#tHz").textContent = `${frame.hz} · PitchFrame 模拟`;
+  $("#tState").textContent = tunerAdvice(frame.cents);
+  $("#tFrameState").textContent = `${frame.note} · ${frame.cents.toFixed(1)}c`;
+  $("#tLevelState").textContent = "拨弦触发";
+  $("#tLevel").textContent = `${Math.round(level)}%`;
+  $("#tLevelBar").style.width = `${level}%`;
+  $("#tHint").textContent = Math.abs(frame.cents) <= 8 ? "绿色范围内已经足够准，可以进入节奏练习。" : "先把当前弦调进绿色区，再切到下一根弦。";
+  const offsetPx = Math.max(-92, Math.min(92, frame.cents * 5));
+  $("#needle").style.transform = `translateX(calc(-50% + ${offsetPx}px))`;
+  $("#needle").classList.toggle("ok", Math.abs(frame.cents) <= 8);
+  renderStrings(activeIndex);
   tuneIndex = (tuneIndex + 1) % tuneFrames.length;
 }
 function toggleTuner() {
   tuning = !tuning;
-  $("#tunerBtn").textContent = tuning ? "停止调音" : "🎙️ 开始调音";
+  $("#tunerBtn").textContent = tuning ? "停止真实麦克风" : "🎙️ 开始调音";
+  $("#tPerm").textContent = tuning ? "已授权" : "预览模拟";
+  $("#tLevelState").textContent = tuning ? "读取中" : "待输入";
   clearInterval(tuneTimer);
   if (tuning) {
     applyTuneFrame();
     tuneTimer = setInterval(applyTuneFrame, 1200);
+  } else {
+    $("#tLevel").textContent = "0%";
+    $("#tLevelBar").style.width = "0%";
+    $("#tState").textContent = "等待拨弦";
+    $("#tFrameState").textContent = "模拟帧";
+    $("#tHint").textContent = "先拨单根弦；当前预览复用模拟 PitchFrame，真实 App 后续接 AudioEngine。";
+    renderStrings(0);
   }
 }
 let metroTimer = null;
@@ -1134,11 +1190,52 @@ document.addEventListener("click", event => {
   }
   if (course) toast(`进入第 ${course.dataset.course} 课`);
 });
+function setupTunerPanel() {
+  const tuner = $("#tuner");
+  if (!tuner) return;
+  tuner.innerHTML = `
+    <div class="tuner-head">
+      <button class="back" data-close="tuner">‹</button>
+      <b>智能调音器</b>
+      <button class="mode-chip" id="gMode">High-G</button>
+    </div>
+    <div class="tuner-body">
+      <div class="tuner-status-grid">
+        <div class="tuner-status-card"><b>权限</b><span id="tPerm">预览模拟</span></div>
+        <div class="tuner-status-card"><b>电平</b><span id="tLevelState">待输入</span></div>
+        <div class="tuner-status-card"><b>PitchFrame</b><span id="tFrameState">模拟帧</span></div>
+      </div>
+      <div class="tuner-main-card card">
+        <div class="tuner-note" id="tNote">A</div>
+        <div class="tuner-state" id="tState">等待拨弦</div>
+        <div class="tuner-hz" id="tHz">440.0 Hz · 标准 GCEA</div>
+        <div class="tuner-meter"><div class="needle" id="needle"></div></div>
+      </div>
+      <div class="tuner-input-card card">
+        <div class="tuner-input-row"><b>输入电平</b><span id="tLevel">0%</span></div>
+        <div class="level-track"><i id="tLevelBar"></i></div>
+        <p class="module-note" id="tHint">先拨单根弦；当前预览复用模拟 PitchFrame，真实 App 后续接 AudioEngine。</p>
+      </div>
+      <div class="strings" id="strings"></div>
+      <div class="tuner-actions">
+        <button class="primary" id="tunerBtn">🎙️ 开始调音</button>
+        <button class="ghost" id="tunerCalibrate">校准环境噪声</button>
+      </div>
+    </div>
+  `;
+}
+setupTunerPanel();
 $("#chordSearch").addEventListener("input", renderChords);
 $("#tunerBtn").addEventListener("click", toggleTuner);
 $("#gMode").addEventListener("click", () => {
   $("#gMode").textContent = $("#gMode").textContent === "High-G" ? "Low-G" : "High-G";
   toast(`已切换 ${$("#gMode").textContent}`);
+});
+$("#tunerCalibrate").addEventListener("click", () => {
+  $("#tLevel").textContent = "8%";
+  $("#tLevelBar").style.width = "8%";
+  $("#tHint").textContent = "环境噪声已校准。现在拨弦触发检测，减少风扇和说话误判。";
+  toast("环境噪声已校准");
 });
 $("#metroToggle").addEventListener("click", toggleMetro);
 $("#bpmDown").addEventListener("click", () => { bpm = Math.max(40, bpm - 5); renderMetro(); });
