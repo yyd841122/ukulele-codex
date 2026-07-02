@@ -98,6 +98,138 @@ const chordLoopTargets = [
   { id: "bar-4", bar: 4, beat: 1, chord: "G7", chordId: "uke-g7", primaryNote: "G4" }
 ];
 
+export const beginnerRhythmPatterns = [
+  {
+    id: "rhythm-down-four",
+    name: "Down Strum Four",
+    instrument: "ukulele",
+    level: "P0",
+    timeSignature: "4/4",
+    defaultBpm: 60,
+    beats: [
+      { beat: 1, subdivision: 1, stroke: "down", accent: true },
+      { beat: 2, subdivision: 1, stroke: "down", accent: false },
+      { beat: 3, subdivision: 1, stroke: "down", accent: false },
+      { beat: 4, subdivision: 1, stroke: "down", accent: false }
+    ],
+    teachingFocus: "Keep the first beat stable before changing chords."
+  },
+  {
+    id: "rhythm-down-down-up-up",
+    name: "Down Down Up Up",
+    instrument: "ukulele",
+    level: "P1",
+    timeSignature: "4/4",
+    defaultBpm: 60,
+    beats: [
+      { beat: 1, subdivision: 1, stroke: "down", accent: true },
+      { beat: 2, subdivision: 1, stroke: "down", accent: false },
+      { beat: 2, subdivision: 2, stroke: "up", accent: false },
+      { beat: 3, subdivision: 2, stroke: "up", accent: false },
+      { beat: 4, subdivision: 1, stroke: "down", accent: false },
+      { beat: 4, subdivision: 2, stroke: "up", accent: false }
+    ],
+    teachingFocus: "Practice a common beginner song strumming pattern slowly."
+  }
+];
+
+export const chordTransitionExercises = [
+  {
+    id: "transition-c-am",
+    instrument: "ukulele",
+    level: "P0",
+    fromChord: "C",
+    toChord: "Am",
+    chordIds: ["uke-c", "uke-am"],
+    defaultBpm: 60,
+    bars: 2,
+    rhythmPatternId: "rhythm-down-four",
+    teachingFocus: "Prepare the second finger before moving to Am."
+  },
+  {
+    id: "transition-am-f",
+    instrument: "ukulele",
+    level: "P0",
+    fromChord: "Am",
+    toChord: "F",
+    chordIds: ["uke-am", "uke-f"],
+    defaultBpm: 60,
+    bars: 2,
+    rhythmPatternId: "rhythm-down-four",
+    teachingFocus: "Keep the second finger down and add the first finger."
+  },
+  {
+    id: "transition-f-g7",
+    instrument: "ukulele",
+    level: "P0",
+    fromChord: "F",
+    toChord: "G7",
+    chordIds: ["uke-f", "uke-g7"],
+    defaultBpm: 60,
+    bars: 2,
+    rhythmPatternId: "rhythm-down-four",
+    teachingFocus: "Move early and land all G7 fingers before beat one."
+  }
+];
+
+export const beginnerSongFragments = [
+  {
+    id: "song-fragment-four-chord-hum",
+    title: "Four Chord Hum",
+    instrument: "ukulele",
+    level: "P0",
+    key: "C",
+    timeSignature: "4/4",
+    defaultBpm: 70,
+    rhythmPatternId: "rhythm-down-four",
+    bars: [
+      { bar: 1, chord: "C", chordId: "uke-c", lyric: "la", cue: "Start steady on C." },
+      { bar: 2, chord: "Am", chordId: "uke-am", lyric: "la", cue: "Prepare Am before beat one." },
+      { bar: 3, chord: "F", chordId: "uke-f", lyric: "la", cue: "Keep the strum even." },
+      { bar: 4, chord: "G7", chordId: "uke-g7", lyric: "la", cue: "Relax the final beat." }
+    ],
+    teachingFocus: "Apply the first rhythm and chord loop to a simple singing fragment."
+  }
+];
+
+export const mvpSkillPath = [
+  { id: "tuning", type: "tool", title: "Tune G-C-E-A", required: true },
+  { id: "rhythm", type: "rhythm_pattern", templateId: "practice-rhythm-down-four", required: true },
+  { id: "transition", type: "chord_transition", templateId: "practice-transition-c-am", required: true },
+  { id: "chord-loop", type: "chord_switch", templateId: "practice-c-am-f-g7-loop", required: true },
+  { id: "song-fragment", type: "song_fragment", templateId: "practice-song-fragment-four-chord-hum", required: true },
+  { id: "review", type: "report", title: "Review rhythm and transitions", required: true }
+];
+
+const rhythmDownFourTargets = beginnerRhythmPatterns[0].beats.map((beat) => ({
+  id: `beat-${beat.beat}-${beat.subdivision}`,
+  bar: 1,
+  beat: beat.beat,
+  subdivision: beat.subdivision,
+  stroke: beat.stroke,
+  accent: beat.accent,
+  chord: "C",
+  chordId: "uke-c",
+  primaryNote: "C4"
+}));
+
+const cAmTransitionTargets = [
+  { id: "transition-c", bar: 1, beat: 1, chord: "C", chordId: "uke-c", primaryNote: "C4" },
+  { id: "transition-am", bar: 2, beat: 1, chord: "Am", chordId: "uke-am", primaryNote: "A4" }
+];
+
+const songFragmentTargets = beginnerSongFragments[0].bars.map((bar) => ({
+  id: `song-bar-${bar.bar}`,
+  bar: bar.bar,
+  beat: 1,
+  chord: bar.chord,
+  chordId: bar.chordId,
+  lyric: bar.lyric,
+  cue: bar.cue,
+  rhythmPatternId: beginnerSongFragments[0].rhythmPatternId,
+  primaryNote: bar.chord === "Am" ? "A4" : bar.chord === "F" ? "F4" : bar.chord === "G7" ? "G4" : "C4"
+}));
+
 export const practiceTempoPresets = [
   { id: "slow", label: "Slow", bpm: 60 },
   { id: "standard", label: "Standard", bpm: 70 },
@@ -119,6 +251,50 @@ export const practiceLoopModes = [
 
 export const mvpPracticeTemplates = [
   {
+    id: "practice-rhythm-down-four",
+    type: "rhythm_pattern",
+    instrument: "ukulele",
+    bpm: 60,
+    timeSignature: "4/4",
+    passingScore: 70,
+    rhythmPatternId: "rhythm-down-four",
+    targets: rhythmDownFourTargets,
+    tempoPresets: practiceTempoPresets,
+    loopModes: practiceLoopModes,
+    display: {
+      title: "Down Strum Four",
+      subtitle: "Practice four steady down strums before changing chords.",
+      targetLabel: "Strum beats"
+    },
+    action: {
+      primaryLabel: "Start rhythm",
+      secondaryLabel: "Loop one bar",
+      completionLabel: "Finish rhythm practice"
+    }
+  },
+  {
+    id: "practice-transition-c-am",
+    type: "chord_transition",
+    instrument: "ukulele",
+    bpm: 60,
+    timeSignature: "4/4",
+    passingScore: 70,
+    transitionId: "transition-c-am",
+    targets: cAmTransitionTargets,
+    tempoPresets: practiceTempoPresets,
+    loopModes: practiceLoopModes,
+    display: {
+      title: "C to Am Transition",
+      subtitle: "Practice moving from C to Am on the first beat.",
+      targetLabel: "Chord transition"
+    },
+    action: {
+      primaryLabel: "Start transition",
+      secondaryLabel: "Repeat transition",
+      completionLabel: "Finish transition practice"
+    }
+  },
+  {
     id: "practice-c-am-f-g7-loop",
     type: "chord_switch",
     instrument: "ukulele",
@@ -138,15 +314,41 @@ export const mvpPracticeTemplates = [
       secondaryLabel: "Practice one chord",
       completionLabel: "Finish practice"
     }
+  },
+  {
+    id: "practice-song-fragment-four-chord-hum",
+    type: "song_fragment",
+    instrument: "ukulele",
+    bpm: 70,
+    timeSignature: "4/4",
+    passingScore: 70,
+    songFragmentId: "song-fragment-four-chord-hum",
+    rhythmPatternId: "rhythm-down-four",
+    targets: songFragmentTargets,
+    tempoPresets: practiceTempoPresets,
+    loopModes: practiceLoopModes,
+    display: {
+      title: "Four Chord Hum",
+      subtitle: "Apply the chord loop to a simple singing fragment.",
+      targetLabel: "Song bars"
+    },
+    action: {
+      primaryLabel: "Start song fragment",
+      secondaryLabel: "Loop fragment",
+      completionLabel: "Finish song practice"
+    }
   }
 ];
 
-export const chordLoopExercise = mvpPracticeTemplates[0];
+export const chordLoopExercise = mvpPracticeTemplates.find((template) => template.id === "practice-c-am-f-g7-loop");
 
 export const getMvpPracticeTemplate = (id) =>
   mvpPracticeTemplates.find((template) => template.id === id) ?? null;
 
 export const getPracticeTemplateById = getMvpPracticeTemplate;
+
+export const getPracticeTemplatesByType = (type) =>
+  mvpPracticeTemplates.filter((template) => template.type === type);
 
 export const chordLoopPractice = {
   id: "practice-c-am-f-g7-loop",

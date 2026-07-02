@@ -12,7 +12,12 @@ import {
   evaluatePracticeMilestone,
   formatPracticeDayKey,
   getMvpPracticeTemplate,
+  getPracticeTemplatesByType,
   m0AgentTasks,
+  beginnerRhythmPatterns,
+  beginnerSongFragments,
+  chordTransitionExercises,
+  mvpSkillPath,
   mvpPracticeTemplates,
   normalizePracticeHistory,
   practiceLoopModes,
@@ -40,9 +45,26 @@ test("MVP chord loop uses beginner chords", () => {
 test("MVP practice template can be queried by id", () => {
   const template = getMvpPracticeTemplate("practice-c-am-f-g7-loop");
 
-  assert.equal(template, mvpPracticeTemplates[0]);
+  assert.ok(template);
   assert.equal(template.id, chordLoopPractice.id);
   assert.equal(template.bpm, chordLoopPractice.bpm);
+});
+
+test("MVP content path includes rhythm transitions and song fragment", () => {
+  assert.deepEqual(
+    mvpSkillPath.map((step) => step.type),
+    ["tool", "rhythm_pattern", "chord_transition", "chord_switch", "song_fragment", "report"]
+  );
+  assert.ok(beginnerRhythmPatterns.some((pattern) => pattern.id === "rhythm-down-four"));
+  assert.ok(chordTransitionExercises.some((exercise) => exercise.id === "transition-c-am"));
+  assert.ok(beginnerSongFragments.some((fragment) => fragment.id === "song-fragment-four-chord-hum"));
+});
+
+test("practice templates cover the real beginner practice ladder", () => {
+  assert.equal(getPracticeTemplatesByType("rhythm_pattern").length, 1);
+  assert.equal(getPracticeTemplatesByType("chord_transition").length, 1);
+  assert.equal(getPracticeTemplatesByType("chord_switch").length, 1);
+  assert.equal(getPracticeTemplatesByType("song_fragment").length, 1);
 });
 
 test("practice tempo presets define slow standard and advanced bpm", () => {
