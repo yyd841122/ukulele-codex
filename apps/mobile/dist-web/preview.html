@@ -2365,7 +2365,7 @@
       function buildLessonPathProgress(history) {
         const lessonProgress = buildLessonOneProgress(history);
         const hasPractice = history.length > 0;
-        const practiceDone = lessonProgress.state === "ready" || lessonProgress.state === "passed";
+        const practiceDone = lessonProgress.fullRounds > 0 || lessonProgress.state === "ready" || lessonProgress.state === "passed";
         const reviewDone = lessonProgress.state === "passed";
         const nodes = [
           {

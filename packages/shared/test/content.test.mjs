@@ -427,6 +427,28 @@ test("MVP lesson progress keeps review locked during unfinished practice", () =>
   );
 });
 
+test("MVP lesson progress opens review after a complete loop below passing score", () => {
+  const progress = evaluateMvpLessonProgress([
+    {
+      endedAt: "2026-07-05T10:00:00.000Z",
+      totalSteps: 4,
+      completedCount: 4,
+      rhythmScore: 62
+    }
+  ]);
+
+  assert.equal(progress.percent, 67);
+  assert.equal(progress.nextNodeId, "review");
+  assert.deepEqual(
+    progress.nodes.map((node) => [node.id, node.status]),
+    [
+      ["tuning", "done"],
+      ["practice", "done"],
+      ["review", "current"]
+    ]
+  );
+});
+
 test("MVP lesson progress opens review after passing practice target", () => {
   const progress = evaluateMvpLessonProgress([
     {

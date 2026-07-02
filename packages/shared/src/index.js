@@ -754,7 +754,10 @@ export const evaluateMvpLessonProgress = (history = [], options = {}) => {
     options.tunerCompleted === true ||
     completedStrings >= 4 ||
     (options.inferTuningFromPractice !== false && rawHistory.length > 0);
-  const practiceDone = milestone.status === "ready_to_pass" || milestone.status === "passed";
+  const practiceDone =
+    milestone.completedLoops > 0 ||
+    milestone.status === "ready_to_pass" ||
+    milestone.status === "passed";
   const reviewDone = milestone.status === "passed";
   const hasPractice = rawHistory.length > 0;
   const tuningStatus = tunerCompleted ? "done" : "current";

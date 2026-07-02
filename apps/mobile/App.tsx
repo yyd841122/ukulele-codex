@@ -501,7 +501,10 @@ function evaluateLocalLessonPathProgress(
   }
 
   const hasPractice = history.length > 0;
-  const practiceDone = milestone.status === "ready_to_pass" || milestone.status === "passed";
+  const practiceDone =
+    milestone.completedLoops > 0 ||
+    milestone.status === "ready_to_pass" ||
+    milestone.status === "passed";
   const reviewDone = milestone.status === "passed";
   const nodes: LessonPathNode[] = [
     {
