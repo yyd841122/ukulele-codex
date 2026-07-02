@@ -1048,12 +1048,19 @@ function TunerScreen() {
   const frame = realtimeTuner.frame ?? fallbackFrame;
   const cents = frame.cents;
   const combinedInputLevel = Math.max(recorderMonitor.level, realtimeTuner.level);
-  const frameSourceLabel = frame.source === "mock" ? "模拟 PitchFrame" : "真实 PitchFrame";
+  const frameSourceLabel = frame.source === "mock" ? "浏览器/Expo 模拟" : "真实 PitchFrame";
   const audioInputLabel = realtimeTuner.isStreaming
     ? "实时 PCM PitchFrame"
     : recorderMonitor.isRecording
       ? "真实麦克风电平"
       : frameSourceLabel;
+  const centsOffset = Math.max(-96, Math.min(96, cents * 5));
+  const inputPercent = Math.round(combinedInputLevel * 100);
+  const tunerHint = Math.abs(cents) <= IN_TUNE_CENTS
+    ? "绿色范围内已经足够准，可以进入节奏练习。"
+    : cents > 0
+      ? "当前弦偏高，先轻轻松弦。"
+      : "当前弦偏低，先慢慢拧紧。";
   const micPipelineStages = [
     {
       label: "权限",
@@ -1113,63 +1120,75 @@ function TunerScreen() {
 
   return (
     <View style={styles.stack}>
-      <SectionTitle title="智能调音器" detail={`${tuning.name} · ${audioInputLabel}`} />
-      <View style={styles.micPanel}>
+      <View style={styles.tunerTopRow}>
+        <View>
+          <Text style={styles.screenTitle}>智能调音器</Text>
+          <Text style={styles.screenSubtitle}>{tuning.name} · {audioInputLabel}</Text>
+        </View>
+        <View style={styles.tuningBadge}>
+          <Text style={styles.tuningBadgeText}>GCEA</Text>
+        </View>
+      </View>
+
+      <View style={styles.tunerPermissionPanel}>
         <View style={styles.micCopy}>
-          <Text style={styles.infoTitle}>{micAccess.label}</Text>
-          <Text style={styles.infoDetail}>{micAccess.detail}</Text>
+          <Text style={styles.infoTitle}>{micAccess.granted ? "麦克风已授权" : "麦克风未授权"}</Text>
+          <Text style={styles.infoDetail}>
+            {micAccess.granted ? "真实 App 会在这里接 AudioEngine；当前保留模拟帧兜底。" : micAccess.detail}
+          </Text>
         </View>
         <Pressable
           accessibilityRole="button"
           disabled={micBusy || micAccess.granted || !micAccess.canAskAgain}
           onPress={requestMicrophone}
           style={[
-            styles.micButton,
-            micAccess.granted && styles.micButtonReady,
+            styles.tunerAuthButton,
+            micAccess.granted && styles.tunerAuthButtonReady,
             (micBusy || micAccess.granted || !micAccess.canAskAgain) && styles.disabledButton
           ]}
         >
-          <Text style={styles.micButtonText}>
-            {micBusy ? "请求中" : micAccess.granted ? "已授权" : "启用麦克风"}
+          <Text style={styles.tunerAuthButtonText}>
+            {micBusy ? "请求中" : micAccess.granted ? "已授权" : "授权"}
           </Text>
         </Pressable>
       </View>
-      <View style={styles.pipelinePanel}>
+
+      <View style={styles.tunerStatusGrid}>
         {micPipelineStages.map((stage) => (
-          <View key={stage.label} style={[styles.pipelineItem, stage.done && styles.pipelineItemDone]}>
-            <Text style={[styles.pipelineLabel, stage.done && styles.pipelineLabelDone]}>{stage.label}</Text>
-            <Text style={styles.pipelineDetail}>{stage.detail}</Text>
+          <View key={stage.label} style={[styles.tunerStatusCard, stage.done && styles.tunerStatusCardDone]}>
+            <Text style={[styles.tunerStatusLabel, stage.done && styles.tunerStatusLabelDone]}>{stage.label}</Text>
+            <Text style={styles.tunerStatusDetail}>{stage.detail}</Text>
           </View>
         ))}
       </View>
+
       <View style={styles.tunerDial}>
         <Text style={styles.noteText}>{frame.target.note}</Text>
-        <Text style={[styles.centsText, centsTextStyle(cents)]}>
-          {tuningActionLabel(cents)}
-        </Text>
-        <Text style={[styles.statusText, centsTextStyle(cents)]}>{statusLabel(frame.status)}</Text>
-        <Text style={styles.sectionDetail}>目标频率 {selectedString.frequencyHz.toFixed(2)} Hz</Text>
+        <Text style={[styles.centsText, centsTextStyle(cents)]}>{tuningActionLabel(cents)}</Text>
+        <Text style={styles.statusText}>{statusLabel(frame.status)}</Text>
         <Text style={styles.sectionDetail}>
-          检测 {frame.detectedFrequencyHz.toFixed(2)} Hz · {frameSourceLabel} · confidence {frame.confidence.toFixed(2)}
+          目标 {selectedString.frequencyHz.toFixed(2)} Hz · 检测 {frame.detectedFrequencyHz.toFixed(2)} Hz
         </Text>
         <View style={styles.needleTrack}>
-          <View style={[styles.needleMark, { transform: [{ translateX: Math.max(-42, Math.min(42, cents * 3.4)) }] }]} />
+          <View style={[styles.needleMark, Math.abs(cents) <= IN_TUNE_CENTS && styles.needleMarkOk, { transform: [{ translateX: centsOffset }] }]} />
         </View>
+        <Text style={styles.tunerHint}>{tunerHint}</Text>
       </View>
+
       <View style={styles.inputPanel}>
         <View style={styles.inputHeader}>
           <View>
             <Text style={styles.infoTitle}>输入电平</Text>
             <Text style={styles.infoDetail}>
               {recorderMonitor.isRecording
-                ? "正在读取真实麦克风电平，PitchFrame 管线已就绪"
-                : "启动后可验证真实麦克风权限与输入电平"}
+                ? "正在读取真实麦克风电平，PitchFrame 管线已就绪。"
+                : "拨弦触发检测；真实 PCM 后续接 Native/JSI AudioEngine。"}
             </Text>
           </View>
-          <Text style={styles.levelValue}>{Math.round(combinedInputLevel * 100)}%</Text>
+          <Text style={styles.levelValue}>{inputPercent}%</Text>
         </View>
         <View style={styles.levelTrack}>
-          <View style={[styles.levelFill, { width: `${Math.round(combinedInputLevel * 100)}%` }]} />
+          <View style={[styles.levelFill, { width: `${inputPercent}%` }]} />
         </View>
         <View style={styles.inputMetaRow}>
           <Text style={styles.inputMeta}>时长 {Math.round(recorderMonitor.durationMillis / 1000)}s</Text>
@@ -1203,6 +1222,7 @@ function TunerScreen() {
       <View style={styles.stringRow}>
         {tuning.strings.map((string, index) => {
           const selected = index === selectedIndex;
+          const tuned = selected && Math.abs(cents) <= IN_TUNE_CENTS;
           return (
             <Pressable
               accessibilityRole="button"
@@ -1210,10 +1230,10 @@ function TunerScreen() {
               accessibilityState={{ selected }}
               key={string.note}
               onPress={() => setSelectedIndex(index)}
-              style={[styles.stringButton, selected && styles.stringButtonActive]}
+              style={[styles.stringButton, selected && styles.stringButtonActive, tuned && styles.stringButtonTuned]}
             >
               <Text style={[styles.stringNote, selected && styles.stringNoteActive]}>{string.note}</Text>
-              <Text style={styles.frequencyText}>{string.frequencyHz.toFixed(2)} Hz</Text>
+              <Text style={styles.frequencyText}>{tuned ? "已准" : selected ? "检测中" : `${string.frequencyHz.toFixed(1)} Hz`}</Text>
             </Pressable>
           );
         })}
@@ -2198,6 +2218,65 @@ const styles = StyleSheet.create({
     textAlign: "right",
     flexShrink: 1
   },
+  tunerTopRow: {
+    minHeight: 48,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12
+  },
+  screenTitle: {
+    color: colors.ink,
+    fontSize: 24,
+    fontWeight: "900"
+  },
+  screenSubtitle: {
+    marginTop: 2,
+    color: "#756D64",
+    fontWeight: "700"
+  },
+  tuningBadge: {
+    minWidth: 62,
+    minHeight: 34,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFDF8"
+  },
+  tuningBadgeText: {
+    color: colors.forest,
+    fontWeight: "900"
+  },
+  tunerPermissionPanel: {
+    minHeight: 82,
+    borderRadius: 8,
+    padding: 14,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12
+  },
+  tunerAuthButton: {
+    minHeight: 44,
+    minWidth: 66,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.amber,
+    paddingHorizontal: 12
+  },
+  tunerAuthButtonReady: {
+    backgroundColor: "#DDF3E7"
+  },
+  tunerAuthButtonText: {
+    color: colors.ink,
+    fontWeight: "900"
+  },
   micPanel: {
     minHeight: 76,
     borderRadius: 8,
@@ -2231,6 +2310,38 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.72
+  },
+  tunerStatusGrid: {
+    flexDirection: "row",
+    gap: 8
+  },
+  tunerStatusCard: {
+    flex: 1,
+    minHeight: 62,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6
+  },
+  tunerStatusCardDone: {
+    borderColor: successGreen,
+    backgroundColor: "#F0FDF4"
+  },
+  tunerStatusLabel: {
+    color: colors.ink,
+    fontWeight: "900"
+  },
+  tunerStatusLabelDone: {
+    color: successGreen
+  },
+  tunerStatusDetail: {
+    marginTop: 3,
+    color: "#756D64",
+    fontSize: 11,
+    fontWeight: "800"
   },
   pipelinePanel: {
     flexDirection: "row",
@@ -2335,7 +2446,7 @@ const styles = StyleSheet.create({
     lineHeight: 22
   },
   tunerDial: {
-    minHeight: 250,
+    minHeight: 244,
     borderRadius: 8,
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -2356,14 +2467,15 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: "#5E6D62",
-    fontWeight: "800"
+    fontWeight: "800",
+    textAlign: "center"
   },
   needleTrack: {
     marginTop: 14,
     width: "100%",
-    height: 4,
+    height: 34,
     borderRadius: 999,
-    backgroundColor: "#DCECE2",
+    backgroundColor: "#EEE8DC",
     alignItems: "center",
     justifyContent: "center"
   },
@@ -2372,6 +2484,16 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 999,
     backgroundColor: colors.ink
+  },
+  needleMarkOk: {
+    backgroundColor: successGreen
+  },
+  tunerHint: {
+    color: "#756D64",
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: "center",
+    fontWeight: "700"
   },
   stringRow: {
     flexDirection: "row",
@@ -2391,6 +2513,10 @@ const styles = StyleSheet.create({
   stringButtonActive: {
     borderColor: colors.forest,
     backgroundColor: "#E7F1EA"
+  },
+  stringButtonTuned: {
+    borderColor: successGreen,
+    backgroundColor: "#ECFDF5"
   },
   stringNote: {
     fontWeight: "900",
