@@ -7,8 +7,12 @@ import {
   chordLoopPractice,
   createPracticeSessionRecord,
   designTokens,
+  getMvpPracticeTemplate,
   m0AgentTasks,
+  mvpPracticeTemplates,
+  practiceLoopModes,
   practiceRecordVersion,
+  practiceTempoPresets,
   summarizePracticeRecord,
   ukuleleInstrument
 } from "../src/index.js";
@@ -24,6 +28,41 @@ test("MVP chord loop uses beginner chords", () => {
   const chordNames = new Set(beginnerChords.map((chord) => chord.name));
   for (const target of chordLoopPractice.targets) {
     assert.ok(chordNames.has(target.chord));
+  }
+});
+
+test("MVP practice template can be queried by id", () => {
+  const template = getMvpPracticeTemplate("practice-c-am-f-g7-loop");
+
+  assert.equal(template, mvpPracticeTemplates[0]);
+  assert.equal(template.id, chordLoopPractice.id);
+  assert.equal(template.bpm, chordLoopPractice.bpm);
+});
+
+test("practice tempo presets define slow standard and advanced bpm", () => {
+  assert.deepEqual(
+    practiceTempoPresets.map((preset) => [preset.id, preset.bpm]),
+    [
+      ["slow", 60],
+      ["standard", 70],
+      ["advanced", 85]
+    ]
+  );
+});
+
+test("practice loop modes include auto and single", () => {
+  assert.deepEqual(
+    practiceLoopModes.map((mode) => mode.id),
+    ["auto", "single"]
+  );
+});
+
+test("MVP practice targets reference beginner chord ids", () => {
+  const chordIds = new Set(beginnerChords.map((chord) => chord.id));
+  for (const template of mvpPracticeTemplates) {
+    for (const target of template.targets) {
+      assert.ok(chordIds.has(target.chordId));
+    }
   }
 });
 

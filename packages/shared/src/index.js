@@ -91,19 +91,75 @@ export const mvpLesson = {
   ]
 };
 
+const chordLoopTargets = [
+  { id: "bar-1", bar: 1, beat: 1, chord: "C", chordId: "uke-c", primaryNote: "C4" },
+  { id: "bar-2", bar: 2, beat: 1, chord: "Am", chordId: "uke-am", primaryNote: "A4" },
+  { id: "bar-3", bar: 3, beat: 1, chord: "F", chordId: "uke-f", primaryNote: "F4" },
+  { id: "bar-4", bar: 4, beat: 1, chord: "G7", chordId: "uke-g7", primaryNote: "G4" }
+];
+
+export const practiceTempoPresets = [
+  { id: "slow", label: "Slow", bpm: 60 },
+  { id: "standard", label: "Standard", bpm: 70 },
+  { id: "advanced", label: "Advanced", bpm: 85 }
+];
+
+export const practiceLoopModes = [
+  {
+    id: "auto",
+    label: "Auto",
+    description: "Advance through each chord in the loop."
+  },
+  {
+    id: "single",
+    label: "Single",
+    description: "Repeat one selected chord until the player is ready."
+  }
+];
+
+export const mvpPracticeTemplates = [
+  {
+    id: "practice-c-am-f-g7-loop",
+    type: "chord_switch",
+    instrument: "ukulele",
+    bpm: 70,
+    timeSignature: "4/4",
+    passingScore: 70,
+    targets: chordLoopTargets,
+    tempoPresets: practiceTempoPresets,
+    loopModes: practiceLoopModes,
+    display: {
+      title: "C-Am-F-G7 Chord Loop",
+      subtitle: "Four-bar beginner chord switching practice.",
+      targetLabel: "Chord targets"
+    },
+    action: {
+      primaryLabel: "Start loop",
+      secondaryLabel: "Practice one chord",
+      completionLabel: "Finish practice"
+    }
+  }
+];
+
+export const chordLoopExercise = mvpPracticeTemplates[0];
+
+export const getMvpPracticeTemplate = (id) =>
+  mvpPracticeTemplates.find((template) => template.id === id) ?? null;
+
+export const getPracticeTemplateById = getMvpPracticeTemplate;
+
 export const chordLoopPractice = {
   id: "practice-c-am-f-g7-loop",
-  type: "chord_switch",
-  instrument: "ukulele",
-  bpm: 70,
-  timeSignature: "4/4",
-  passingScore: 70,
-  targets: [
-    { id: "bar-1", bar: 1, beat: 1, chord: "C", primaryNote: "C4" },
-    { id: "bar-2", bar: 2, beat: 1, chord: "Am", primaryNote: "A4" },
-    { id: "bar-3", bar: 3, beat: 1, chord: "F", primaryNote: "F4" },
-    { id: "bar-4", bar: 4, beat: 1, chord: "G7", primaryNote: "G4" }
-  ]
+  type: chordLoopExercise.type,
+  instrument: chordLoopExercise.instrument,
+  bpm: chordLoopExercise.bpm,
+  timeSignature: chordLoopExercise.timeSignature,
+  passingScore: chordLoopExercise.passingScore,
+  targets: chordLoopExercise.targets,
+  tempoPresets: chordLoopExercise.tempoPresets,
+  loopModes: chordLoopExercise.loopModes,
+  display: chordLoopExercise.display,
+  action: chordLoopExercise.action
 };
 
 export const practiceRecordVersion = 1;

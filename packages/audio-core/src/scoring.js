@@ -45,6 +45,58 @@ export function scoreTiming(offsetMs) {
   return Math.max(0, Math.round(50 - Math.min(50, (abs - 120) / 3)));
 }
 
+export function expectedBeatTimeMs({ startedAtMs, bpm, beatIndex }) {
+  return startedAtMs + beatIndex * (60000 / bpm);
+}
+
+export function calculateTimingOffsetMs({ eventTimeMs, startedAtMs, bpm, beatIndex }) {
+  return eventTimeMs - expectedBeatTimeMs({ startedAtMs, bpm, beatIndex });
+}
+
+export function scoreRhythmEvent({ eventTimeMs, startedAtMs, bpm, beatIndex }) {
+  const expectedTimeMs = expectedBeatTimeMs({ startedAtMs, bpm, beatIndex });
+  const timingOffsetMs = eventTimeMs - expectedTimeMs;
+  const rhythmScore = scoreTiming(timingOffsetMs);
+
+  return {
+    eventTimeMs,
+    expectedTimeMs,
+    timingOffsetMs,
+    rhythmScore,
+    timingStatus: classifyTimingOffset(timingOffsetMs)
+  };
+}
+
+export function summarizeRhythmEvents(events) {
+  if (!events.length) {
+    return {
+      averageRhythmScore: 0,
+      earlyCount: 0,
+      lateCount: 0,
+      onTimeCount: 0,
+      suggestion: "Start practicing to build a rhythm baseline."
+    };
+  }
+
+  const scoredEvents = events.map((event) => {
+    const rhythmScore = event.rhythmScore ?? scoreTiming(event.timingOffsetMs);
+    const timingStatus = event.timingStatus ?? classifyTimingOffset(event.timingOffsetMs);
+    return { rhythmScore, timingStatus };
+  });
+
+  const earlyCount = scoredEvents.filter((event) => event.timingStatus === "early").length;
+  const lateCount = scoredEvents.filter((event) => event.timingStatus === "late").length;
+  const onTimeCount = scoredEvents.filter((event) => event.timingStatus === "on-time").length;
+
+  return {
+    averageRhythmScore: average(scoredEvents.map((event) => event.rhythmScore)),
+    earlyCount,
+    lateCount,
+    onTimeCount,
+    suggestion: rhythmSuggestion({ earlyCount, lateCount, onTimeCount })
+  };
+}
+
 export function summarizePracticeEvents(events) {
   if (!events.length) {
     return {
@@ -69,6 +121,29 @@ export function summarizePracticeEvents(events) {
     completedTargets: hits,
     totalTargets: events.length
   };
+}
+
+function classifyTimingOffset(offsetMs) {
+  if (offsetMs < -60) {
+    return "early";
+  }
+  if (offsetMs > 60) {
+    return "late";
+  }
+  return "on-time";
+}
+
+function rhythmSuggestion({ earlyCount, lateCount, onTimeCount }) {
+  if (onTimeCount >= earlyCount + lateCount) {
+    return "Timing is steady. Keep locking into the beat.";
+  }
+  if (earlyCount > lateCount) {
+    return "You tend to play early. Wait a little longer before finishing the beat.";
+  }
+  if (lateCount > earlyCount) {
+    return "You tend to play late. Prepare the next beat a little sooner.";
+  }
+  return "Rhythm is mixed. Slow the tempo down and aim for consistent beat placement.";
 }
 
 function average(values) {

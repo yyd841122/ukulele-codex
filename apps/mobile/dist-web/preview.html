@@ -1394,6 +1394,7 @@
             <div class="score">练过<strong id="practicedBars">0 小节</strong></div>
             <div class="score">完成<strong id="completedClicks">0/4</strong></div>
             <div class="score">时长<strong id="practiceDuration">0s</strong></div>
+            <div class="score">节奏<strong id="practiceRhythmScore">--</strong></div>
           </div>
           <div class="row" style="margin-top: 10px">
             <strong>下次建议</strong>
@@ -1913,6 +1914,7 @@
       const practicedBars = document.getElementById("practicedBars");
       const completedClicks = document.getElementById("completedClicks");
       const practiceDuration = document.getElementById("practiceDuration");
+      const practiceRhythmScore = document.getElementById("practiceRhythmScore");
       const suggestion = document.getElementById("suggestion");
       const togglePractice = document.getElementById("togglePractice");
       const practiceTempoButtons = Array.from(document.querySelectorAll("[data-tempo-id]"));
@@ -1976,10 +1978,63 @@
         return mode === "single" ? "只练当前" : "自动循环";
       }
 
+      function scoreTimingOffset(offsetMs) {
+        const abs = Math.abs(offsetMs);
+        if (abs <= 60) return 100;
+        if (abs <= 120) return Math.round(100 - ((abs - 60) / 60) * 50);
+        return Math.max(0, Math.round(50 - Math.min(50, (abs - 120) / 3)));
+      }
+
+      function classifyTimingOffset(offsetMs) {
+        if (offsetMs < -60) return "early";
+        if (offsetMs > 60) return "late";
+        return "on-time";
+      }
+
+      function buildRhythmSummary(events, bpm) {
+        const startEvent = events.find((event) => event.type === "start");
+        const completeEvents = events.filter((event) => event.type === "complete");
+        if (!startEvent || completeEvents.length === 0) {
+          return {
+            averageRhythmScore: 0,
+            earlyCount: 0,
+            lateCount: 0,
+            onTimeCount: 0
+          };
+        }
+
+        const scored = completeEvents.map((event) => {
+          const eventBpm = event.bpm || bpm;
+          const beatMs = 60000 / eventBpm;
+          const beatIndex = Math.max(0, Math.round((event.timestampMs - startEvent.timestampMs) / beatMs));
+          const expectedTimeMs = startEvent.timestampMs + beatIndex * beatMs;
+          const offsetMs = event.timestampMs - expectedTimeMs;
+          return {
+            rhythmScore: scoreTimingOffset(offsetMs),
+            timingStatus: classifyTimingOffset(offsetMs)
+          };
+        });
+        const total = scored.reduce((sum, event) => sum + event.rhythmScore, 0);
+        return {
+          averageRhythmScore: Math.round(total / scored.length),
+          earlyCount: scored.filter((event) => event.timingStatus === "early").length,
+          lateCount: scored.filter((event) => event.timingStatus === "late").length,
+          onTimeCount: scored.filter((event) => event.timingStatus === "on-time").length
+        };
+      }
+
+      function rhythmAdvice(summary) {
+        if (!summary.averageRhythmScore) return "完成一次小节后生成节奏参考。";
+        if (summary.onTimeCount >= summary.earlyCount + summary.lateCount) return "完成点击基本贴住节拍，继续保持稳定四拍。";
+        if (summary.earlyCount > summary.lateCount) return "完成点击偏早，下一轮等节拍落稳后再切换。";
+        if (summary.lateCount > summary.earlyCount) return "完成点击偏晚，下一轮提前准备左手换指。";
+        return "完成时机有早有晚，先降 5 BPM 练稳定。";
+      }
+
       function renderPracticeHistorySummary() {
         const latest = readPracticeHistory()[0];
         const text = latest
-          ? `${formatPracticeHistoryTime(latest.endedAt)} · ${latest.bpm} BPM · ${formatPracticeMode(latest.mode)} · 完成 ${latest.completedCount}/${reports.length} · ${latest.barsPracticed} 小节 · ${latest.targetSummary}`
+          ? `${formatPracticeHistoryTime(latest.endedAt)} · ${latest.bpm} BPM · ${formatPracticeMode(latest.mode)} · 完成 ${latest.completedCount}/${reports.length} · 节奏 ${latest.rhythmScore || "--"} · ${latest.targetSummary}`
           : "暂无练习记录";
         practiceHistorySummaryNodes.forEach((node) => {
           node.textContent = text;
@@ -1998,6 +2053,7 @@
         const barsPracticed = practiceEvents.filter((event) => event.type === "bar").length;
         const completedCount = completedSteps.filter(Boolean).length;
         const completeEvents = practiceEvents.filter((event) => event.type === "complete").length;
+        const rhythmSummary = buildRhythmSummary(practiceEvents, practiceBpm);
         const targetMap = new Map();
         progressEvents.forEach((event) => {
           const report = reports[event.step] || reports.find((item) => item.chord === event.chord);
@@ -2020,6 +2076,8 @@
           completedCount,
           completeEvents,
           barsPracticed,
+          rhythmScore: rhythmSummary.averageRhythmScore,
+          rhythmSummary,
           chords: Array.from(targetMap.keys()),
           targetSummary: targets.length > 0 ? targets.join(" / ") : reports[practiceStep].chord
         };
@@ -2040,6 +2098,7 @@
         const completedCount = completedSteps.filter(Boolean).length;
         const barsPracticed = practiceEvents.filter((event) => event.type === "bar").length;
         const completeCount = practiceEvents.filter((event) => event.type === "complete").length;
+        const rhythmSummary = buildRhythmSummary(practiceEvents, practiceBpm);
         const firstEventAt = practiceEvents[0]?.timestampMs;
         const lastEventAt = practiceEvents[practiceEvents.length - 1]?.timestampMs;
         const durationSec = firstEventAt && lastEventAt ? Math.max(0, Math.round((lastEventAt - firstEventAt) / 1000)) : 0;
@@ -2068,7 +2127,8 @@
         practicedBars.textContent = `${barsPracticed} 小节`;
         completedClicks.textContent = `${completeCount}/${reports.length}`;
         practiceDuration.textContent = `${durationSec}s`;
-        suggestion.textContent = `${practiceBpm} BPM · ${practiceLoopMode === "auto" ? "自动循环" : `只练 ${report.chord}`} · ${practiceAdvice}`;
+        practiceRhythmScore.textContent = rhythmSummary.averageRhythmScore ? String(rhythmSummary.averageRhythmScore) : "--";
+        suggestion.textContent = `${practiceBpm} BPM · ${practiceLoopMode === "auto" ? "自动循环" : `只练 ${report.chord}`} · ${rhythmAdvice(rhythmSummary)} · ${practiceAdvice}`;
         togglePractice.textContent = practiceRunning ? "暂停" : "开始";
       }
 

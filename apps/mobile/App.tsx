@@ -15,13 +15,17 @@ import {
   designPrinciples,
   designTokens,
   mvpLesson,
+  practiceLoopModes as sharedPracticeLoopModes,
+  practiceTempoPresets as sharedPracticeTempoPresets,
   ukuleleInstrument
 } from "@ukulele/shared";
 import {
   centsBetween,
   midiToFrequency,
   noteNameToMidi,
-  scorePitchEvent
+  scorePitchEvent,
+  scoreRhythmEvent,
+  summarizeRhythmEvents
 } from "@ukulele/audio-core";
 import {
   ensureMicrophoneAccess,
@@ -32,6 +36,7 @@ import { createMockTunerFrame } from "./src/audio/mockAudioEngine";
 import { playPracticeBeatClick, preparePracticeBeatAudio } from "./src/audio/practiceBeatSound";
 import { useMicrophoneRecorderMonitor } from "./src/audio/useMicrophoneRecorderMonitor";
 import { useRealtimeTunerStream } from "./src/audio/useRealtimeTunerStream";
+import { loadPracticeHistory, savePracticeHistory } from "./src/storage/practiceHistoryStore";
 
 type Tab = "home" | "tuner" | "metronome" | "chords" | "practice";
 
@@ -59,17 +64,27 @@ const accentBeatRed = "#DC2626";
 const lightBeatBlue = "#2F7A9A";
 const ukuleleStringLabels = ["G", "C", "E", "A"];
 const practiceBeatNumbers = [1, 2, 3, 4];
-const practiceTempoPresets = [
-  { id: "slow", label: "慢速", bpm: 60 },
-  { id: "standard", label: "标准", bpm: 70 },
-  { id: "advanced", label: "进阶", bpm: 85 }
-] as const;
-const practiceLoopModes = [
-  { id: "auto", label: "自动循环" },
-  { id: "single", label: "只练当前" }
-] as const;
-type PracticeTempoId = "custom" | typeof practiceTempoPresets[number]["id"];
-type PracticeLoopMode = typeof practiceLoopModes[number]["id"];
+type PracticeTempoId = "custom" | "slow" | "standard" | "advanced";
+type PracticeLoopMode = "auto" | "single";
+const tempoLabelById: Record<Exclude<PracticeTempoId, "custom">, string> = {
+  slow: "慢速",
+  standard: "标准",
+  advanced: "进阶"
+};
+const loopModeLabelById: Record<PracticeLoopMode, string> = {
+  auto: "自动循环",
+  single: "只练当前"
+};
+const practiceTempoPresets = sharedPracticeTempoPresets.map((preset) => ({
+  ...preset,
+  id: preset.id as Exclude<PracticeTempoId, "custom">,
+  label: tempoLabelById[preset.id as Exclude<PracticeTempoId, "custom">] ?? preset.label
+}));
+const practiceLoopModes = sharedPracticeLoopModes.map((mode) => ({
+  ...mode,
+  id: mode.id as PracticeLoopMode,
+  label: loopModeLabelById[mode.id as PracticeLoopMode] ?? mode.label
+}));
 type PracticeLogEvent = {
   type: "start" | "bar" | "complete" | "reset" | "tempo" | "mode" | "end";
   step: number;
@@ -86,6 +101,7 @@ type PracticeSessionInput = {
   mode: PracticeLoopMode;
   lessonId: string;
   exerciseId: string;
+  rhythmSummary?: RhythmPracticeSummary;
 };
 
 type PracticeSessionRecord = PracticeSessionInput & {
@@ -95,6 +111,7 @@ type PracticeSessionRecord = PracticeSessionInput & {
   durationSec: number;
   completedCount: number;
   totalSteps: number;
+  loopMode?: PracticeLoopMode;
 };
 
 type PracticeRecordSummary = {
@@ -102,7 +119,16 @@ type PracticeRecordSummary = {
   durationLabel: string;
   completedStepsLabel: string;
   bpmLabel: string;
+  rhythmLabel: string;
   advice: string;
+};
+
+type RhythmPracticeSummary = {
+  averageRhythmScore: number;
+  earlyCount: number;
+  lateCount: number;
+  onTimeCount: number;
+  suggestion: string;
 };
 
 type SharedPracticeRecord = {
@@ -170,23 +196,33 @@ function createPracticeSessionRecord(input: PracticeSessionInput): PracticeSessi
 
 function summarizePracticeRecord(record: PracticeSessionRecord): PracticeRecordSummary {
   const sharedSummary = sharedPracticeTools.summarizePracticeRecord?.(record) ?? {};
-  const completedAll = record.completedCount >= record.totalSteps;
-  const modeLabel = record.mode === "auto" ? "自动循环" : "只练当前";
-  const durationLabel = formatPracticeDuration(sharedSummary.durationSec ?? record.durationSec);
-  const completedTargetCount = sharedSummary.completedTargetCount ?? record.completedCount;
+  const totalSteps = record.totalSteps ?? chordLoopPractice.targets.length;
+  const completedTargetCount = sharedSummary.completedTargetCount ?? record.completedCount ?? 0;
+  const completedAll = completedTargetCount >= totalSteps;
+  const mode = record.mode ?? record.loopMode ?? "auto";
+  const modeLabel = mode === "auto" ? "自动循环" : "只练当前";
+  const durationLabel = formatPracticeDuration(sharedSummary.durationSec ?? record.durationSec ?? 0);
+  const endedAt = record.endedAt ?? new Date().toISOString();
+  const bpm = record.bpm ?? chordLoopPractice.bpm;
+  const rhythmLabel = record.rhythmSummary?.averageRhythmScore
+    ? `${record.rhythmSummary.averageRhythmScore}`
+    : "--";
   const advice = completedAll
     ? "四个小节都完成了，下次可以尝试提高 5 BPM。"
-    : record.mode === "single"
+    : mode === "single"
       ? "单小节练习已记录，继续把当前换指练稳。"
+      : record.rhythmSummary?.suggestion
+        ? translateRhythmSuggestion(record.rhythmSummary)
       : sharedSummary.weakPoint
         ? `下次优先稳住 ${sharedSummary.weakPoint}，先慢速再升速。`
         : "先保持四拍稳定，再追求更快换和弦。";
 
   return {
-    title: `${modeLabel} · ${new Date(record.endedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`,
+    title: `${modeLabel} · ${new Date(endedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`,
     durationLabel,
-    completedStepsLabel: `${completedTargetCount}/${record.totalSteps}`,
-    bpmLabel: `${record.bpm} BPM`,
+    completedStepsLabel: `${completedTargetCount}/${totalSteps}`,
+    bpmLabel: `${bpm} BPM`,
+    rhythmLabel,
     advice
   };
 }
@@ -198,8 +234,40 @@ function formatPracticeDuration(durationSec: number) {
   return seconds === 0 ? `${minutes}min` : `${minutes}min ${seconds}s`;
 }
 
-function persistPracticeHistory(_history: PracticeSessionRecord[]) {
-  // AsyncStorage can be wired here later without changing the screen data flow.
+function translateRhythmSuggestion(summary: RhythmPracticeSummary) {
+  if (summary.onTimeCount >= summary.earlyCount + summary.lateCount) {
+    return "完成点击基本贴住节拍，继续保持稳定四拍。";
+  }
+  if (summary.earlyCount > summary.lateCount) {
+    return "完成点击偏早，下一轮等节拍落稳后再切换。";
+  }
+  if (summary.lateCount > summary.earlyCount) {
+    return "完成点击偏晚，下一轮提前准备左手换指。";
+  }
+  return "完成时机有早有晚，先降 5 BPM 练稳定。";
+}
+
+function buildPracticeRhythmEvents(events: PracticeLogEvent[], bpm: number) {
+  const startEvent = events.find((event) => event.type === "start");
+  if (!startEvent) return [];
+
+  return events
+    .filter((event) => event.type === "complete")
+    .map((event) => {
+      const eventBpm = event.bpm || bpm;
+      const beatMs = 60000 / eventBpm;
+      const beatIndex = Math.max(0, Math.round((event.timestampMs - startEvent.timestampMs) / beatMs));
+      return scoreRhythmEvent({
+        eventTimeMs: event.timestampMs,
+        startedAtMs: startEvent.timestampMs,
+        bpm: eventBpm,
+        beatIndex
+      });
+    });
+}
+
+function summarizePracticeRhythm(events: PracticeLogEvent[], bpm: number): RhythmPracticeSummary {
+  return summarizeRhythmEvents(buildPracticeRhythmEvents(events, bpm)) as RhythmPracticeSummary;
 }
 
 export default function App() {
@@ -210,10 +278,22 @@ export default function App() {
     return latestRecord ? summarizePracticeRecord(latestRecord) : undefined;
   }, [practiceHistory]);
 
+  useEffect(() => {
+    let mounted = true;
+    loadPracticeHistory<PracticeSessionRecord>().then((records) => {
+      if (mounted) {
+        setPracticeHistory(records);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   function appendPracticeRecord(record: PracticeSessionRecord) {
     setPracticeHistory((history) => {
       const nextHistory = [record, ...history].slice(0, 20);
-      persistPracticeHistory(nextHistory);
+      void savePracticeHistory(nextHistory);
       return nextHistory;
     });
   }
@@ -283,6 +363,7 @@ function HomeScreen({
           <ScoreBox label="时长" value={latestPracticeSummary?.durationLabel ?? "--"} />
           <ScoreBox label="完成" value={latestPracticeSummary?.completedStepsLabel ?? "0/4"} />
           <ScoreBox label="BPM" value={latestPracticeSummary?.bpmLabel ?? `${chordLoopPractice.bpm} BPM`} />
+          <ScoreBox label="节奏" value={latestPracticeSummary?.rhythmLabel ?? "--"} />
         </View>
         <Text style={styles.sessionMeta}>
           建议：{latestPracticeSummary?.advice ?? "完成一次跟练或重置后，这里会显示最近摘要。"}
@@ -632,6 +713,14 @@ function PracticeScreen({ onPracticeRecord }: { onPracticeRecord: (record: Pract
   const firstEventAt = practiceEvents[0]?.timestampMs;
   const lastEventAt = practiceEvents[practiceEvents.length - 1]?.timestampMs;
   const practiceDurationSec = firstEventAt && lastEventAt ? Math.max(0, Math.round((lastEventAt - firstEventAt) / 1000)) : 0;
+  const rhythmSummary = useMemo(
+    () => summarizePracticeRhythm(practiceEvents, practiceBpm),
+    [practiceEvents, practiceBpm]
+  );
+  const rhythmScoreLabel = completedClicks > 0 ? `${rhythmSummary.averageRhythmScore}` : "--";
+  const rhythmTimingLabel = completedClicks > 0
+    ? `准 ${rhythmSummary.onTimeCount} · 早 ${rhythmSummary.earlyCount} · 晚 ${rhythmSummary.lateCount}`
+    : "完成一次小节后生成节奏参考";
   const practiceAdvice = practiceLoopMode === "single"
     ? `当前锁定 ${activeTarget.chord}，适合把换指练熟后再切自动循环。`
     : barsPracticed >= chordLoopPractice.targets.length
@@ -669,7 +758,8 @@ function PracticeScreen({ onPracticeRecord }: { onPracticeRecord: (record: Pract
       bpm: practiceBpm,
       mode: practiceLoopMode,
       lessonId: mvpLesson.id,
-      exerciseId: chordLoopPractice.id
+      exerciseId: chordLoopPractice.id,
+      rhythmSummary: summarizePracticeRhythm(events, practiceBpm)
     });
     onPracticeRecord(record);
     setSessionClosed(true);
@@ -959,12 +1049,13 @@ function PracticeScreen({ onPracticeRecord }: { onPracticeRecord: (record: Pract
           <ScoreBox label="练过" value={`${barsPracticed} 小节`} />
           <ScoreBox label="完成" value={`${completedClicks}/${chordLoopPractice.targets.length}`} />
           <ScoreBox label="时长" value={`${practiceDurationSec}s`} />
+          <ScoreBox label="节奏" value={rhythmScoreLabel} />
         </View>
         <Text style={styles.reportLine}>
           当前：{practiceBpm} BPM · {practiceLoopMode === "auto" ? "自动循环" : `只练 ${activeTarget.chord}`} · 最近目标 {activeTarget.chord}
         </Text>
         <Text style={styles.reportLine}>
-          参考评分：音准 {activeReport.event.pitchScore} · 节奏 {activeReport.event.rhythmScore ?? "--"} · 建议：{practiceAdvice}
+          参考评分：音准 {activeReport.event.pitchScore} · 节奏 {rhythmScoreLabel} · {rhythmTimingLabel} · 建议：{practiceAdvice}
         </Text>
       </View>
     </View>
