@@ -184,6 +184,26 @@ type PracticeMilestoneEvaluation = {
   canPass: boolean;
 };
 
+type LessonPathStatus = "done" | "current" | "pending" | "locked";
+
+type LessonPathNode = {
+  id: "tuning" | "practice" | "review" | string;
+  title: string;
+  type: string;
+  status: LessonPathStatus;
+  detail: string;
+};
+
+type LessonPathProgress = {
+  lessonId?: string;
+  nodes: LessonPathNode[];
+  completedNodes: number;
+  totalNodes: number;
+  percent: number;
+  nextNodeId: string | null;
+  milestoneStatus?: PracticeMilestoneStatus;
+};
+
 type PracticeLaunchConfig = {
   bpm: number;
   tempoId: PracticeTempoId;
@@ -209,6 +229,10 @@ type SharedPracticeTools = Partial<{
     history: Array<Record<string, unknown>>,
     options?: Record<string, unknown>
   ) => PracticeMilestoneEvaluation;
+  evaluateMvpLessonProgress: (
+    history: Array<Record<string, unknown>>,
+    options?: Record<string, unknown>
+  ) => LessonPathProgress;
   evaluateLessonProgress: (
     history: Array<Record<string, unknown>>,
     template?: Record<string, unknown>
@@ -464,6 +488,87 @@ function evaluateLocalPracticeMilestone(history: PracticeSessionRecord[]): Pract
   });
 }
 
+function evaluateLocalLessonPathProgress(
+  history: PracticeSessionRecord[],
+  milestone: PracticeMilestoneEvaluation
+): LessonPathProgress {
+  const sharedProgress = sharedPracticeTools.evaluateMvpLessonProgress?.(history, {
+    template: chordLoopPractice,
+    milestone
+  });
+  if (sharedProgress) {
+    return localizeLessonPathProgress(sharedProgress);
+  }
+
+  const hasPractice = history.length > 0;
+  const practiceDone = milestone.status === "ready_to_pass" || milestone.status === "passed";
+  const reviewDone = milestone.status === "passed";
+  const nodes: LessonPathNode[] = [
+    {
+      id: "tuning",
+      title: "调音",
+      type: "tool",
+      status: hasPractice ? "done" : "current",
+      detail: hasPractice ? "已进入本地跟练记录" : "先确认 G-C-E-A 标准调弦"
+    },
+    {
+      id: "practice",
+      title: "跟练",
+      type: "practice",
+      status: practiceDone ? "done" : hasPractice ? "current" : "locked",
+      detail: practiceDone ? "四和弦循环已达标" : "按节拍跑顺 C-Am-F-G7"
+    },
+    {
+      id: "review",
+      title: "复盘",
+      type: "report",
+      status: reviewDone ? "done" : practiceDone ? "current" : "locked",
+      detail: reviewDone ? "第一课已标记通过" : "查看节奏和完成记录"
+    }
+  ];
+  const completedNodes = nodes.filter((node) => node.status === "done").length;
+  const totalNodes = nodes.length;
+  const nextNode = nodes.find((node) => node.status !== "done") ?? null;
+
+  return {
+    lessonId: mvpLesson.id,
+    nodes,
+    completedNodes,
+    totalNodes,
+    percent: totalNodes === 0 ? 0 : Math.round((completedNodes / totalNodes) * 100),
+    nextNodeId: nextNode?.id ?? null,
+    milestoneStatus: milestone.status
+  };
+}
+
+function localizeLessonPathProgress(progress: LessonPathProgress): LessonPathProgress {
+  const titleById: Record<string, string> = {
+    tuning: "调音",
+    practice: "跟练",
+    review: "复盘"
+  };
+  const detailById: Record<string, string> = {
+    tuning: progress.nodes.find((node) => node.id === "tuning")?.status === "done"
+      ? "课前准备已完成"
+      : "确认 G-C-E-A 标准调弦",
+    practice: progress.nodes.find((node) => node.id === "practice")?.status === "done"
+      ? "四和弦循环已达标"
+      : "按节拍跑顺 C-Am-F-G7",
+    review: progress.nodes.find((node) => node.id === "review")?.status === "done"
+      ? "第一课已标记通过"
+      : "查看节奏和完成记录"
+  };
+
+  return {
+    ...progress,
+    nodes: progress.nodes.map((node) => ({
+      ...node,
+      title: titleById[node.id] ?? node.title,
+      detail: detailById[node.id] ?? node.detail
+    }))
+  };
+}
+
 function localizeMilestoneEvaluation(evaluation: PracticeMilestoneEvaluation): PracticeMilestoneEvaluation {
   const titleByStatus: Record<PracticeMilestoneStatus, string> = {
     not_started: "还未开始",
@@ -556,6 +661,10 @@ export default function App() {
     () => evaluateLocalPracticeMilestone(practiceHistory),
     [practiceHistory]
   );
+  const lessonPathProgress = useMemo(
+    () => evaluateLocalLessonPathProgress(practiceHistory, practiceMilestone),
+    [practiceHistory, practiceMilestone]
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -638,6 +747,7 @@ export default function App() {
             onMarkMilestonePassed={markPracticeMilestonePassed}
             onStart={() => startPractice()}
             onStartRecommendation={() => startPractice(nextPracticeRecommendation)}
+            lessonPathProgress={lessonPathProgress}
             practiceMilestone={practiceMilestone}
             practiceHistorySummary={practiceHistorySummary}
             recentPracticeSummaries={recentPracticeSummaries}
@@ -674,6 +784,7 @@ export default function App() {
 
 function HomeScreen({
   latestPracticeSummary,
+  lessonPathProgress,
   nextPracticeRecommendation,
   onClearHistory,
   onMarkMilestonePassed,
@@ -684,6 +795,7 @@ function HomeScreen({
   onStart
 }: {
   latestPracticeSummary?: PracticeRecordSummary;
+  lessonPathProgress: LessonPathProgress;
   nextPracticeRecommendation: NextPracticeRecommendation;
   onClearHistory: () => void;
   onMarkMilestonePassed: () => void;
@@ -701,6 +813,36 @@ function HomeScreen({
         <Pressable accessibilityRole="button" onPress={onStart} style={styles.primaryButton}>
           <Text style={styles.primaryButtonText}>开始 8 分钟练习</Text>
         </Pressable>
+      </View>
+
+      <SectionTitle title="今日路径" detail={`${lessonPathProgress.completedNodes}/${lessonPathProgress.totalNodes} · ${lessonPathProgress.percent}%`} />
+      <View style={styles.lessonPathPanel}>
+        {lessonPathProgress.nodes.map((node, index) => (
+          <View key={node.id} style={styles.lessonPathNodeWrap}>
+            <View
+              style={[
+                styles.lessonPathDot,
+                node.status === "done" && styles.lessonPathDotDone,
+                node.status === "current" && styles.lessonPathDotCurrent,
+                node.status === "locked" && styles.lessonPathDotLocked
+              ]}
+            >
+              <Text
+                style={[
+                  styles.lessonPathDotText,
+                  (node.status === "done" || node.status === "current") && styles.lessonPathDotTextActive
+                ]}
+              >
+                {index + 1}
+              </Text>
+            </View>
+            <Text style={styles.lessonPathTitle}>{node.title}</Text>
+            <Text style={styles.lessonPathDetail} numberOfLines={2}>{node.detail}</Text>
+            <Text style={[styles.lessonPathStatus, node.status === "done" && styles.lessonPathStatusDone]}>
+              {lessonPathStatusLabel(node.status)}
+            </Text>
+          </View>
+        ))}
       </View>
 
       <SectionTitle title="下次练习" detail={nextPracticeRecommendation.reason} />
@@ -1647,6 +1789,13 @@ function statusLabel(status?: string) {
   return "等待拾音";
 }
 
+function lessonPathStatusLabel(status: LessonPathStatus) {
+  if (status === "done") return "已完成";
+  if (status === "current") return "当前";
+  if (status === "pending") return "待继续";
+  return "未解锁";
+}
+
 function tuningActionLabel(cents: number) {
   const amount = Math.abs(cents).toFixed(1);
   if (Math.abs(cents) <= IN_TUNE_CENTS) {
@@ -1737,6 +1886,71 @@ const styles = StyleSheet.create({
   heroCopy: {
     color: "#D9E4DB",
     lineHeight: 22
+  },
+  lessonPathPanel: {
+    minHeight: 118,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    flexDirection: "row",
+    gap: 8,
+    padding: 10
+  },
+  lessonPathNodeWrap: {
+    flex: 1,
+    alignItems: "center",
+    gap: 5
+  },
+  lessonPathDot: {
+    width: 30,
+    height: 30,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#DED6CA",
+    backgroundColor: "#EEE8DC",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  lessonPathDotDone: {
+    borderColor: successGreen,
+    backgroundColor: successGreen
+  },
+  lessonPathDotCurrent: {
+    borderColor: colors.amber,
+    backgroundColor: colors.amber
+  },
+  lessonPathDotLocked: {
+    opacity: 0.55
+  },
+  lessonPathDotText: {
+    color: "#756D64",
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  lessonPathDotTextActive: {
+    color: "#FFF8EC"
+  },
+  lessonPathTitle: {
+    color: colors.forest,
+    fontSize: 13,
+    fontWeight: "900",
+    textAlign: "center"
+  },
+  lessonPathDetail: {
+    color: "#756D64",
+    fontSize: 11,
+    lineHeight: 15,
+    textAlign: "center"
+  },
+  lessonPathStatus: {
+    marginTop: "auto",
+    color: "#756D64",
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  lessonPathStatusDone: {
+    color: successGreen
   },
   primaryButton: {
     minHeight: 48,

@@ -239,6 +239,77 @@
         background: #fff8ec;
       }
 
+      .lesson-path {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .lesson-path-node {
+        min-height: 118px;
+        padding: 10px 8px;
+        display: grid;
+        justify-items: center;
+        align-content: start;
+        gap: 5px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        text-align: center;
+      }
+
+      .lesson-path-dot {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        background: #eee8dc;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 950;
+      }
+
+      .lesson-path-node.done .lesson-path-dot {
+        border-color: var(--success);
+        background: var(--success);
+        color: #fff8ec;
+      }
+
+      .lesson-path-node.current .lesson-path-dot {
+        border-color: var(--amber);
+        background: var(--amber);
+        color: #fff8ec;
+      }
+
+      .lesson-path-node.locked {
+        opacity: 0.58;
+      }
+
+      .lesson-path-title {
+        color: var(--forest);
+        font-size: 13px;
+        font-weight: 950;
+      }
+
+      .lesson-path-detail {
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
+      .lesson-path-status {
+        margin-top: auto;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .lesson-path-node.done .lesson-path-status {
+        color: var(--success);
+      }
+
       .lesson-progress-head,
       .lesson-progress-foot {
         display: flex;
@@ -1287,6 +1358,32 @@
       </header>
 
       <section class="screen active" id="screen-today" aria-labelledby="tab-today">
+        <section class="section">
+          <div class="section-title">
+            <h3>课程路径</h3>
+            <span class="muted" id="lessonPathPercent">0/3 · 0%</span>
+          </div>
+          <div class="lesson-path" id="lessonPath">
+            <div class="lesson-path-node current" data-lesson-path-node="tuning">
+              <div class="lesson-path-dot">1</div>
+              <strong class="lesson-path-title">调音</strong>
+              <span class="lesson-path-detail">确认 G-C-E-A 标准调弦</span>
+              <span class="lesson-path-status">当前</span>
+            </div>
+            <div class="lesson-path-node locked" data-lesson-path-node="practice">
+              <div class="lesson-path-dot">2</div>
+              <strong class="lesson-path-title">跟练</strong>
+              <span class="lesson-path-detail">按节拍跑顺 C-Am-F-G7</span>
+              <span class="lesson-path-status">未解锁</span>
+            </div>
+            <div class="lesson-path-node locked" data-lesson-path-node="review">
+              <div class="lesson-path-dot">3</div>
+              <strong class="lesson-path-title">复盘</strong>
+              <span class="lesson-path-detail">查看节奏和完成记录</span>
+              <span class="lesson-path-status">未解锁</span>
+            </div>
+          </div>
+        </section>
         <div class="hero">
           <h2>第一课：调准音，再弹 C-Am-F-G7</h2>
           <p>8 分钟完成一次调音、慢速节拍、四和弦循环和模拟报告。</p>
@@ -2167,6 +2264,8 @@
       const lessonOneCompletedRounds = document.getElementById("lessonOneCompletedRounds");
       const lessonOnePassCriteria = document.getElementById("lessonOnePassCriteria");
       const markLessonOnePassedButton = document.getElementById("markLessonOnePassed");
+      const lessonPathPercent = document.getElementById("lessonPathPercent");
+      const lessonPathNodes = Array.from(document.querySelectorAll("[data-lesson-path-node]"));
       const LESSON_ONE_ID = "lesson-1";
       const LESSON_ONE_PASS_SCORE = 70;
       let nextPracticeRecommendation = null;
@@ -2254,6 +2353,60 @@
         lessonOneCompletedRounds.textContent = `${Math.min(progress.bestCompletedCount, reports.length)}/${reports.length} · ${progress.fullRounds} 次`;
         lessonOnePassCriteria.textContent = `通过条件：完整完成 ${reports.length} 个目标且节奏分 ≥ ${LESSON_ONE_PASS_SCORE}`;
         markLessonOnePassedButton.hidden = progress.state !== "ready";
+      }
+
+      function lessonPathStatusLabel(status) {
+        if (status === "done") return "已完成";
+        if (status === "current") return "当前";
+        if (status === "pending") return "待继续";
+        return "未解锁";
+      }
+
+      function buildLessonPathProgress(history) {
+        const lessonProgress = buildLessonOneProgress(history);
+        const hasPractice = history.length > 0;
+        const practiceDone = lessonProgress.state === "ready" || lessonProgress.state === "passed";
+        const reviewDone = lessonProgress.state === "passed";
+        const nodes = [
+          {
+            id: "tuning",
+            status: hasPractice ? "done" : "current",
+            detail: hasPractice ? "课前准备已完成" : "确认 G-C-E-A 标准调弦"
+          },
+          {
+            id: "practice",
+            status: practiceDone ? "done" : hasPractice ? "current" : "locked",
+            detail: practiceDone ? "四和弦循环已达标" : "按节拍跑顺 C-Am-F-G7"
+          },
+          {
+            id: "review",
+            status: reviewDone ? "done" : practiceDone ? "current" : "locked",
+            detail: reviewDone ? "第一课已标记通过" : "查看节奏和完成记录"
+          }
+        ];
+        const completedNodes = nodes.filter((node) => node.status === "done").length;
+        return {
+          nodes,
+          completedNodes,
+          totalNodes: nodes.length,
+          percent: Math.round((completedNodes / nodes.length) * 100)
+        };
+      }
+
+      function renderLessonPath(history) {
+        const progress = buildLessonPathProgress(history);
+        lessonPathPercent.textContent = `${progress.completedNodes}/${progress.totalNodes} · ${progress.percent}%`;
+        progress.nodes.forEach((node) => {
+          const element = lessonPathNodes.find((item) => item.dataset.lessonPathNode === node.id);
+          if (!element) return;
+          element.classList.toggle("done", node.status === "done");
+          element.classList.toggle("current", node.status === "current");
+          element.classList.toggle("locked", node.status === "locked");
+          const detail = element.querySelector(".lesson-path-detail");
+          const status = element.querySelector(".lesson-path-status");
+          if (detail) detail.textContent = node.detail;
+          if (status) status.textContent = lessonPathStatusLabel(node.status);
+        });
       }
 
       function markLessonOnePassed() {
@@ -2494,6 +2647,7 @@
         const overview = summarizePracticeHistory(history);
         practiceHistoryOverview.textContent = `累计 ${overview.sessions} 次 · ${formatDurationLabel(overview.durationSec)} · 练习 ${overview.days} 天 · 连续 ${overview.streak} 天`;
         renderLessonOneProgress(history);
+        renderLessonPath(history);
         renderNextPracticeRecommendation(history);
         clearPracticeHistoryButton.disabled = history.length === 0;
         if (history.length === 0) {

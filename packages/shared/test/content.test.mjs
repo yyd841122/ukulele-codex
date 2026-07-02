@@ -8,6 +8,7 @@ import {
   createNextPracticeRecommendation,
   createPracticeSessionRecord,
   designTokens,
+  evaluateMvpLessonProgress,
   evaluatePracticeMilestone,
   formatPracticeDayKey,
   getMvpPracticeTemplate,
@@ -371,6 +372,104 @@ test("practice milestone is passed when a record is explicitly passed", () => {
   assert.equal(milestone.completedLoops, 0);
   assert.equal(milestone.bestRhythmScore, 45);
   assert.equal(milestone.canPass, true);
+});
+
+test("MVP lesson progress starts at tuning without history", () => {
+  const progress = evaluateMvpLessonProgress([]);
+
+  assert.equal(progress.percent, 0);
+  assert.equal(progress.completedNodes, 0);
+  assert.equal(progress.nextNodeId, "tuning");
+  assert.deepEqual(
+    progress.nodes.map((node) => [node.id, node.status]),
+    [
+      ["tuning", "current"],
+      ["practice", "locked"],
+      ["review", "locked"]
+    ]
+  );
+});
+
+test("MVP lesson progress moves to practice after tuning is complete", () => {
+  const progress = evaluateMvpLessonProgress([], { completedStrings: 4 });
+
+  assert.equal(progress.percent, 33);
+  assert.equal(progress.nextNodeId, "practice");
+  assert.deepEqual(
+    progress.nodes.map((node) => [node.id, node.status]),
+    [
+      ["tuning", "done"],
+      ["practice", "current"],
+      ["review", "locked"]
+    ]
+  );
+});
+
+test("MVP lesson progress keeps review locked during unfinished practice", () => {
+  const progress = evaluateMvpLessonProgress([
+    {
+      endedAt: "2026-07-05T10:00:00.000Z",
+      totalSteps: 4,
+      completedCount: 2,
+      rhythmScore: 82
+    }
+  ]);
+
+  assert.equal(progress.percent, 33);
+  assert.equal(progress.nextNodeId, "practice");
+  assert.deepEqual(
+    progress.nodes.map((node) => [node.id, node.status]),
+    [
+      ["tuning", "done"],
+      ["practice", "current"],
+      ["review", "locked"]
+    ]
+  );
+});
+
+test("MVP lesson progress opens review after passing practice target", () => {
+  const progress = evaluateMvpLessonProgress([
+    {
+      endedAt: "2026-07-05T10:00:00.000Z",
+      totalSteps: 4,
+      completedCount: 4,
+      rhythmScore: 72
+    }
+  ]);
+
+  assert.equal(progress.percent, 67);
+  assert.equal(progress.nextNodeId, "review");
+  assert.deepEqual(
+    progress.nodes.map((node) => [node.id, node.status]),
+    [
+      ["tuning", "done"],
+      ["practice", "done"],
+      ["review", "current"]
+    ]
+  );
+});
+
+test("MVP lesson progress is complete after lesson is passed", () => {
+  const progress = evaluateMvpLessonProgress([
+    {
+      endedAt: "2026-07-05T10:00:00.000Z",
+      status: "passed",
+      completedCount: 4,
+      totalSteps: 4,
+      rhythmScore: 80
+    }
+  ]);
+
+  assert.equal(progress.percent, 100);
+  assert.equal(progress.nextNodeId, null);
+  assert.deepEqual(
+    progress.nodes.map((node) => [node.id, node.status]),
+    [
+      ["tuning", "done"],
+      ["practice", "done"],
+      ["review", "done"]
+    ]
+  );
 });
 
 test("next practice recommendation starts empty history with slow auto loop", () => {

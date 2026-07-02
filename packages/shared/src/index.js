@@ -735,6 +735,83 @@ export const evaluatePracticeMilestone = (history = [], options = {}) => {
   });
 };
 
+const makeLessonPathNode = ({ id, title, type, status, detail }) => ({
+  id,
+  title,
+  type,
+  status,
+  detail
+});
+
+export const evaluateMvpLessonProgress = (history = [], options = {}) => {
+  const rawHistory = Array.isArray(history)
+    ? history.filter((record) => record && typeof record === "object")
+    : [];
+  const milestone =
+    options.milestone ?? evaluatePracticeMilestone(rawHistory, { template: options.template ?? chordLoopPractice });
+  const completedStrings = numberOrNull(options.completedStrings) ?? 0;
+  const tunerCompleted =
+    options.tunerCompleted === true ||
+    completedStrings >= 4 ||
+    (options.inferTuningFromPractice !== false && rawHistory.length > 0);
+  const practiceDone = milestone.status === "ready_to_pass" || milestone.status === "passed";
+  const reviewDone = milestone.status === "passed";
+  const hasPractice = rawHistory.length > 0;
+  const tuningStatus = tunerCompleted ? "done" : "current";
+  const practiceStatus = practiceDone
+    ? "done"
+    : tunerCompleted || hasPractice
+      ? "current"
+      : "locked";
+  const reviewStatus = reviewDone
+    ? "done"
+    : practiceDone
+      ? "current"
+      : "locked";
+  const nodes = [
+    makeLessonPathNode({
+      id: "tuning",
+      title: "Tuning",
+      type: "tool",
+      status: tuningStatus,
+      detail: tunerCompleted
+        ? "Tuning prep is complete for this lesson."
+        : "Start with standard G-C-E-A tuning."
+    }),
+    makeLessonPathNode({
+      id: "practice",
+      title: "Follow Practice",
+      type: "practice",
+      status: practiceStatus,
+      detail: practiceDone
+        ? "The chord-loop target is complete."
+        : "Practice the C-Am-F-G7 loop with the beat."
+    }),
+    makeLessonPathNode({
+      id: "review",
+      title: "Review",
+      type: "report",
+      status: reviewStatus,
+      detail: reviewDone
+        ? "The lesson has been marked as passed."
+        : "Review local rhythm and completion records."
+    })
+  ];
+  const completedNodes = nodes.filter((node) => node.status === "done").length;
+  const totalNodes = nodes.length;
+  const nextNode = nodes.find((node) => node.status !== "done") ?? null;
+
+  return {
+    lessonId: mvpLesson.id,
+    nodes,
+    completedNodes,
+    totalNodes,
+    percent: totalNodes === 0 ? 0 : Math.round((completedNodes / totalNodes) * 100),
+    nextNodeId: nextNode?.id ?? null,
+    milestoneStatus: milestone.status
+  };
+};
+
 export const designPrinciples = [
   "练习入口优先，不做营销式首页",
   "调音和跟练反馈必须大、清楚、低干扰",
