@@ -29,6 +29,7 @@ import {
   initialMicrophoneAccessState
 } from "./src/audio/expoAudioEngine";
 import { createMockTunerFrame } from "./src/audio/mockAudioEngine";
+import { playPracticeBeatClick, preparePracticeBeatAudio } from "./src/audio/practiceBeatSound";
 import { useMicrophoneRecorderMonitor } from "./src/audio/useMicrophoneRecorderMonitor";
 
 type Tab = "home" | "tuner" | "metronome" | "chords" | "practice";
@@ -53,7 +54,10 @@ const practiceSuggestions = [
 
 const colors = designTokens.primitive.color;
 const successGreen = "#16A34A";
+const accentBeatRed = "#DC2626";
+const lightBeatBlue = "#2F7A9A";
 const ukuleleStringLabels = ["G", "C", "E", "A"];
+const practiceBeatNumbers = [1, 2, 3, 4];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
@@ -147,6 +151,11 @@ function TunerScreen() {
   const cents = frame.cents;
   const frameSourceLabel = frame.source === "mock" ? "模拟 PitchFrame" : "真实 PitchFrame";
   const audioInputLabel = recorderMonitor.isRecording ? "真实麦克风电平" : frameSourceLabel;
+  const micPipelineStages = [
+    { label: "权限", done: micAccess.granted, detail: micAccess.granted ? "已开通" : "待授权" },
+    { label: "电平", done: recorderMonitor.isRecording, detail: recorderMonitor.isRecording ? "读取中" : "未启动" },
+    { label: "PitchFrame", done: frame.source === "detected", detail: frame.source === "detected" ? "真实" : "模拟" }
+  ];
 
   useEffect(() => {
     let mounted = true;
@@ -201,6 +210,14 @@ function TunerScreen() {
             {micBusy ? "请求中" : micAccess.granted ? "已授权" : "启用麦克风"}
           </Text>
         </Pressable>
+      </View>
+      <View style={styles.pipelinePanel}>
+        {micPipelineStages.map((stage) => (
+          <View key={stage.label} style={[styles.pipelineItem, stage.done && styles.pipelineItemDone]}>
+            <Text style={[styles.pipelineLabel, stage.done && styles.pipelineLabelDone]}>{stage.label}</Text>
+            <Text style={styles.pipelineDetail}>{stage.detail}</Text>
+          </View>
+        ))}
       </View>
       <View style={styles.tunerDial}>
         <Text style={styles.noteText}>{frame.target.note}</Text>
@@ -364,6 +381,8 @@ function PracticeScreen() {
   const [practiceBpm, setPracticeBpm] = useState(chordLoopPractice.bpm);
   const [practiceBeat, setPracticeBeat] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [beatSoundEnabled, setBeatSoundEnabled] = useState(true);
+  const [beatSoundStatus, setBeatSoundStatus] = useState("节拍声已开启");
   const [completedSteps, setCompletedSteps] = useState<boolean[]>(() =>
     chordLoopPractice.targets.map(() => false)
   );
@@ -400,7 +419,10 @@ function PracticeScreen() {
 
     const interval = setInterval(() => {
       setPracticeBeat((value) => {
-        const nextBeat = (value + 1) % 4;
+        const nextBeat = (value + 1) % practiceBeatNumbers.length;
+        if (beatSoundEnabled) {
+          void playPracticeBeatClick(nextBeat === 0 ? "accent" : "light");
+        }
         if (nextBeat === 0) {
           setCurrentStep((step) => (step + 1) % chordLoopPractice.targets.length);
         }
@@ -409,7 +431,35 @@ function PracticeScreen() {
     }, 60000 / practiceBpm);
 
     return () => clearInterval(interval);
-  }, [isRunning, practiceBpm]);
+  }, [beatSoundEnabled, isRunning, practiceBpm]);
+
+  async function togglePracticeRunning() {
+    if (isRunning) {
+      setIsRunning(false);
+      return;
+    }
+
+    if (beatSoundEnabled) {
+      const audioState = await preparePracticeBeatAudio();
+      setBeatSoundStatus(audioState === "web-ready" ? "节拍声已就绪" : "当前平台先显示节拍，后续接本地 click 声");
+      void playPracticeBeatClick("accent");
+    }
+
+    setIsRunning(true);
+  }
+
+  async function toggleBeatSound() {
+    const nextEnabled = !beatSoundEnabled;
+    setBeatSoundEnabled(nextEnabled);
+    if (!nextEnabled) {
+      setBeatSoundStatus("节拍声已关闭");
+      return;
+    }
+
+    const audioState = await preparePracticeBeatAudio();
+    setBeatSoundStatus(audioState === "web-ready" ? "节拍声已开启" : "当前平台先显示节拍，后续接本地 click 声");
+    void playPracticeBeatClick(practiceBeat === 0 ? "accent" : "light");
+  }
 
   function completeCurrentStep() {
     setCompletedSteps((steps) => steps.map((done, index) => (index === currentStep ? true : done)));
@@ -435,7 +485,7 @@ function PracticeScreen() {
 
   return (
     <View style={styles.stack}>
-      <SectionTitle title="跟练" detail={`${chordLoopPractice.bpm} BPM · ${chordLoopPractice.timeSignature}`} />
+      <SectionTitle title="跟练" detail={`${practiceBpm} BPM · ${chordLoopPractice.timeSignature}`} />
       <View style={styles.practiceSession}>
         <View style={styles.reportHeader}>
           <View>
@@ -450,37 +500,91 @@ function PracticeScreen() {
         <Text style={styles.sessionMeta}>
           已完成 {completedCount}/{chordLoopPractice.targets.length} · 第 {activeTarget.bar} 小节 · 第 {practiceBeat + 1} 拍
         </Text>
-        <View style={styles.practiceBeatPanel}>
-          <View style={styles.practiceBeatHeader}>
-            <Text style={styles.practiceBeatTitle}>跟练节拍</Text>
-            <Text style={styles.practiceBeatMeta}>{practiceBpm} BPM · 4/4</Text>
+        <View style={styles.practiceMainGrid}>
+          <View style={styles.practiceChordColumn}>
+            <ChordFingeringGuide chordName={activeTarget.chord} compact />
           </View>
-          <View style={styles.practiceBeatGrid}>
-            {[1, 2, 3, 4].map((beat, index) => (
-              <View key={beat} style={[styles.practiceBeatCell, index === practiceBeat && styles.practiceBeatCellActive]}>
-                <Text style={[styles.practiceBeatText, index === practiceBeat && styles.practiceBeatTextActive]}>{beat}</Text>
+          <View style={styles.practiceCoachColumn}>
+            <View style={styles.practiceBeatPanel}>
+              <View style={styles.practiceBeatHeader}>
+                <Text style={styles.practiceBeatTitle}>跟练节拍</Text>
+                <Text style={styles.practiceBeatMeta}>{practiceBpm} BPM</Text>
               </View>
-            ))}
-          </View>
-          <View style={styles.bpmAdjustRow}>
-            <Pressable
-              accessibilityRole="button"
-              style={styles.bpmStepButton}
-              onPress={() => setPracticeBpm((value) => Math.max(40, value - 5))}
-            >
-              <Text style={styles.bpmStepText}>-5</Text>
-            </Pressable>
-            <Text style={styles.practiceBeatHint}>按亮起的拍子扫弦，第一拍稍微重一点</Text>
-            <Pressable
-              accessibilityRole="button"
-              style={styles.bpmStepButton}
-              onPress={() => setPracticeBpm((value) => Math.min(140, value + 5))}
-            >
-              <Text style={styles.bpmStepText}>+5</Text>
+              <View style={styles.practiceBeatGrid}>
+                {practiceBeatNumbers.map((beat, index) => {
+                  const isAccent = index === 0;
+                  const active = index === practiceBeat;
+                  return (
+                    <View key={beat} style={styles.practiceBeatDotWrap}>
+                      <View
+                        style={[
+                          styles.practiceBeatDot,
+                          isAccent ? styles.practiceBeatDotAccent : styles.practiceBeatDotLight,
+                          active && styles.practiceBeatDotActive
+                        ]}
+                      />
+                      <Text style={[styles.practiceBeatText, active && styles.practiceBeatTextActive]}>{beat}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+              <Text style={styles.practiceBeatHint}>红点是第一拍重音，蓝点跟轻拍。</Text>
+              <View style={styles.bpmAdjustRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  style={styles.bpmStepButton}
+                  onPress={() => setPracticeBpm((value) => Math.max(40, value - 5))}
+                >
+                  <Text style={styles.bpmStepText}>-5</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  style={styles.bpmStepButton}
+                  onPress={() => setPracticeBpm((value) => Math.min(140, value + 5))}
+                >
+                  <Text style={styles.bpmStepText}>+5</Text>
+                </Pressable>
+              </View>
+              <Pressable
+                accessibilityRole="switch"
+                accessibilityState={{ checked: beatSoundEnabled }}
+                style={[styles.soundToggleButton, beatSoundEnabled && styles.soundToggleButtonActive]}
+                onPress={toggleBeatSound}
+              >
+                <Text style={[styles.soundToggleText, beatSoundEnabled && styles.soundToggleTextActive]}>
+                  节拍声 {beatSoundEnabled ? "开" : "关"}
+                </Text>
+              </Pressable>
+              <Text style={styles.practiceSoundStatus}>{beatSoundStatus}</Text>
+            </View>
+            <View style={styles.practiceControlGrid}>
+              <Pressable
+                accessibilityRole="button"
+                style={styles.secondaryMiniButton}
+                onPress={moveToPreviousStep}
+              >
+                <Text style={styles.secondaryButtonText}>上一</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                style={styles.primaryMiniButton}
+                onPress={togglePracticeRunning}
+              >
+                <Text style={styles.primaryButtonText}>{isRunning ? "暂停" : "开始"}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                style={styles.secondaryMiniButton}
+                onPress={completeCurrentStep}
+              >
+                <Text style={styles.secondaryButtonText}>完成</Text>
+              </Pressable>
+            </View>
+            <Pressable accessibilityRole="button" style={styles.resetCompactButton} onPress={resetPractice}>
+              <Text style={styles.resetButtonText}>重置练习</Text>
             </Pressable>
           </View>
         </View>
-        <ChordFingeringGuide chordName={activeTarget.chord} />
       </View>
       <View style={styles.practiceTimeline}>
         {chordLoopPractice.targets.map((target, index) => {
@@ -503,34 +607,6 @@ function PracticeScreen() {
           );
         })}
       </View>
-
-      <View style={styles.controlRow}>
-        <Pressable
-          accessibilityRole="button"
-          style={styles.secondaryButton}
-          onPress={moveToPreviousStep}
-        >
-          <Text style={styles.secondaryButtonText}>上一小节</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          style={styles.primaryInlineButton}
-          onPress={() => setIsRunning((value) => !value)}
-        >
-          <Text style={styles.primaryButtonText}>{isRunning ? "暂停" : "开始"}</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          style={styles.secondaryButton}
-          onPress={completeCurrentStep}
-        >
-          <Text style={styles.secondaryButtonText}>完成</Text>
-        </Pressable>
-      </View>
-      <Pressable accessibilityRole="button" style={styles.resetButton} onPress={resetPractice}>
-        <Text style={styles.resetButtonText}>重置练习</Text>
-      </Pressable>
-
       <View style={styles.reportPanel}>
         <View style={styles.reportHeader}>
           <Text style={styles.reportTitle}>模拟报告</Text>
@@ -579,41 +655,43 @@ function ScoreBox({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ChordFingeringGuide({ chordName }: { chordName: string }) {
+function ChordFingeringGuide({ chordName, compact = false }: { chordName: string; compact?: boolean }) {
   const chord = getBeginnerChord(chordName);
   if (!chord) return null;
 
   return (
-    <View style={styles.fingeringGuide}>
-      <ChordDiagram chord={chord} />
-      <Text style={styles.fingeringHelp}>只弹 ○ / ● 的弦；× 的弦不弹。● 里的数字是手指编号：1 食指 · 2 中指 · 3 无名指。</Text>
+    <View style={[styles.fingeringGuide, compact && styles.fingeringGuideCompact]}>
+      <ChordDiagram chord={chord} compact={compact} />
+      <Text style={[styles.fingeringHelp, compact && styles.fingeringHelpCompact]}>
+        {compact ? `指法 ${chord.fingering.join("-")} · 数字为手指` : "只弹 ○ / ● 的弦；× 的弦不弹。● 里的数字是手指编号：1 食指 · 2 中指 · 3 无名指。"}
+      </Text>
     </View>
   );
 }
 
-function ChordDiagram({ chord }: { chord: NonNullable<ReturnType<typeof getBeginnerChord>> }) {
+function ChordDiagram({ chord, compact = false }: { chord: NonNullable<ReturnType<typeof getBeginnerChord>>; compact?: boolean }) {
   const fretsToShow = Math.max(4, Math.max(...chord.fingering) + 1);
 
   return (
     <View style={styles.chordDiagram}>
-      <View style={styles.chordBadgeLarge}>
-        <Text style={styles.chordBadgeLargeText}>{chord.name}</Text>
+      <View style={[styles.chordBadgeLarge, compact && styles.chordBadgeCompact]}>
+        <Text style={[styles.chordBadgeLargeText, compact && styles.chordBadgeCompactText]}>{chord.name}</Text>
       </View>
-      <View style={styles.chordBoard}>
-        <View style={styles.playMarkerRow}>
+      <View style={[styles.chordBoard, compact && styles.chordBoardCompact]}>
+        <View style={[styles.playMarkerRow, compact && styles.playMarkerRowCompact]}>
           {chord.fingering.map((fret, index) => (
-            <Text key={`${chord.id}-marker-${index}`} style={styles.playMarker}>
+            <Text key={`${chord.id}-marker-${index}`} style={[styles.playMarker, compact && styles.playMarkerCompact]}>
               {fret < 0 ? "×" : fret === 0 ? "○" : "●"}
             </Text>
           ))}
         </View>
         <View style={styles.boardRow}>
-          <View style={styles.fretNumberRail}>
+          <View style={[styles.fretNumberRail, compact && styles.fretNumberRailCompact]}>
             {Array.from({ length: fretsToShow }, (_, index) => (
-              <Text key={`${chord.id}-fret-${index}`} style={styles.fretNumberLabel}>{index + 1}</Text>
+              <Text key={`${chord.id}-fret-${index}`} style={[styles.fretNumberLabel, compact && styles.fretNumberLabelCompact]}>{index + 1}</Text>
             ))}
           </View>
-          <View style={styles.fretboard}>
+          <View style={[styles.fretboard, compact && styles.fretboardCompact]}>
             {ukuleleStringLabels.map((label, index) => (
               <View
                 key={`${chord.id}-string-${label}`}
@@ -634,21 +712,22 @@ function ChordDiagram({ chord }: { chord: NonNullable<ReturnType<typeof getBegin
                   key={`${chord.id}-dot-${index}`}
                   style={[
                     styles.fingerDot,
+                    compact && styles.fingerDotCompact,
                     {
                       left: `${(index / (ukuleleStringLabels.length - 1)) * 100}%`,
                       top: `${((fret - 0.5) / fretsToShow) * 100}%`
                     }
                   ]}
                 >
-                  <Text style={styles.fingerDotText}>{finger}</Text>
+                  <Text style={[styles.fingerDotText, compact && styles.fingerDotTextCompact]}>{finger}</Text>
                 </View>
               );
             })}
           </View>
         </View>
-        <View style={styles.diagramStringLabels}>
+        <View style={[styles.diagramStringLabels, compact && styles.diagramStringLabelsCompact]}>
           {ukuleleStringLabels.map((label) => (
-            <Text key={`${chord.id}-label-${label}`} style={styles.diagramStringLabel}>{label}</Text>
+            <Text key={`${chord.id}-label-${label}`} style={[styles.diagramStringLabel, compact && styles.diagramStringLabelCompact]}>{label}</Text>
           ))}
         </View>
       </View>
@@ -893,6 +972,38 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.72
   },
+  pipelinePanel: {
+    flexDirection: "row",
+    gap: 8
+  },
+  pipelineItem: {
+    flex: 1,
+    minHeight: 54,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6
+  },
+  pipelineItemDone: {
+    borderColor: successGreen,
+    backgroundColor: "#F0FDF4"
+  },
+  pipelineLabel: {
+    color: colors.ink,
+    fontWeight: "900"
+  },
+  pipelineLabelDone: {
+    color: successGreen
+  },
+  pipelineDetail: {
+    marginTop: 3,
+    color: "#756D64",
+    fontSize: 11,
+    fontWeight: "800"
+  },
   inputPanel: {
     borderRadius: 8,
     padding: 14,
@@ -1125,11 +1236,11 @@ const styles = StyleSheet.create({
   },
   practiceSession: {
     borderRadius: 8,
-    padding: 14,
+    padding: 12,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
-    gap: 10
+    gap: 8
   },
   sessionEyebrow: {
     color: "#756D64",
@@ -1139,7 +1250,7 @@ const styles = StyleSheet.create({
   sessionTitle: {
     marginTop: 3,
     color: colors.forest,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "900"
   },
   sessionPill: {
@@ -1152,7 +1263,7 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   progressTrack: {
-    height: 10,
+    height: 7,
     borderRadius: 999,
     backgroundColor: "#EEE8DC",
     overflow: "hidden"
@@ -1167,13 +1278,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700"
   },
+  practiceMainGrid: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 10
+  },
+  practiceChordColumn: {
+    flex: 1.08
+  },
+  practiceCoachColumn: {
+    flex: 0.92,
+    gap: 8
+  },
   practiceBeatPanel: {
-    padding: 12,
+    padding: 10,
     borderRadius: 8,
     backgroundColor: "#F7F1E7",
     borderWidth: 1,
     borderColor: "#DED6CA",
-    gap: 8
+    gap: 7
   },
   practiceBeatHeader: {
     flexDirection: "row",
@@ -1192,29 +1315,41 @@ const styles = StyleSheet.create({
   },
   practiceBeatGrid: {
     flexDirection: "row",
-    gap: 8
-  },
-  practiceBeatCell: {
-    flex: 1,
-    minHeight: 48,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.surface,
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "space-between",
+    gap: 6
   },
-  practiceBeatCellActive: {
-    borderColor: colors.forest,
-    backgroundColor: colors.forest
+  practiceBeatDotWrap: {
+    minWidth: 28,
+    alignItems: "center",
+    gap: 4
+  },
+  practiceBeatDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 999,
+    opacity: 0.48
+  },
+  practiceBeatDotAccent: {
+    backgroundColor: accentBeatRed
+  },
+  practiceBeatDotLight: {
+    backgroundColor: lightBeatBlue
+  },
+  practiceBeatDotActive: {
+    width: 24,
+    height: 24,
+    opacity: 1,
+    borderWidth: 3,
+    borderColor: "#FFF8EC"
   },
   practiceBeatText: {
-    color: colors.forest,
-    fontSize: 18,
+    color: "#756D64",
+    fontSize: 11,
     fontWeight: "900"
   },
   practiceBeatTextActive: {
-    color: "#FFF8EC"
+    color: colors.forest
   },
   bpmAdjustRow: {
     flexDirection: "row",
@@ -1222,8 +1357,8 @@ const styles = StyleSheet.create({
     gap: 8
   },
   bpmStepButton: {
-    minWidth: 52,
-    minHeight: 38,
+    flex: 1,
+    minHeight: 36,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
@@ -1234,10 +1369,31 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   practiceBeatHint: {
-    flex: 1,
     color: "#756D64",
-    fontSize: 12,
-    lineHeight: 17
+    fontSize: 11,
+    lineHeight: 15
+  },
+  soundToggleButton: {
+    minHeight: 34,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EEE8DC"
+  },
+  soundToggleButtonActive: {
+    backgroundColor: "#DCECE2"
+  },
+  soundToggleText: {
+    color: "#756D64",
+    fontWeight: "900"
+  },
+  soundToggleTextActive: {
+    color: colors.forest
+  },
+  practiceSoundStatus: {
+    color: "#756D64",
+    fontSize: 10,
+    lineHeight: 13
   },
   fingeringGuide: {
     marginTop: 2,
@@ -1247,6 +1403,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#DED6CA",
     gap: 8
+  },
+  fingeringGuideCompact: {
+    marginTop: 0,
+    padding: 9,
+    gap: 5
   },
   chordDiagram: {
     alignItems: "center"
@@ -1266,6 +1427,15 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: "900"
   },
+  chordBadgeCompact: {
+    minWidth: 58,
+    minHeight: 38,
+    marginBottom: -9,
+    borderRadius: 16
+  },
+  chordBadgeCompactText: {
+    fontSize: 22
+  },
   chordBoard: {
     width: "100%",
     borderRadius: 18,
@@ -1276,11 +1446,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5DFD3"
   },
+  chordBoardCompact: {
+    paddingTop: 17,
+    paddingHorizontal: 10,
+    paddingBottom: 9,
+    borderRadius: 12
+  },
   playMarkerRow: {
     marginLeft: 34,
     marginRight: 4,
     flexDirection: "row",
     justifyContent: "space-between"
+  },
+  playMarkerRowCompact: {
+    marginLeft: 24
   },
   playMarker: {
     width: 28,
@@ -1288,6 +1467,10 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 26,
     fontWeight: "800"
+  },
+  playMarkerCompact: {
+    width: 22,
+    fontSize: 17
   },
   boardRow: {
     marginTop: 6,
@@ -1299,16 +1482,26 @@ const styles = StyleSheet.create({
     height: 210,
     justifyContent: "space-around"
   },
+  fretNumberRailCompact: {
+    width: 20,
+    height: 126
+  },
   fretNumberLabel: {
     color: "#A19A91",
     fontSize: 13,
     fontWeight: "800",
     textAlign: "center"
   },
+  fretNumberLabelCompact: {
+    fontSize: 10
+  },
   fretboard: {
     flex: 1,
     height: 210,
     position: "relative"
+  },
+  fretboardCompact: {
+    height: 126
   },
   stringLine: {
     position: "absolute",
@@ -1342,16 +1535,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center"
   },
+  fingerDotCompact: {
+    width: 26,
+    height: 26,
+    marginLeft: -13,
+    marginTop: -13
+  },
   fingerDotText: {
     color: "#FFFFFF",
     fontSize: 18,
     fontWeight: "900"
+  },
+  fingerDotTextCompact: {
+    fontSize: 13
   },
   diagramStringLabels: {
     marginLeft: 34,
     marginTop: 8,
     flexDirection: "row",
     justifyContent: "space-between"
+  },
+  diagramStringLabelsCompact: {
+    marginLeft: 24,
+    marginTop: 5
   },
   diagramStringLabel: {
     width: 28,
@@ -1360,24 +1566,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "800"
   },
+  diagramStringLabelCompact: {
+    width: 22,
+    fontSize: 11
+  },
   fingeringHelp: {
     color: "#756D64",
     fontSize: 12,
     lineHeight: 17
   },
+  fingeringHelpCompact: {
+    fontSize: 10,
+    lineHeight: 13
+  },
   practiceTimeline: {
-    gap: 10
+    flexDirection: "row",
+    gap: 6
   },
   targetBlock: {
-    minHeight: 72,
+    flex: 1,
+    minHeight: 86,
     borderRadius: 8,
-    padding: 12,
+    padding: 8,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
-    gap: 12
+    justifyContent: "space-between",
+    gap: 5
   },
   targetBlockActive: {
     backgroundColor: "#FFF4D9",
@@ -1388,8 +1605,8 @@ const styles = StyleSheet.create({
     borderColor: successGreen
   },
   barBadge: {
-    width: 42,
-    height: 42,
+    width: 28,
+    height: 28,
     borderRadius: 8,
     backgroundColor: colors.forest,
     alignItems: "center",
@@ -1400,38 +1617,40 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   targetCopy: {
-    flex: 1
+    alignItems: "center"
   },
   targetAction: {
     color: colors.ink,
+    fontSize: 11,
     fontWeight: "900"
   },
   targetBeat: {
-    marginTop: 3,
-    color: "#756D64"
+    marginTop: 2,
+    color: "#756D64",
+    fontSize: 10
   },
   targetChord: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: "900",
     color: colors.forest
   },
   targetChordBox: {
-    alignItems: "flex-end",
-    gap: 5
+    alignItems: "center",
+    gap: 4
   },
   miniFingering: {
     flexDirection: "row",
-    gap: 3
+    gap: 2
   },
   miniFret: {
-    minWidth: 18,
-    minHeight: 18,
+    minWidth: 13,
+    minHeight: 15,
     borderRadius: 5,
     overflow: "hidden",
     textAlign: "center",
     color: colors.forest,
     backgroundColor: "#EEE8DC",
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: "900"
   },
   resetButton: {
@@ -1445,11 +1664,38 @@ const styles = StyleSheet.create({
     color: colors.coral,
     fontWeight: "900"
   },
+  practiceControlGrid: {
+    flexDirection: "row",
+    gap: 6
+  },
+  secondaryMiniButton: {
+    flex: 1,
+    minHeight: 38,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EEE8DC"
+  },
+  primaryMiniButton: {
+    flex: 1.2,
+    minHeight: 38,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.forest
+  },
+  resetCompactButton: {
+    minHeight: 34,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F4DFDB"
+  },
   reportPanel: {
     borderRadius: 8,
-    padding: 16,
+    padding: 12,
     backgroundColor: colors.forest,
-    gap: 10
+    gap: 8
   },
   reportHeader: {
     flexDirection: "row",
@@ -1459,7 +1705,7 @@ const styles = StyleSheet.create({
   },
   reportTitle: {
     color: "#FFF8EC",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "900"
   },
   reportPill: {
@@ -1473,11 +1719,11 @@ const styles = StyleSheet.create({
   },
   reportGrid: {
     flexDirection: "row",
-    gap: 8
+    gap: 6
   },
   scoreBox: {
     flex: 1,
-    minHeight: 72,
+    minHeight: 54,
     borderRadius: 8,
     backgroundColor: "rgba(255, 248, 236, 0.1)",
     alignItems: "center",
@@ -1489,7 +1735,7 @@ const styles = StyleSheet.create({
   scoreValue: {
     marginTop: 4,
     color: "#FFF8EC",
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "900"
   },
   reportLine: {

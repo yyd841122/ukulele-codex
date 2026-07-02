@@ -145,6 +145,10 @@
         margin-top: 22px;
       }
 
+      .compact-report {
+        margin-top: 10px;
+      }
+
       .section-title {
         display: flex;
         align-items: end;
@@ -231,6 +235,44 @@
       .mic-button.ready {
         background: var(--amber);
         color: #1f2522;
+      }
+
+      .pipeline-panel {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .pipeline-item {
+        min-height: 54px;
+        display: grid;
+        place-items: center;
+        padding: 6px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffdf8;
+        text-align: center;
+      }
+
+      .pipeline-item.done {
+        border-color: var(--success);
+        background: #f0fdf4;
+      }
+
+      .pipeline-item strong {
+        color: var(--ink);
+        font-size: 13px;
+      }
+
+      .pipeline-item.done strong {
+        color: var(--success);
+      }
+
+      .pipeline-item span {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
       }
 
       .input-panel {
@@ -499,12 +541,13 @@
 
       .timeline {
         display: grid;
-        gap: 10px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
       }
 
       .practice-session {
-        margin-bottom: 12px;
-        padding: 14px;
+        margin-bottom: 8px;
+        padding: 12px;
         border: 1px solid var(--line);
         border-radius: 8px;
         background: var(--surface);
@@ -526,7 +569,7 @@
       .session-title {
         margin-top: 3px;
         color: var(--forest);
-        font-size: 18px;
+        font-size: 17px;
         font-weight: 950;
       }
 
@@ -539,8 +582,8 @@
       }
 
       .progress-track {
-        height: 10px;
-        margin-top: 12px;
+        height: 7px;
+        margin-top: 9px;
         overflow: hidden;
         border-radius: 999px;
         background: #eee8dc;
@@ -555,15 +598,27 @@
       }
 
       .session-meta {
-        margin-top: 8px;
+        margin-top: 6px;
         color: var(--muted);
         font-size: 12px;
         font-weight: 800;
       }
 
+      .practice-main-grid {
+        display: grid;
+        grid-template-columns: 1.08fr 0.92fr;
+        gap: 10px;
+        align-items: stretch;
+        margin-top: 8px;
+      }
+
+      .practice-coach-column {
+        display: grid;
+        gap: 8px;
+      }
+
       .practice-beat-panel {
-        margin-top: 12px;
-        padding: 12px;
+        padding: 10px;
         border: 1px solid var(--line);
         border-radius: 8px;
         background: #f7f1e7;
@@ -589,36 +644,55 @@
       }
 
       .practice-beat-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 8px;
-        margin-top: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        margin-top: 7px;
       }
 
       .practice-beat {
-        min-height: 48px;
+        min-width: 28px;
         display: grid;
-        place-items: center;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--surface);
-        color: var(--forest);
-        font-size: 18px;
+        justify-items: center;
+        gap: 4px;
+        color: var(--muted);
+        font-size: 11px;
         font-weight: 950;
       }
 
+      .beat-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        opacity: 0.48;
+      }
+
+      .beat-dot.accent {
+        background: #dc2626;
+      }
+
+      .beat-dot.light {
+        background: #2f7a9a;
+      }
+
+      .practice-beat.active .beat-dot {
+        width: 24px;
+        height: 24px;
+        border: 3px solid #fff8ec;
+        opacity: 1;
+      }
+
       .practice-beat.active {
-        border-color: var(--forest);
-        background: var(--forest);
-        color: #fff8ec;
+        color: var(--forest);
       }
 
       .practice-bpm-row {
         display: grid;
-        grid-template-columns: 52px 1fr 52px;
+        grid-template-columns: 1fr 1fr;
         gap: 8px;
         align-items: center;
-        margin-top: 9px;
+        margin-top: 7px;
       }
 
       .practice-bpm-row button {
@@ -626,15 +700,40 @@
       }
 
       .practice-beat-hint {
-        line-height: 1.4;
+        margin-top: 7px;
+        line-height: 1.35;
+      }
+
+      .sound-toggle {
+        width: 100%;
+        min-height: 34px;
+        margin-top: 7px;
+        background: #dcece2;
+        color: var(--forest);
+      }
+
+      .sound-toggle.off {
+        background: #eee8dc;
+        color: var(--muted);
+      }
+
+      .practice-sound-status {
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 800;
+        line-height: 1.3;
       }
 
       .fingering-guide {
-        margin-top: 12px;
         padding: 12px;
         border: 1px solid var(--line);
         border-radius: 8px;
         background: #f7f1e7;
+      }
+
+      .fingering-guide.compact {
+        padding: 9px;
       }
 
       .fingering-help {
@@ -643,6 +742,12 @@
         font-size: 12px;
         font-weight: 800;
         line-height: 1.45;
+      }
+
+      .fingering-guide.compact .fingering-help {
+        margin-top: 5px;
+        font-size: 10px;
+        line-height: 1.3;
       }
 
       .chord-diagram {
@@ -664,12 +769,25 @@
         z-index: 1;
       }
 
+      .fingering-guide.compact .diagram-badge {
+        min-width: 58px;
+        min-height: 38px;
+        margin-bottom: -9px;
+        border-radius: 16px;
+        font-size: 22px;
+      }
+
       .diagram-card {
         width: 100%;
         padding: 24px 18px 16px;
         border: 1px solid #e5dfd3;
         border-radius: 18px;
         background: #fff;
+      }
+
+      .fingering-guide.compact .diagram-card {
+        padding: 17px 10px 9px;
+        border-radius: 12px;
       }
 
       .play-markers,
@@ -686,6 +804,16 @@
         font-size: 26px;
         font-weight: 900;
         line-height: 1;
+      }
+
+      .fingering-guide.compact .play-markers,
+      .fingering-guide.compact .diagram-string-labels {
+        margin-left: 24px;
+        grid-template-columns: repeat(4, 22px);
+      }
+
+      .fingering-guide.compact .play-marker {
+        font-size: 17px;
       }
 
       .board-row {
@@ -706,6 +834,11 @@
         font-weight: 900;
       }
 
+      .fingering-guide.compact .fret-rail {
+        height: 126px;
+        font-size: 10px;
+      }
+
       .fret-rail span {
         display: grid;
         place-items: center;
@@ -714,6 +847,10 @@
       .fretboard {
         position: relative;
         height: 210px;
+      }
+
+      .fingering-guide.compact .fretboard {
+        height: 126px;
       }
 
       .string-line {
@@ -755,8 +892,20 @@
         font-weight: 950;
       }
 
+      .fingering-guide.compact .finger-dot {
+        width: 26px;
+        height: 26px;
+        margin-left: -13px;
+        margin-top: -13px;
+        font-size: 13px;
+      }
+
       .diagram-string-labels {
         margin-top: 8px;
+      }
+
+      .fingering-guide.compact .diagram-string-labels {
+        margin-top: 5px;
       }
 
       .diagram-string-labels span {
@@ -766,16 +915,20 @@
         font-weight: 900;
       }
 
+      .fingering-guide.compact .diagram-string-labels span {
+        font-size: 11px;
+      }
+
       .step {
-        min-height: 68px;
+        min-height: 86px;
         display: grid;
-        grid-template-columns: 56px 1fr 86px;
-        align-items: center;
-        gap: 10px;
-        padding: 12px;
+        justify-items: center;
+        gap: 5px;
+        padding: 8px;
         border: 1px solid var(--line);
         border-radius: 8px;
         background: var(--surface);
+        text-align: center;
       }
 
       .step.active {
@@ -789,8 +942,8 @@
       }
 
       .bar {
-        width: 42px;
-        height: 42px;
+        width: 28px;
+        height: 28px;
         display: grid;
         place-items: center;
         border-radius: 8px;
@@ -802,7 +955,7 @@
       .chord-pill {
         justify-self: end;
         border-radius: 999px;
-        padding: 8px 11px;
+        padding: 6px 9px;
         background: #eee8dc;
         color: var(--forest);
         font-weight: 950;
@@ -810,24 +963,24 @@
 
       .step-chord {
         display: grid;
-        justify-items: end;
-        gap: 5px;
+        justify-items: center;
+        gap: 4px;
       }
 
       .mini-frets {
         display: grid;
-        grid-template-columns: repeat(4, 18px);
-        gap: 3px;
+        grid-template-columns: repeat(4, 13px);
+        gap: 2px;
       }
 
       .mini-frets span {
-        min-height: 18px;
+        min-height: 15px;
         display: grid;
         place-items: center;
         border-radius: 5px;
         background: #eee8dc;
         color: var(--forest);
-        font-size: 11px;
+        font-size: 9px;
         font-weight: 950;
       }
 
@@ -838,12 +991,15 @@
       }
 
       .practice-controls {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+        margin-top: 0;
       }
 
       .reset-practice {
         width: 100%;
-        margin-top: 10px;
+        min-height: 34px;
+        margin-top: 8px;
       }
 
       .score {
@@ -853,6 +1009,11 @@
         border-radius: 8px;
         background: var(--surface);
         text-align: center;
+      }
+
+      .compact-report .score {
+        min-height: 56px;
+        padding: 8px;
       }
 
       .score strong {
@@ -966,6 +1127,11 @@
             <p id="micDetail">当前使用模拟拾音，真实 App 中会请求麦克风权限。</p>
           </div>
           <button class="mic-button" id="micButton" type="button">启用麦克风</button>
+        </div>
+        <div class="pipeline-panel">
+          <div class="pipeline-item" id="pipelinePermission"><strong>权限</strong><span>待授权</span></div>
+          <div class="pipeline-item" id="pipelineLevel"><strong>电平</strong><span>未启动</span></div>
+          <div class="pipeline-item" id="pipelinePitch"><strong>PitchFrame</strong><span>模拟</span></div>
         </div>
         <div class="tuner-dial">
           <div>
@@ -1104,26 +1270,38 @@
             <div class="progress-fill" id="practiceProgress"></div>
           </div>
           <div class="session-meta" id="sessionMeta">已完成 0/4 · 第 1 小节</div>
-          <div class="practice-beat-panel">
-            <div class="practice-beat-head">
-              <div class="practice-beat-title">跟练节拍</div>
-              <div class="practice-beat-meta"><span id="practiceBpmValue">70</span> BPM · 4/4</div>
+          <div class="practice-main-grid">
+            <div class="fingering-guide compact" aria-live="polite">
+              <div class="chord-diagram" id="currentChordDiagram"></div>
+              <div class="fingering-help" id="currentFingeringHelp">指法 0-0-0-3 · 数字为手指</div>
             </div>
-            <div class="practice-beat-grid" aria-label="跟练四拍节拍格">
-              <div class="practice-beat active" data-practice-beat="0">1</div>
-              <div class="practice-beat" data-practice-beat="1">2</div>
-              <div class="practice-beat" data-practice-beat="2">3</div>
-              <div class="practice-beat" data-practice-beat="3">4</div>
+            <div class="practice-coach-column">
+              <div class="practice-beat-panel">
+                <div class="practice-beat-head">
+                  <div class="practice-beat-title">跟练节拍</div>
+                  <div class="practice-beat-meta"><span id="practiceBpmValue">70</span> BPM</div>
+                </div>
+                <div class="practice-beat-grid" aria-label="跟练四拍节拍圆点">
+                  <div class="practice-beat active" data-practice-beat="0"><span class="beat-dot accent"></span><span>1</span></div>
+                  <div class="practice-beat" data-practice-beat="1"><span class="beat-dot light"></span><span>2</span></div>
+                  <div class="practice-beat" data-practice-beat="2"><span class="beat-dot light"></span><span>3</span></div>
+                  <div class="practice-beat" data-practice-beat="3"><span class="beat-dot light"></span><span>4</span></div>
+                </div>
+                <div class="practice-beat-hint">红点是第一拍重音，蓝点跟轻拍。</div>
+                <div class="practice-bpm-row">
+                  <button class="ghost" id="practiceBpmDown" type="button">-5</button>
+                  <button class="ghost" id="practiceBpmUp" type="button">+5</button>
+                </div>
+                <button class="sound-toggle" id="practiceSoundToggle" type="button">节拍声 开</button>
+                <div class="practice-sound-status" id="practiceSoundStatus">节拍声已开启</div>
+              </div>
+              <div class="controls practice-controls">
+                <button class="ghost" id="prevStep" type="button">上一</button>
+                <button class="primary" id="togglePractice" type="button">开始</button>
+                <button class="ghost" id="completeStep" type="button">完成</button>
+              </div>
+              <button class="danger reset-practice" id="resetStep" type="button">重置练习</button>
             </div>
-            <div class="practice-bpm-row">
-              <button class="ghost" id="practiceBpmDown" type="button">-5</button>
-              <div class="practice-beat-hint">按亮起的拍子扫弦，第一拍稍微重一点</div>
-              <button class="ghost" id="practiceBpmUp" type="button">+5</button>
-            </div>
-          </div>
-          <div class="fingering-guide" aria-live="polite">
-            <div class="chord-diagram" id="currentChordDiagram"></div>
-            <div class="fingering-help" id="currentFingeringHelp">0 是空弦；数字是按第几品。</div>
           </div>
         </div>
         <div class="timeline" id="practiceTimeline">
@@ -1148,15 +1326,7 @@
             <div class="step-chord"><div class="chord-pill">G7</div><div class="mini-frets"><span>0</span><span>2</span><span>1</span><span>2</span></div></div>
           </div>
         </div>
-        <div class="controls practice-controls">
-          <button class="ghost" id="prevStep" type="button">上一小节</button>
-          <button class="primary" id="togglePractice" type="button">开始</button>
-          <button class="ghost" id="completeStep" type="button">完成</button>
-          <button class="ghost" id="nextStep" type="button">下一小节</button>
-        </div>
-        <button class="danger reset-practice" id="resetStep" type="button">重置练习</button>
-
-        <section class="section">
+        <section class="section compact-report">
           <div class="section-title">
             <h3>模拟报告</h3>
             <span class="muted" id="reportHint">第 1 小节</span>
@@ -1210,7 +1380,16 @@
         document.getElementById("micDetail").textContent = "预览页仍显示模拟帧，Expo App 会在这里接真实 AudioEngine。";
         document.getElementById("micButton").textContent = "已授权";
         document.getElementById("micButton").classList.add("ready");
+        setPipelineStage("pipelinePermission", true, "已开通");
       });
+
+      function setPipelineStage(id, done, detail) {
+        const node = document.getElementById(id);
+        if (!node) return;
+        node.classList.toggle("done", done);
+        const detailNode = node.querySelector("span");
+        if (detailNode) detailNode.textContent = detail;
+      }
 
       let recorderTimer = null;
       let recorderSeconds = 0;
@@ -1339,6 +1518,9 @@
           recorderStartedAt = Date.now();
           recorderButton.textContent = "停止真实麦克风";
           recorderButton.classList.add("stop");
+          setPipelineStage("pipelinePermission", true, "已开通");
+          setPipelineStage("pipelineLevel", true, "读取中");
+          setPipelineStage("pipelinePitch", false, "模拟");
           lastRms = 0;
           lastOnsetAt = 0;
           onsetWindowUntil = 0;
@@ -1431,6 +1613,7 @@
         recorderButton.textContent = "开始录音 PoC";
         recorderButton.classList.remove("stop");
         inputStatus.textContent = "真实麦克风已停止。";
+        setPipelineStage("pipelineLevel", false, "未启动");
         lastRms = 0;
         lastOnsetAt = 0;
         onsetWindowUntil = 0;
@@ -1679,6 +1862,10 @@
       let completedSteps = reports.map(() => false);
       let practiceRunning = false;
       let practiceTimer = null;
+      let practiceSoundEnabled = true;
+      let practiceAudioContext = null;
+      const practiceSoundToggle = document.getElementById("practiceSoundToggle");
+      const practiceSoundStatus = document.getElementById("practiceSoundStatus");
 
       function renderPractice() {
         const completedCount = completedSteps.filter(Boolean).length;
@@ -1706,7 +1893,7 @@
 
       function renderFingeringGuide(report) {
         currentChordDiagram.innerHTML = renderChordDiagram(report);
-        currentFingeringHelp.textContent = `只弹 ○ / ● 的弦；× 的弦不弹。● 里的数字是手指编号：1 食指 · 2 中指 · 3 无名指。当前指法 ${report.fingering.join("-")}。`;
+        currentFingeringHelp.textContent = `指法 ${report.fingering.join("-")} · 数字为手指`;
       }
 
       function renderChordDiagram(report) {
@@ -1758,8 +1945,15 @@
         practiceRunning = nextRunning;
         stopPracticeTimer();
         if (practiceRunning) {
+          if (practiceSoundEnabled) {
+            preparePracticeClickAudio();
+            playPracticeClick("accent");
+          }
           practiceTimer = setInterval(() => {
             practiceBeat = (practiceBeat + 1) % 4;
+            if (practiceSoundEnabled) {
+              playPracticeClick(practiceBeat === 0 ? "accent" : "light");
+            }
             if (practiceBeat === 0) {
               practiceStep = (practiceStep + 1) % steps.length;
             }
@@ -1775,15 +1969,62 @@
         renderPractice();
       });
 
-      document.getElementById("nextStep").addEventListener("click", () => {
-        practiceStep = (practiceStep + 1) % steps.length;
-        practiceBeat = 0;
-        renderPractice();
-      });
+      const nextStepButton = document.getElementById("nextStep");
+      if (nextStepButton) {
+        nextStepButton.addEventListener("click", () => {
+          practiceStep = (practiceStep + 1) % steps.length;
+          practiceBeat = 0;
+          renderPractice();
+        });
+      }
 
       togglePractice.addEventListener("click", () => {
         setPracticeRunning(!practiceRunning);
       });
+
+      practiceSoundToggle.addEventListener("click", () => {
+        practiceSoundEnabled = !practiceSoundEnabled;
+        practiceSoundToggle.textContent = `节拍声 ${practiceSoundEnabled ? "开" : "关"}`;
+        practiceSoundToggle.classList.toggle("off", !practiceSoundEnabled);
+        practiceSoundStatus.textContent = practiceSoundEnabled ? "节拍声已开启" : "节拍声已关闭";
+        if (practiceSoundEnabled) {
+          preparePracticeClickAudio();
+          playPracticeClick(practiceBeat === 0 ? "accent" : "light");
+        }
+      });
+
+      function preparePracticeClickAudio() {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+          practiceSoundStatus.textContent = "当前浏览器不支持节拍声";
+          return null;
+        }
+        if (!practiceAudioContext) {
+          practiceAudioContext = new AudioContextClass();
+        }
+        if (practiceAudioContext.state === "suspended") {
+          practiceAudioContext.resume();
+        }
+        practiceSoundStatus.textContent = "节拍声已就绪";
+        return practiceAudioContext;
+      }
+
+      function playPracticeClick(kind) {
+        const context = preparePracticeClickAudio();
+        if (!context) return;
+        const now = context.currentTime;
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        const accent = kind === "accent";
+        oscillator.type = accent ? "triangle" : "sine";
+        oscillator.frequency.value = accent ? 1320 : 880;
+        gain.gain.setValueAtTime(accent ? 0.28 : 0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + (accent ? 0.075 : 0.055));
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(now);
+        oscillator.stop(now + (accent ? 0.08 : 0.06));
+      }
 
       document.getElementById("completeStep").addEventListener("click", () => {
         completedSteps[practiceStep] = true;
