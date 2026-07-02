@@ -171,6 +171,19 @@ type NextPracticeRecommendation = {
   reason: string;
 };
 
+type PracticeMilestoneStatus = "not_started" | "in_progress" | "ready_to_pass" | "passed";
+
+type PracticeMilestoneEvaluation = {
+  status: PracticeMilestoneStatus;
+  title: string;
+  detail: string;
+  completedLoops: number;
+  bestRhythmScore: number;
+  requiredRhythmScore: number;
+  requiredCompletedCount: number;
+  canPass: boolean;
+};
+
 type PracticeLaunchConfig = {
   bpm: number;
   tempoId: PracticeTempoId;
@@ -192,6 +205,14 @@ type SharedPracticeTools = Partial<{
     history: Array<Record<string, unknown>>,
     template?: Record<string, unknown>
   ) => NextPracticeRecommendation;
+  evaluatePracticeMilestone: (
+    history: Array<Record<string, unknown>>,
+    options?: Record<string, unknown>
+  ) => PracticeMilestoneEvaluation;
+  evaluateLessonProgress: (
+    history: Array<Record<string, unknown>>,
+    template?: Record<string, unknown>
+  ) => PracticeMilestoneEvaluation;
 }>;
 
 const sharedPracticeTools = sharedPractice as unknown as SharedPracticeTools;
@@ -395,6 +416,74 @@ function createLocalNextPracticeRecommendation(history: PracticeSessionRecord[])
   };
 }
 
+function evaluateLocalPracticeMilestone(history: PracticeSessionRecord[]): PracticeMilestoneEvaluation {
+  const sharedEvaluation =
+    sharedPracticeTools.evaluatePracticeMilestone?.(history, { template: chordLoopPractice })
+    ?? sharedPracticeTools.evaluateLessonProgress?.(history, chordLoopPractice);
+  if (sharedEvaluation) {
+    return localizeMilestoneEvaluation(sharedEvaluation);
+  }
+
+  const requiredCompletedCount = chordLoopPractice.targets.length;
+  const requiredRhythmScore = chordLoopPractice.passingScore ?? 70;
+  if (history.length === 0) {
+    return {
+      status: "not_started",
+      title: "还未开始",
+      detail: `完成 ${requiredCompletedCount} 个目标，并让节奏参考分达到 ${requiredRhythmScore} 即可通过。`,
+      completedLoops: 0,
+      bestRhythmScore: 0,
+      requiredRhythmScore,
+      requiredCompletedCount,
+      canPass: false
+    };
+  }
+
+  const completedRecords = history.filter((record) => (record.completedCount ?? 0) >= requiredCompletedCount);
+  const bestRhythmScore = Math.max(
+    0,
+    ...history.map((record) => record.rhythmSummary?.averageRhythmScore ?? 0)
+  );
+  const explicitPassed = history.some((record) => {
+    const status = (record as PracticeSessionRecord & { status?: string; result?: string }).status
+      ?? (record as PracticeSessionRecord & { status?: string; result?: string }).result;
+    return status === "passed";
+  });
+  const canPass = explicitPassed || (completedRecords.length > 0 && bestRhythmScore >= requiredRhythmScore);
+  const status: PracticeMilestoneStatus = explicitPassed ? "passed" : canPass ? "ready_to_pass" : "in_progress";
+
+  return localizeMilestoneEvaluation({
+    status,
+    title: status,
+    detail: "",
+    completedLoops: completedRecords.length,
+    bestRhythmScore,
+    requiredRhythmScore,
+    requiredCompletedCount,
+    canPass
+  });
+}
+
+function localizeMilestoneEvaluation(evaluation: PracticeMilestoneEvaluation): PracticeMilestoneEvaluation {
+  const titleByStatus: Record<PracticeMilestoneStatus, string> = {
+    not_started: "还未开始",
+    in_progress: "练习中",
+    ready_to_pass: "可通过",
+    passed: "已通过"
+  };
+  const detailByStatus: Record<PracticeMilestoneStatus, string> = {
+    not_started: `完成 ${evaluation.requiredCompletedCount} 个目标，并让节奏参考分达到 ${evaluation.requiredRhythmScore} 即可通过。`,
+    in_progress: `通过条件：完成 ${evaluation.requiredCompletedCount} 个目标，节奏参考分 ≥ ${evaluation.requiredRhythmScore}。`,
+    ready_to_pass: "已经达到本课通过条件，可以标记通过或继续升速练习。",
+    passed: "第一课已经通过，可以继续保持练习记录。"
+  };
+  return {
+    ...evaluation,
+    title: titleByStatus[evaluation.status] ?? evaluation.title,
+    detail: detailByStatus[evaluation.status] ?? evaluation.detail
+  };
+}
+
 function normalizeRecommendation(recommendation: NextPracticeRecommendation): NextPracticeRecommendation {
   const tempoId = recommendation.tempoId === "custom" ? tempoIdFromBpm(recommendation.bpm) : recommendation.tempoId;
   const normalized = {
@@ -463,6 +552,10 @@ export default function App() {
     () => createLocalNextPracticeRecommendation(practiceHistory),
     [practiceHistory]
   );
+  const practiceMilestone = useMemo(
+    () => evaluateLocalPracticeMilestone(practiceHistory),
+    [practiceHistory]
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -496,6 +589,33 @@ export default function App() {
     setActiveTab("practice");
   }
 
+  function markPracticeMilestonePassed() {
+    const now = new Date().toISOString();
+    appendPracticeRecord({
+      id: `pass-${Date.now()}`,
+      lessonId: mvpLesson.id,
+      exerciseId: chordLoopPractice.id,
+      startedAt: now,
+      endedAt: now,
+      durationSec: 0,
+      events: [],
+      completedSteps: chordLoopPractice.targets.map(() => true),
+      completedCount: chordLoopPractice.targets.length,
+      totalSteps: chordLoopPractice.targets.length,
+      bpm: nextPracticeRecommendation.bpm,
+      mode: "auto",
+      loopMode: "auto",
+      rhythmSummary: {
+        averageRhythmScore: Math.max(practiceMilestone.bestRhythmScore, practiceMilestone.requiredRhythmScore),
+        earlyCount: 0,
+        lateCount: 0,
+        onTimeCount: 1,
+        suggestion: "Marked lesson as passed locally."
+      },
+      status: "passed"
+    } as PracticeSessionRecord & { status: string });
+  }
+
   return (
     <SafeAreaView style={styles.shell}>
       <StatusBar barStyle="dark-content" />
@@ -515,8 +635,10 @@ export default function App() {
             latestPracticeSummary={latestPracticeSummary}
             nextPracticeRecommendation={nextPracticeRecommendation}
             onClearHistory={clearPracticeRecords}
+            onMarkMilestonePassed={markPracticeMilestonePassed}
             onStart={() => startPractice()}
             onStartRecommendation={() => startPractice(nextPracticeRecommendation)}
+            practiceMilestone={practiceMilestone}
             practiceHistorySummary={practiceHistorySummary}
             recentPracticeSummaries={recentPracticeSummaries}
           />
@@ -554,7 +676,9 @@ function HomeScreen({
   latestPracticeSummary,
   nextPracticeRecommendation,
   onClearHistory,
+  onMarkMilestonePassed,
   onStartRecommendation,
+  practiceMilestone,
   practiceHistorySummary,
   recentPracticeSummaries,
   onStart
@@ -562,7 +686,9 @@ function HomeScreen({
   latestPracticeSummary?: PracticeRecordSummary;
   nextPracticeRecommendation: NextPracticeRecommendation;
   onClearHistory: () => void;
+  onMarkMilestonePassed: () => void;
   onStartRecommendation: () => void;
+  practiceMilestone: PracticeMilestoneEvaluation;
   practiceHistorySummary: PracticeHistorySummary;
   recentPracticeSummaries: PracticeRecordSummary[];
   onStart: () => void;
@@ -590,6 +716,35 @@ function HomeScreen({
         </View>
         <Pressable accessibilityRole="button" onPress={onStartRecommendation} style={styles.recommendationButton}>
           <Text style={styles.recommendationButtonText}>按建议开始</Text>
+        </Pressable>
+      </View>
+
+      <SectionTitle title="第一课进度" detail={practiceMilestone.title} />
+      <View style={styles.milestonePanel}>
+        <View style={styles.milestoneTopRow}>
+          <Text style={styles.milestoneTitle}>{practiceMilestone.title}</Text>
+          <Text style={[styles.milestoneBadge, practiceMilestone.canPass && styles.milestoneBadgeReady]}>
+            {practiceMilestone.canPass ? "达标" : "未达标"}
+          </Text>
+        </View>
+        <Text style={styles.milestoneDetail}>{practiceMilestone.detail}</Text>
+        <View style={styles.recommendationMetaRow}>
+          <ScoreBox label="完整" value={`${practiceMilestone.completedLoops}`} />
+          <ScoreBox label="最佳节奏" value={`${practiceMilestone.bestRhythmScore || "--"}`} />
+          <ScoreBox label="要求" value={`${practiceMilestone.requiredRhythmScore}`} />
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          disabled={!practiceMilestone.canPass || practiceMilestone.status === "passed"}
+          onPress={onMarkMilestonePassed}
+          style={[
+            styles.milestoneButton,
+            (!practiceMilestone.canPass || practiceMilestone.status === "passed") && styles.milestoneButtonDisabled
+          ]}
+        >
+          <Text style={styles.milestoneButtonText}>
+            {practiceMilestone.status === "passed" ? "已通过" : "标记通过"}
+          </Text>
         </Pressable>
       </View>
 
@@ -2513,6 +2668,56 @@ const styles = StyleSheet.create({
   },
   recommendationButtonText: {
     color: "#FFF8EC",
+    fontWeight: "900"
+  },
+  milestonePanel: {
+    borderRadius: 8,
+    padding: 12,
+    gap: 9,
+    backgroundColor: "#FFF8EC",
+    borderWidth: 1,
+    borderColor: colors.line
+  },
+  milestoneTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10
+  },
+  milestoneTitle: {
+    color: colors.forest,
+    fontSize: 16,
+    fontWeight: "900"
+  },
+  milestoneBadge: {
+    overflow: "hidden",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    color: "#756D64",
+    backgroundColor: "#EEE8DC",
+    fontWeight: "900"
+  },
+  milestoneBadgeReady: {
+    color: successGreen,
+    backgroundColor: "#DCFCE7"
+  },
+  milestoneDetail: {
+    color: "#756D64",
+    lineHeight: 20
+  },
+  milestoneButton: {
+    minHeight: 44,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.amber
+  },
+  milestoneButtonDisabled: {
+    opacity: 0.55
+  },
+  milestoneButtonText: {
+    color: "#1F2522",
     fontWeight: "900"
   },
   practiceHistoryHeader: {

@@ -8,6 +8,7 @@ import {
   createNextPracticeRecommendation,
   createPracticeSessionRecord,
   designTokens,
+  evaluatePracticeMilestone,
   formatPracticeDayKey,
   getMvpPracticeTemplate,
   m0AgentTasks,
@@ -288,6 +289,88 @@ test("practice history summary totals app and preview record fields", () => {
 test("practice day key formats date-like input", () => {
   assert.equal(formatPracticeDayKey("2026-07-05T10:30:00.000Z"), "2026-07-05");
   assert.equal(formatPracticeDayKey("not-a-date"), null);
+});
+
+test("practice milestone is not started without history", () => {
+  assert.deepEqual(evaluatePracticeMilestone([]), {
+    status: "not_started",
+    title: "Lesson not started",
+    detail: "No practice history yet.",
+    completedLoops: 0,
+    bestRhythmScore: null,
+    requiredRhythmScore: 70,
+    requiredCompletedCount: 4,
+    canPass: false
+  });
+});
+
+test("practice milestone stays in progress before all targets are complete", () => {
+  const record = createPracticeSessionRecord({
+    exerciseId: chordLoopPractice.id,
+    endedAt: "2026-07-05T10:00:00.000Z",
+    targets: chordLoopPractice.targets,
+    events: [
+      { type: "target_completed", targetId: "bar-1", rhythmScore: 80 },
+      { type: "target_completed", targetId: "bar-2", rhythmScore: 82 }
+    ]
+  });
+
+  const milestone = evaluatePracticeMilestone([record]);
+
+  assert.equal(milestone.status, "in_progress");
+  assert.equal(milestone.completedLoops, 0);
+  assert.equal(milestone.bestRhythmScore, 81);
+  assert.equal(milestone.canPass, false);
+});
+
+test("practice milestone stays in progress when rhythm is below passing score", () => {
+  const milestone = evaluatePracticeMilestone([
+    {
+      endedAt: "2026-07-05T10:00:00.000Z",
+      totalSteps: 4,
+      completedCount: 4,
+      rhythmSummary: { averageRhythmScore: 62 }
+    }
+  ]);
+
+  assert.equal(milestone.status, "in_progress");
+  assert.equal(milestone.completedLoops, 1);
+  assert.equal(milestone.bestRhythmScore, 62);
+  assert.match(milestone.detail, /below 70/);
+  assert.equal(milestone.canPass, false);
+});
+
+test("practice milestone is ready to pass after complete loop reaches passing score", () => {
+  const milestone = evaluatePracticeMilestone([
+    {
+      endedAt: "2026-07-05T10:00:00.000Z",
+      totalSteps: 4,
+      completedCount: 4,
+      rhythmScore: 72
+    }
+  ]);
+
+  assert.equal(milestone.status, "ready_to_pass");
+  assert.equal(milestone.completedLoops, 1);
+  assert.equal(milestone.bestRhythmScore, 72);
+  assert.equal(milestone.canPass, true);
+});
+
+test("practice milestone is passed when a record is explicitly passed", () => {
+  const milestone = evaluatePracticeMilestone([
+    {
+      endedAt: "2026-07-05T10:00:00.000Z",
+      completedCount: 1,
+      totalSteps: 4,
+      rhythmScore: 45,
+      status: "passed"
+    }
+  ]);
+
+  assert.equal(milestone.status, "passed");
+  assert.equal(milestone.completedLoops, 0);
+  assert.equal(milestone.bestRhythmScore, 45);
+  assert.equal(milestone.canPass, true);
 });
 
 test("next practice recommendation starts empty history with slow auto loop", () => {

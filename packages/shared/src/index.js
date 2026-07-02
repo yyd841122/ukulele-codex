@@ -202,6 +202,9 @@ const sanitizePracticeEvent = (event) => {
     "timeMs",
     "offsetMs",
     "status",
+    "rhythmScore",
+    "averageRhythmScore",
+    "rhythmAccuracy",
     "score",
     "accuracy"
   ]) {
@@ -608,6 +611,127 @@ export const createNextPracticeRecommendation = (history = [], options = {}) => 
     loopMode: "auto",
     focusChord: null,
     reason: "Latest practice is stable enough to continue, but not ready for a tempo increase."
+  });
+};
+
+const practiceRecordHasPassedStatus = (record) => {
+  if (record?.passed === true || record?.result?.passed === true) {
+    return true;
+  }
+
+  return [record?.status, record?.result, record?.result?.status]
+    .filter((value) => typeof value === "string")
+    .some((value) => value.toLowerCase() === "passed");
+};
+
+const milestoneCompletedCountForRecord = (record) => {
+  const completedTargetCount = numberOrNull(record?.completedTargetCount);
+  if (completedTargetCount !== null) {
+    return Math.max(0, Math.round(completedTargetCount));
+  }
+  return practiceRecordCompletedCount(record);
+};
+
+const makePracticeMilestoneResult = ({
+  status,
+  title,
+  detail,
+  completedLoops,
+  bestRhythmScore,
+  requiredRhythmScore,
+  requiredCompletedCount
+}) => ({
+  status,
+  title,
+  detail,
+  completedLoops,
+  bestRhythmScore,
+  requiredRhythmScore,
+  requiredCompletedCount,
+  canPass: status === "ready_to_pass" || status === "passed"
+});
+
+export const evaluatePracticeMilestone = (history = [], options = {}) => {
+  const template = options.template ?? chordLoopPractice;
+  const requiredRhythmScore =
+    numberOrNull(options.passingScore) ??
+    numberOrNull(template?.passingScore) ??
+    chordLoopPractice.passingScore;
+  const requiredCompletedCount =
+    numberOrNull(options.requiredCompletedCount) ?? practiceTargetsForTemplate(template).length;
+  const rawHistory = Array.isArray(history) ? history.filter((record) => record && typeof record === "object") : [];
+  const normalizedHistory = normalizePracticeHistory(rawHistory, rawHistory.length);
+  const records = normalizedHistory.length > 0 ? normalizedHistory : rawHistory;
+  const recordSummaries = records.map((record) => {
+    const completedCount = milestoneCompletedCountForRecord(record);
+    const rhythmScore = practiceRecordRhythmScore(record);
+    return {
+      record,
+      completedCount,
+      rhythmScore,
+      completedAll: requiredCompletedCount > 0 && completedCount >= requiredCompletedCount,
+      passed: practiceRecordHasPassedStatus(record)
+    };
+  });
+  const completedLoops = recordSummaries.filter((summary) => summary.completedAll).length;
+  const rhythmScores = recordSummaries
+    .map((summary) => summary.rhythmScore)
+    .filter((score) => score !== null);
+  const bestRhythmScore = rhythmScores.length > 0 ? Math.max(...rhythmScores) : null;
+
+  if (records.length === 0) {
+    return makePracticeMilestoneResult({
+      status: "not_started",
+      title: "Lesson not started",
+      detail: "No practice history yet.",
+      completedLoops,
+      bestRhythmScore,
+      requiredRhythmScore,
+      requiredCompletedCount
+    });
+  }
+
+  if (recordSummaries.some((summary) => summary.passed)) {
+    return makePracticeMilestoneResult({
+      status: "passed",
+      title: "Lesson passed",
+      detail: "A practice record is explicitly marked as passed.",
+      completedLoops,
+      bestRhythmScore,
+      requiredRhythmScore,
+      requiredCompletedCount
+    });
+  }
+
+  const passingSummary = recordSummaries.find(
+    (summary) => summary.completedAll && summary.rhythmScore !== null && summary.rhythmScore >= requiredRhythmScore
+  );
+  if (passingSummary) {
+    return makePracticeMilestoneResult({
+      status: "ready_to_pass",
+      title: "Ready to pass",
+      detail: `Completed ${requiredCompletedCount}/${requiredCompletedCount} targets with rhythm score ${passingSummary.rhythmScore}.`,
+      completedLoops,
+      bestRhythmScore,
+      requiredRhythmScore,
+      requiredCompletedCount
+    });
+  }
+
+  const latestSummary = recordSummaries[0];
+  const detail =
+    completedLoops > 0 && bestRhythmScore !== null
+      ? `Completed a full loop, but best rhythm score ${bestRhythmScore} is below ${requiredRhythmScore}.`
+      : `Latest practice completed ${latestSummary.completedCount}/${requiredCompletedCount} targets.`;
+
+  return makePracticeMilestoneResult({
+    status: "in_progress",
+    title: "Lesson in progress",
+    detail,
+    completedLoops,
+    bestRhythmScore,
+    requiredRhythmScore,
+    requiredCompletedCount
   });
 };
 

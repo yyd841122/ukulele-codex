@@ -231,6 +231,89 @@
         line-height: 1.45;
       }
 
+      .lesson-progress-card {
+        margin-top: 10px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff8ec;
+      }
+
+      .lesson-progress-head,
+      .lesson-progress-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .lesson-progress-title {
+        color: var(--forest);
+        font-weight: 950;
+      }
+
+      .lesson-progress-status {
+        border-radius: 999px;
+        padding: 5px 8px;
+        background: #eee8dc;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 950;
+      }
+
+      .lesson-progress-status.ready,
+      .lesson-progress-status.passed {
+        background: var(--mint);
+        color: var(--forest);
+      }
+
+      .lesson-progress-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .lesson-progress-metric {
+        min-height: 42px;
+        padding: 7px 8px;
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .lesson-progress-metric strong {
+        display: block;
+        margin-top: 3px;
+        color: var(--forest);
+        font-size: 16px;
+      }
+
+      .lesson-progress-foot {
+        margin-top: 8px;
+      }
+
+      .lesson-progress-criteria {
+        flex: 1;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .lesson-pass-button {
+        min-height: 34px;
+        padding: 0 10px;
+        background: var(--forest);
+        color: #fff8ec;
+        font-size: 12px;
+      }
+
+      .lesson-pass-button[hidden] {
+        display: none;
+      }
+
       .practice-history-header strong {
         color: var(--ink);
       }
@@ -1246,6 +1329,20 @@
             <span class="muted" id="recentPracticeSummaryToday" data-practice-history-summary>暂无练习记录</span>
           </div>
           <p class="practice-history-overview" id="practiceHistoryOverview">累计 0 次 · 0s · 练习 0 天 · 连续 0 天</p>
+          <div class="lesson-progress-card" id="lessonOneProgressCard">
+            <div class="lesson-progress-head">
+              <strong class="lesson-progress-title">第一课进度</strong>
+              <span class="lesson-progress-status" id="lessonOneProgressStatus">无记录</span>
+            </div>
+            <div class="lesson-progress-grid">
+              <div class="lesson-progress-metric">最佳节奏<strong id="lessonOneBestRhythm">--</strong></div>
+              <div class="lesson-progress-metric">完成轮次<strong id="lessonOneCompletedRounds">0/4 · 0 次</strong></div>
+            </div>
+            <div class="lesson-progress-foot">
+              <span class="lesson-progress-criteria" id="lessonOnePassCriteria">通过条件：完整完成 4 个目标且节奏分 ≥ 70</span>
+              <button class="lesson-pass-button" id="markLessonOnePassed" type="button" hidden>标记通过</button>
+            </div>
+          </div>
           <div class="practice-history-header">
             <strong>最近记录</strong>
             <button class="clear-history" id="clearPracticeHistory" type="button">清空</button>
@@ -2065,6 +2162,13 @@
       const nextPracticeMode = document.getElementById("nextPracticeMode");
       const nextPracticeFocus = document.getElementById("nextPracticeFocus");
       const startRecommendedPractice = document.getElementById("startRecommendedPractice");
+      const lessonOneProgressStatus = document.getElementById("lessonOneProgressStatus");
+      const lessonOneBestRhythm = document.getElementById("lessonOneBestRhythm");
+      const lessonOneCompletedRounds = document.getElementById("lessonOneCompletedRounds");
+      const lessonOnePassCriteria = document.getElementById("lessonOnePassCriteria");
+      const markLessonOnePassedButton = document.getElementById("markLessonOnePassed");
+      const LESSON_ONE_ID = "lesson-1";
+      const LESSON_ONE_PASS_SCORE = 70;
       let nextPracticeRecommendation = null;
 
       function readPracticeHistory() {
@@ -2085,6 +2189,129 @@
         } catch (error) {
           return false;
         }
+      }
+
+      function getPracticeRecordRhythmScore(record) {
+        const value = Number(record.rhythmScore ?? record.rhythmSummary?.averageRhythmScore ?? 0);
+        return Number.isFinite(value) ? value : 0;
+      }
+
+      function getPracticeRecordCompletedCount(record) {
+        const values = [
+          record.completedCount,
+          record.completedTargets,
+          record.targetsCompleted,
+          record.completeEvents
+        ].map((value) => Number(value)).filter((value) => Number.isFinite(value));
+        return values.length > 0 ? Math.max(...values) : 0;
+      }
+
+      function isPracticeRecordPassed(record) {
+        return String(record.status || "").toLowerCase() === "passed"
+          || String(record.result || "").toLowerCase() === "passed";
+      }
+
+      function isLessonOneReadyRecord(record) {
+        return getPracticeRecordCompletedCount(record) >= reports.length
+          && getPracticeRecordRhythmScore(record) >= LESSON_ONE_PASS_SCORE;
+      }
+
+      function buildLessonOneProgress(history) {
+        const bestRhythmScore = history.reduce((best, record) => Math.max(best, getPracticeRecordRhythmScore(record)), 0);
+        const bestCompletedCount = history.reduce((best, record) => Math.max(best, getPracticeRecordCompletedCount(record)), 0);
+        const fullRounds = history.filter((record) => getPracticeRecordCompletedCount(record) >= reports.length).length;
+        const passedRecord = history.find(isPracticeRecordPassed);
+        const readyRecord = history.find(isLessonOneReadyRecord);
+        const state = !history.length
+          ? "empty"
+          : passedRecord
+            ? "passed"
+            : readyRecord
+              ? "ready"
+              : "practicing";
+        return {
+          state,
+          statusText: {
+            empty: "无记录",
+            practicing: "练习中",
+            ready: "可通过",
+            passed: "已通过"
+          }[state],
+          bestRhythmScore,
+          bestCompletedCount,
+          fullRounds,
+          passedRecord,
+          readyRecord
+        };
+      }
+
+      function renderLessonOneProgress(history) {
+        const progress = buildLessonOneProgress(history);
+        lessonOneProgressStatus.textContent = progress.statusText;
+        lessonOneProgressStatus.classList.toggle("ready", progress.state === "ready");
+        lessonOneProgressStatus.classList.toggle("passed", progress.state === "passed");
+        lessonOneBestRhythm.textContent = progress.bestRhythmScore > 0 ? String(progress.bestRhythmScore) : "--";
+        lessonOneCompletedRounds.textContent = `${Math.min(progress.bestCompletedCount, reports.length)}/${reports.length} · ${progress.fullRounds} 次`;
+        lessonOnePassCriteria.textContent = `通过条件：完整完成 ${reports.length} 个目标且节奏分 ≥ ${LESSON_ONE_PASS_SCORE}`;
+        markLessonOnePassedButton.hidden = progress.state !== "ready";
+      }
+
+      function markLessonOnePassed() {
+        const history = readPracticeHistory();
+        const progress = buildLessonOneProgress(history);
+        if (progress.state !== "ready") {
+          renderLessonOneProgress(history);
+          return;
+        }
+        const now = new Date().toISOString();
+        const latest = history[0];
+        let nextHistory;
+        if (latest && isLessonOneReadyRecord(latest)) {
+          nextHistory = [
+            {
+              ...latest,
+              lessonId: LESSON_ONE_ID,
+              status: "passed",
+              result: "passed",
+              passedAt: now,
+              passSource: "latest-practice-record"
+            },
+            ...history.slice(1)
+          ];
+        } else {
+          const sourceRecord = progress.readyRecord;
+          nextHistory = [
+            {
+              id: `${LESSON_ONE_ID}-pass-${Date.now()}`,
+              lessonId: LESSON_ONE_ID,
+              status: "passed",
+              result: "passed",
+              reason: "lesson-pass",
+              startedAt: sourceRecord?.startedAt || now,
+              endedAt: now,
+              createdAt: now,
+              passedAt: now,
+              duration: 0,
+              durationSec: 0,
+              bpm: sourceRecord?.bpm || 70,
+              mode: sourceRecord?.mode || "auto",
+              completedCount: Math.max(reports.length, progress.bestCompletedCount),
+              completeEvents: sourceRecord?.completeEvents || reports.length,
+              strumCount: sourceRecord?.strumCount || 0,
+              triggerSource: "lesson-progress",
+              barsPracticed: sourceRecord?.barsPracticed || 0,
+              rhythmScore: progress.bestRhythmScore,
+              rhythmSummary: sourceRecord?.rhythmSummary || { averageRhythmScore: progress.bestRhythmScore },
+              chords: sourceRecord?.chords || reports.map((report) => report.chord),
+              targetSummary: "第一课通过",
+              sourceRecordId: sourceRecord?.id || null,
+              passSource: "lesson-progress-card"
+            },
+            ...history
+          ];
+        }
+        writePracticeHistory(nextHistory);
+        renderPracticeHistorySummary();
       }
 
       function formatPracticeHistoryTime(value) {
@@ -2266,6 +2493,7 @@
         });
         const overview = summarizePracticeHistory(history);
         practiceHistoryOverview.textContent = `累计 ${overview.sessions} 次 · ${formatDurationLabel(overview.durationSec)} · 练习 ${overview.days} 天 · 连续 ${overview.streak} 天`;
+        renderLessonOneProgress(history);
         renderNextPracticeRecommendation(history);
         clearPracticeHistoryButton.disabled = history.length === 0;
         if (history.length === 0) {
@@ -2623,6 +2851,7 @@
         writePracticeHistory([]);
         renderPracticeHistorySummary();
       });
+      markLessonOnePassedButton.addEventListener("click", markLessonOnePassed);
       renderPracticeHistorySummary();
       renderPractice();
     </script>
