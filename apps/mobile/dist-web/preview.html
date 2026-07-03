@@ -474,31 +474,57 @@
   }
   .tuner-status-card b { display: block; color: #059669; font-size: 12px; }
   .tuner-status-card span { display: block; margin-top: 4px; color: var(--text-2); font-size: 11px; font-weight: 800; }
-  .tuner-main-card { padding: 18px; text-align: center; }
-  .tuner-note { font-size: 72px; line-height: 1; color: var(--teal); font-weight: 950; }
-  .tuner-state { margin-top: 8px; color: #16A34A; font-size: 19px; font-weight: 950; }
-  .tuner-hz { margin-top: 6px; color: var(--text-2); font-size: 12px; font-weight: 800; }
-  .tuner-meter { position: relative; height: 34px; margin: 22px 24px 2px; }
-  .tuner-meter::before {
+  .tuner-main-card {
+    padding: 16px;
+    display: grid;
+    place-items: center;
+    text-align: center;
+  }
+  .tuner-gauge {
+    width: 244px;
+    height: 244px;
+    position: relative;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at center, #FFFDF8 0 44%, transparent 45%),
+      conic-gradient(from 220deg, #3B82F6 0 78deg, #16A34A 78deg 142deg, #EF4444 142deg 220deg, #EEE7DA 220deg 360deg);
+    box-shadow: inset 0 0 0 12px rgba(255,255,255,.72), var(--shadow);
+  }
+  .tuner-gauge::after {
     content: "";
     position: absolute;
-    left: 0;
-    right: 0;
-    top: 16px;
-    height: 4px;
-    border-radius: 999px;
-    background: linear-gradient(90deg, #3B82F6, #D1D5DB 48%, #16A34A 50%, #D1D5DB 52%, #EF4444);
+    inset: 28px;
+    border-radius: 50%;
+    background: #FFFDF8;
+    box-shadow: inset 0 0 0 1px var(--line);
   }
+  .tuner-gauge-center {
+    position: relative;
+    z-index: 3;
+    width: 146px;
+    height: 146px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    background: #FFFDF8;
+  }
+  .tuner-note { font-size: 58px; line-height: 1; color: var(--teal); font-weight: 950; }
+  .tuner-state { margin-top: 6px; color: #16A34A; font-size: 15px; font-weight: 950; }
+  .tuner-hz { margin-top: 5px; color: var(--text-2); font-size: 11px; font-weight: 800; }
   .needle {
     position: absolute;
     z-index: 2;
     left: 50%;
-    top: 4px;
+    top: 32px;
     width: 4px;
-    height: 28px;
+    height: 88px;
     border-radius: 999px;
-    transform: translateX(-50%);
-    background: var(--text-1);
+    transform-origin: bottom center;
+    transform: translateX(-50%) rotate(0deg);
+    background: #EF4444;
     transition: transform .24s ease, background .2s;
   }
   .needle.ok { background: #16A34A; }
@@ -1126,8 +1152,8 @@ function applyTuneFrame() {
   $("#tLevel").textContent = `${Math.round(level)}%`;
   $("#tLevelBar").style.width = `${level}%`;
   $("#tHint").textContent = Math.abs(frame.cents) <= 8 ? "绿色范围内已经足够准，可以进入节奏练习。" : "先把当前弦调进绿色区，再切到下一根弦。";
-  const offsetPx = Math.max(-92, Math.min(92, frame.cents * 5));
-  $("#needle").style.transform = `translateX(calc(-50% + ${offsetPx}px))`;
+  const angle = Math.max(-58, Math.min(58, frame.cents * 2.6));
+  $("#needle").style.transform = `translateX(-50%) rotate(${angle}deg)`;
   $("#needle").classList.toggle("ok", Math.abs(frame.cents) <= 8);
   renderStrings(activeIndex);
   tuneIndex = (tuneIndex + 1) % tuneFrames.length;
@@ -1206,10 +1232,14 @@ function setupTunerPanel() {
         <div class="tuner-status-card"><b>PitchFrame</b><span id="tFrameState">模拟帧</span></div>
       </div>
       <div class="tuner-main-card card">
-        <div class="tuner-note" id="tNote">A</div>
-        <div class="tuner-state" id="tState">等待拨弦</div>
-        <div class="tuner-hz" id="tHz">440.0 Hz · 标准 GCEA</div>
-        <div class="tuner-meter"><div class="needle" id="needle"></div></div>
+        <div class="tuner-gauge">
+          <div class="needle" id="needle"></div>
+          <div class="tuner-gauge-center">
+            <div class="tuner-note" id="tNote">A</div>
+            <div class="tuner-state" id="tState">等待拨弦</div>
+            <div class="tuner-hz" id="tHz">440.0 Hz · 标准 GCEA</div>
+          </div>
+        </div>
       </div>
       <div class="tuner-input-card card">
         <div class="tuner-input-row"><b>输入电平</b><span id="tLevel">0%</span></div>

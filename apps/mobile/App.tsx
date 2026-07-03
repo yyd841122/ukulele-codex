@@ -1054,7 +1054,7 @@ function TunerScreen() {
     : recorderMonitor.isRecording
       ? "真实麦克风电平"
       : frameSourceLabel;
-  const centsOffset = Math.max(-96, Math.min(96, cents * 5));
+  const centsAngle = Math.max(-58, Math.min(58, cents * 2.6));
   const inputPercent = Math.round(combinedInputLevel * 100);
   const tunerHint = Math.abs(cents) <= IN_TUNE_CENTS
     ? "绿色范围内已经足够准，可以进入节奏练习。"
@@ -1163,14 +1163,22 @@ function TunerScreen() {
       </View>
 
       <View style={styles.tunerDial}>
-        <Text style={styles.noteText}>{frame.target.note}</Text>
-        <Text style={[styles.centsText, centsTextStyle(cents)]}>{tuningActionLabel(cents)}</Text>
-        <Text style={styles.statusText}>{statusLabel(frame.status)}</Text>
-        <Text style={styles.sectionDetail}>
-          目标 {selectedString.frequencyHz.toFixed(2)} Hz · 检测 {frame.detectedFrequencyHz.toFixed(2)} Hz
-        </Text>
-        <View style={styles.needleTrack}>
-          <View style={[styles.needleMark, Math.abs(cents) <= IN_TUNE_CENTS && styles.needleMarkOk, { transform: [{ translateX: centsOffset }] }]} />
+        <View style={styles.tunerGauge}>
+          <View
+            style={[
+              styles.tunerGaugeNeedle,
+              Math.abs(cents) <= IN_TUNE_CENTS && styles.needleMarkOk,
+              { transform: [{ rotate: `${centsAngle}deg` }] }
+            ]}
+          />
+          <View style={styles.tunerGaugeCenter}>
+            <Text style={styles.noteText}>{frame.target.note}</Text>
+            <Text style={[styles.centsText, centsTextStyle(cents)]}>{tuningActionLabel(cents)}</Text>
+            <Text style={styles.statusText}>{statusLabel(frame.status)}</Text>
+            <Text style={styles.sectionDetail}>
+              {selectedString.frequencyHz.toFixed(2)} Hz · 检测 {frame.detectedFrequencyHz.toFixed(2)} Hz
+            </Text>
+          </View>
         </View>
         <Text style={styles.tunerHint}>{tunerHint}</Text>
       </View>
@@ -2446,44 +2454,60 @@ const styles = StyleSheet.create({
     lineHeight: 22
   },
   tunerDial: {
-    minHeight: 244,
+    minHeight: 284,
     borderRadius: 8,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 12,
     padding: 20
   },
+  tunerGauge: {
+    position: "relative",
+    width: 238,
+    height: 238,
+    borderRadius: 119,
+    borderWidth: 14,
+    borderColor: "#DDF3E7",
+    backgroundColor: "#F8FBF8",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  tunerGaugeCenter: {
+    width: 152,
+    height: 152,
+    borderRadius: 76,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8
+  },
+  tunerGaugeNeedle: {
+    position: "absolute",
+    left: 110,
+    top: 18,
+    width: 4,
+    height: 100,
+    borderRadius: 999,
+    backgroundColor: colors.coral,
+    transformOrigin: "50% 100%"
+  },
   noteText: {
-    fontSize: 72,
+    fontSize: 60,
     fontWeight: "900",
     color: colors.forest
   },
   centsText: {
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: "800"
   },
   statusText: {
     color: "#5E6D62",
     fontWeight: "800",
-    textAlign: "center"
-  },
-  needleTrack: {
-    marginTop: 14,
-    width: "100%",
-    height: 34,
-    borderRadius: 999,
-    backgroundColor: "#EEE8DC",
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  needleMark: {
-    width: 4,
-    height: 30,
-    borderRadius: 999,
-    backgroundColor: colors.ink
+    textAlign: "center",
+    fontSize: 12
   },
   needleMarkOk: {
     backgroundColor: successGreen
