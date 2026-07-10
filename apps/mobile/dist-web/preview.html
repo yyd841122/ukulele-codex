@@ -1299,8 +1299,14 @@ const extraCourses = [
   { order: 6, emoji: "🎵", title: "切分节奏和扫弦方向", subtitle: "下下上上、弱起和切音的入门练习", progress: 0, meta: "14 分钟 · 选修", free: true, type: "optional" },
   { order: 7, emoji: "🏝️", title: "完整弹唱：Riptide", subtitle: "从前奏节奏进入完整歌曲跟弹", progress: 0, meta: "18 分钟 · Pro", free: false, type: "pro" }
 ];
+const practiceTemplates = [
+  { id: "practice-rhythm-down-four", courseOrder: 3, sheet: "rhythm", type: "节奏型", title: "下扫四拍", bpm: 60, detail: "第一拍重音，后三拍轻扫，先让右手稳定。", targets: ["强", "轻", "轻", "轻"] },
+  { id: "practice-transition-c-am", courseOrder: 4, sheet: "transition", type: "和弦转换", title: "C → Am 转换", bpm: 60, detail: "提前准备二指，在下一小节第一拍落到 Am。", targets: ["C", "Am"] },
+  { id: "practice-c-am-f-g7-loop", courseOrder: 4, sheet: "transition", type: "四和弦循环", title: "C-Am-F-G7", bpm: 70, detail: "把四个入门和弦连成稳定循环。", targets: ["C", "Am", "F", "G7"] },
+  { id: "practice-song-fragment-four-chord-hum", courseOrder: 5, sheet: "follow", type: "歌曲片段", title: "童年前 4 小节", bpm: 70, detail: "把节奏和换和弦放回真实歌曲片段。", targets: ["C", "Am", "F", "G7"] }
+];
 const rhythmPatterns = [
-  { id: "down4", name: "下扫四拍", bpm: 60, beats: ["强", "轻", "轻", "轻"], hint: "每拍一次下扫，先让右手保持稳定。" },
+  { id: "down4", name: practiceTemplates[0].title, bpm: practiceTemplates[0].bpm, beats: practiceTemplates[0].targets, hint: practiceTemplates[0].detail },
   { id: "island", name: "下 下上 上下上", bpm: 70, beats: ["强", "下上", "轻", "上下"], hint: "常见弹唱节奏，第二拍后半拍要放松。" },
   { id: "split", name: "切分轻扫", bpm: 85, beats: ["强", "空", "轻", "轻"], hint: "保留手腕摆动，空拍不碰弦。" }
 ];
@@ -1359,6 +1365,11 @@ function courseSegments(course) {
   };
   return base[course.order] || ["预习", "练习", "复盘", "完成"];
 }
+function coursePracticeSheet(order) {
+  if (Number(order) === 2) return "tuner";
+  const template = practiceTemplates.find(item => Number(item.courseOrder) === Number(order));
+  return template?.sheet || null;
+}
 function setupEnhancedPreview() {
   const courseTabs = document.querySelector(".course-tabs");
   if (courseTabs) {
@@ -1409,6 +1420,7 @@ function setupExtraSheets() {
           <div class="mini-progress" style="width:100%;margin-top:10px"><i id="courseProgressBar" style="width:0%"></i></div>
           <div class="segment-list" id="courseSegments"></div>
           <button class="primary" id="courseNext" style="width:100%;margin-top:14px">完成下一步</button>
+          <button class="ghost" id="coursePractice" style="width:100%;margin-top:10px">进入本课练习</button>
         </div>
       </div>
     </section>
@@ -1618,11 +1630,13 @@ function renderCourseDetail() {
   const course = allCourses().find(item => item.order === selectedCourseOrder);
   if (!course) return;
   const progress = appState.courseProgress[course.order] ?? course.progress;
+  const practiceSheet = coursePracticeSheet(course.order);
   $("#courseProgressText").textContent = `${progress}%`;
   $("#courseProgressBar").style.width = `${progress}%`;
   const completeCount = Math.floor(progress / 25);
   $("#courseSegments").innerHTML = courseSegments(course).map((label, index) => `<div class="segment-item ${index < completeCount ? "active" : ""}"><span class="segment-index">${index + 1}</span><b>${label}</b><small>${index < completeCount ? "已完成" : index === completeCount ? "当前步骤" : "未开始"}</small></div>`).join("");
   $("#courseNext").textContent = progress >= 100 ? "本课已完成" : "完成下一步";
+  $("#coursePractice").textContent = practiceSheet ? "进入本课练习" : "查看课程步骤";
 }
 function completeCourseStep() {
   const current = appState.courseProgress[selectedCourseOrder] || 0;
@@ -1631,6 +1645,18 @@ function completeCourseStep() {
   renderCourseDetail();
   renderCourses();
   toast(appState.courseProgress[selectedCourseOrder] >= 100 ? "本课完成" : "已完成一步");
+}
+function openCoursePractice() {
+  const sheet = coursePracticeSheet(selectedCourseOrder);
+  if (!sheet) {
+    toast("这节课先按步骤学习");
+    return;
+  }
+  closeSheet("courseDetail");
+  openSheet(sheet);
+  if (sheet === "rhythm") renderRhythm();
+  if (sheet === "transition") renderTransition();
+  if (sheet === "follow") renderFollow();
 }
 function openSong(title) {
   const song = songs.find(item => item.title === title) || songs[0];
@@ -1688,6 +1714,7 @@ function bindEnhancedPreview() {
   });
   document.addEventListener("click", event => {
     if (event.target.id === "courseNext") completeCourseStep();
+    if (event.target.id === "coursePractice") openCoursePractice();
     if (event.target.id === "detailPlay") {
       closeSheet("songDetail");
       openSheet("follow");

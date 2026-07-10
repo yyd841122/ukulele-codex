@@ -1363,6 +1363,7 @@ function PracticeScreen({
   const activeTemplate = useMemo(() => getPracticeTemplateById(activeTemplateId), [activeTemplateId]);
   const practiceTargets = activeTemplate.targets ?? chordLoopPractice.targets;
   const activeBeatNumbers = useMemo(() => getPracticeBeatNumbers(activeTemplate), [activeTemplate]);
+  const activeTemplateIndex = Math.max(0, practiceTemplates.findIndex((template) => template.id === activeTemplate.id));
   const [completedSteps, setCompletedSteps] = useState<boolean[]>(() =>
     initialTemplate.targets.map(() => false)
   );
@@ -1569,6 +1570,19 @@ function PracticeScreen({
     setCurrentStep((value) => (value + practiceTargets.length - 1) % practiceTargets.length);
   }
 
+  function selectPracticeTemplate(template: PracticeTemplate) {
+    setIsRunning(false);
+    setActiveTemplateId(template.id);
+    setPracticeBpm(template.bpm ?? chordLoopPractice.bpm);
+    setPracticeTempoId(template.bpm === 60 ? "slow" : template.bpm === 85 ? "advanced" : "standard");
+    setPracticeLoopMode("auto");
+    setCurrentStep(0);
+    setPracticeBeat(0);
+    setPracticeEvents([]);
+    setCompletedSteps(template.targets.map(() => false));
+    setSessionClosed(false);
+  }
+
   function applyTempoPreset(preset: typeof practiceTempoPresets[number]) {
     setPracticeTempoId(preset.id);
     setPracticeBpm(preset.bpm);
@@ -1594,6 +1608,10 @@ function PracticeScreen({
           已完成 {completedCount}/{practiceTargets.length} · 第 {getPracticeTargetBar(activeTarget, currentStep)} 小节 · 第 {practiceBeat + 1} 拍
         </Text>
         <View style={styles.templatePicker}>
+          <View style={styles.pathHeader}>
+            <Text style={styles.pathTitle}>练习路径</Text>
+            <Text style={styles.pathMeta}>第 {activeTemplateIndex + 1}/{practiceTemplates.length} 步</Text>
+          </View>
           {practiceTemplates.map((template) => {
             const selected = template.id === activeTemplate.id;
             return (
@@ -1602,24 +1620,21 @@ function PracticeScreen({
                 accessibilityState={{ selected }}
                 key={template.id}
                 style={[styles.templateChip, selected && styles.templateChipActive]}
-                onPress={() => {
-                  setIsRunning(false);
-                  setActiveTemplateId(template.id);
-                  setPracticeBpm(template.bpm ?? chordLoopPractice.bpm);
-                  setPracticeTempoId(template.bpm === 60 ? "slow" : template.bpm === 85 ? "advanced" : "standard");
-                  setPracticeLoopMode("auto");
-                  setCurrentStep(0);
-                  setPracticeBeat(0);
-                  setPracticeEvents([]);
-                  setCompletedSteps(template.targets.map(() => false));
-                  setSessionClosed(false);
-                }}
+                onPress={() => selectPracticeTemplate(template)}
               >
-                <Text style={[styles.templateChipType, selected && styles.templateChipTextActive]}>
-                  {getPracticeTemplateShortLabel(template)}
-                </Text>
+                <View style={styles.templateChipHeader}>
+                  <Text style={[styles.templateStepBadge, selected && styles.templateStepBadgeActive]}>
+                    {practiceTemplates.findIndex((item) => item.id === template.id) + 1}
+                  </Text>
+                  <Text style={[styles.templateChipType, selected && styles.templateChipTextActive]}>
+                    {getPracticeTemplateShortLabel(template)}
+                  </Text>
+                </View>
                 <Text style={[styles.templateChipTitle, selected && styles.templateChipTextActive]} numberOfLines={1}>
                   {getPracticeTemplateTitle(template)}
+                </Text>
+                <Text style={[styles.templateChipSubtitle, selected && styles.templateChipTextActive]} numberOfLines={2}>
+                  {template.display?.subtitle ?? "按当前目标完成一组练习。"}
                 </Text>
               </Pressable>
             );
@@ -2717,20 +2732,59 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 6
   },
+  pathHeader: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 2
+  },
+  pathTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  pathMeta: {
+    color: "#756D64",
+    fontSize: 12,
+    fontWeight: "800"
+  },
   templateChip: {
     minWidth: "48%",
     flexGrow: 1,
-    minHeight: 46,
+    minHeight: 72,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: "#FFFDF8",
     justifyContent: "center",
-    paddingHorizontal: 9
+    paddingHorizontal: 9,
+    paddingVertical: 8
   },
   templateChipActive: {
     borderColor: colors.forest,
     backgroundColor: "#DCECE2"
+  },
+  templateChipHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6
+  },
+  templateStepBadge: {
+    minWidth: 18,
+    minHeight: 18,
+    borderRadius: 999,
+    overflow: "hidden",
+    color: "#756D64",
+    backgroundColor: "#EEE8DC",
+    textAlign: "center",
+    fontSize: 11,
+    lineHeight: 18,
+    fontWeight: "900"
+  },
+  templateStepBadgeActive: {
+    color: "#FFF8EC",
+    backgroundColor: colors.forest
   },
   templateChipType: {
     color: "#756D64",
@@ -2742,6 +2796,12 @@ const styles = StyleSheet.create({
     color: colors.forest,
     fontSize: 12,
     fontWeight: "900"
+  },
+  templateChipSubtitle: {
+    marginTop: 3,
+    color: "#756D64",
+    fontSize: 10,
+    lineHeight: 13
   },
   templateChipTextActive: {
     color: colors.forest

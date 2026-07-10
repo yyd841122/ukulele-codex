@@ -112,7 +112,7 @@ export const beginnerRhythmPatterns = [
       { beat: 3, subdivision: 1, stroke: "down", accent: false },
       { beat: 4, subdivision: 1, stroke: "down", accent: false }
     ],
-    teachingFocus: "Keep the first beat stable before changing chords."
+    teachingFocus: "先把第一拍重音和后面三拍轻扫稳定下来，再进入换和弦。"
   },
   {
     id: "rhythm-down-down-up-up",
@@ -129,7 +129,7 @@ export const beginnerRhythmPatterns = [
       { beat: 4, subdivision: 1, stroke: "down", accent: false },
       { beat: 4, subdivision: 2, stroke: "up", accent: false }
     ],
-    teachingFocus: "Practice a common beginner song strumming pattern slowly."
+    teachingFocus: "用慢速熟悉常见弹唱扫弦方向，后续接入歌曲片段。"
   }
 ];
 
@@ -144,7 +144,7 @@ export const chordTransitionExercises = [
     defaultBpm: 60,
     bars: 2,
     rhythmPatternId: "rhythm-down-four",
-    teachingFocus: "Prepare the second finger before moving to Am."
+    teachingFocus: "提前准备二指，在下一小节第一拍落到 Am。"
   },
   {
     id: "transition-am-f",
@@ -156,7 +156,7 @@ export const chordTransitionExercises = [
     defaultBpm: 60,
     bars: 2,
     rhythmPatternId: "rhythm-down-four",
-    teachingFocus: "Keep the second finger down and add the first finger."
+    teachingFocus: "保留二指不离弦，再加一指到 F，减少左手移动。"
   },
   {
     id: "transition-f-g7",
@@ -168,14 +168,14 @@ export const chordTransitionExercises = [
     defaultBpm: 60,
     bars: 2,
     rhythmPatternId: "rhythm-down-four",
-    teachingFocus: "Move early and land all G7 fingers before beat one."
+    teachingFocus: "提前半拍准备 G7，第一拍前让三根手指落稳。"
   }
 ];
 
 export const beginnerSongFragments = [
   {
     id: "song-fragment-four-chord-hum",
-    title: "Four Chord Hum",
+    title: "四和弦哼唱",
     instrument: "ukulele",
     level: "P0",
     key: "C",
@@ -183,22 +183,22 @@ export const beginnerSongFragments = [
     defaultBpm: 70,
     rhythmPatternId: "rhythm-down-four",
     bars: [
-      { bar: 1, chord: "C", chordId: "uke-c", lyric: "la", cue: "Start steady on C." },
-      { bar: 2, chord: "Am", chordId: "uke-am", lyric: "la", cue: "Prepare Am before beat one." },
-      { bar: 3, chord: "F", chordId: "uke-f", lyric: "la", cue: "Keep the strum even." },
-      { bar: 4, chord: "G7", chordId: "uke-g7", lyric: "la", cue: "Relax the final beat." }
+      { bar: 1, chord: "C", chordId: "uke-c", lyric: "la", cue: "C 和弦稳住第一拍。" },
+      { bar: 2, chord: "Am", chordId: "uke-am", lyric: "la", cue: "第一拍前提前准备 Am。" },
+      { bar: 3, chord: "F", chordId: "uke-f", lyric: "la", cue: "保持右手扫弦均匀。" },
+      { bar: 4, chord: "G7", chordId: "uke-g7", lyric: "la", cue: "最后一拍放轻收尾。" }
     ],
-    teachingFocus: "Apply the first rhythm and chord loop to a simple singing fragment."
+    teachingFocus: "把第一个节奏型和 C-Am-F-G7 放进简单歌曲片段。"
   }
 ];
 
 export const mvpSkillPath = [
-  { id: "tuning", type: "tool", title: "Tune G-C-E-A", required: true },
+  { id: "tuning", type: "tool", title: "调准 G-C-E-A", required: true },
   { id: "rhythm", type: "rhythm_pattern", templateId: "practice-rhythm-down-four", required: true },
   { id: "transition", type: "chord_transition", templateId: "practice-transition-c-am", required: true },
   { id: "chord-loop", type: "chord_switch", templateId: "practice-c-am-f-g7-loop", required: true },
   { id: "song-fragment", type: "song_fragment", templateId: "practice-song-fragment-four-chord-hum", required: true },
-  { id: "review", type: "report", title: "Review rhythm and transitions", required: true }
+  { id: "review", type: "report", title: "复盘节奏和换和弦", required: true }
 ];
 
 const rhythmDownFourTargets = beginnerRhythmPatterns[0].beats.map((beat) => ({
@@ -262,14 +262,14 @@ export const mvpPracticeTemplates = [
     tempoPresets: practiceTempoPresets,
     loopModes: practiceLoopModes,
     display: {
-      title: "Down Strum Four",
-      subtitle: "Practice four steady down strums before changing chords.",
-      targetLabel: "Strum beats"
+      title: "下扫四拍",
+      subtitle: "先用 C 和弦练稳定四拍，第一拍重音，后三拍轻扫。",
+      targetLabel: "扫弦拍点"
     },
     action: {
-      primaryLabel: "Start rhythm",
-      secondaryLabel: "Loop one bar",
-      completionLabel: "Finish rhythm practice"
+      primaryLabel: "开始节奏",
+      secondaryLabel: "循环一小节",
+      completionLabel: "完成节奏练习"
     }
   },
   {
@@ -284,14 +284,14 @@ export const mvpPracticeTemplates = [
     tempoPresets: practiceTempoPresets,
     loopModes: practiceLoopModes,
     display: {
-      title: "C to Am Transition",
-      subtitle: "Practice moving from C to Am on the first beat.",
-      targetLabel: "Chord transition"
+      title: "C 到 Am 转换",
+      subtitle: "从两个和弦开始，在下一小节第一拍前落稳。",
+      targetLabel: "和弦转换"
     },
     action: {
-      primaryLabel: "Start transition",
-      secondaryLabel: "Repeat transition",
-      completionLabel: "Finish transition practice"
+      primaryLabel: "开始转换",
+      secondaryLabel: "重复转换",
+      completionLabel: "完成转换练习"
     }
   },
   {
@@ -305,14 +305,14 @@ export const mvpPracticeTemplates = [
     tempoPresets: practiceTempoPresets,
     loopModes: practiceLoopModes,
     display: {
-      title: "C-Am-F-G7 Chord Loop",
-      subtitle: "Four-bar beginner chord switching practice.",
-      targetLabel: "Chord targets"
+      title: "C-Am-F-G7 四和弦循环",
+      subtitle: "把 C、Am、F、G7 连成四小节循环，为歌曲做准备。",
+      targetLabel: "和弦目标"
     },
     action: {
-      primaryLabel: "Start loop",
-      secondaryLabel: "Practice one chord",
-      completionLabel: "Finish practice"
+      primaryLabel: "开始循环",
+      secondaryLabel: "单练一个和弦",
+      completionLabel: "完成跟练"
     }
   },
   {
@@ -328,14 +328,14 @@ export const mvpPracticeTemplates = [
     tempoPresets: practiceTempoPresets,
     loopModes: practiceLoopModes,
     display: {
-      title: "Four Chord Hum",
-      subtitle: "Apply the chord loop to a simple singing fragment.",
-      targetLabel: "Song bars"
+      title: "四和弦歌曲片段",
+      subtitle: "用 C-Am-F-G7 跟弹 4 小节，进入真实弹唱流程。",
+      targetLabel: "歌曲小节"
     },
     action: {
-      primaryLabel: "Start song fragment",
-      secondaryLabel: "Loop fragment",
-      completionLabel: "Finish song practice"
+      primaryLabel: "开始歌曲片段",
+      secondaryLabel: "循环片段",
+      completionLabel: "完成歌曲练习"
     }
   }
 ];
@@ -367,8 +367,8 @@ export const chordLoopPractice = {
 export const beginnerSongCatalog = [
   {
     id: "song-four-chord-hum",
-    title: "Four Chord Hum",
-    artist: "AI Ukulele Academy",
+    title: "四和弦哼唱",
+    artist: "AI 音乐学园",
     instrument: "ukulele",
     level: "P0",
     key: "C",
@@ -384,8 +384,8 @@ export const beginnerSongCatalog = [
   },
   {
     id: "song-island-strum-demo",
-    title: "Island Strum Demo",
-    artist: "AI Ukulele Academy",
+    title: "海岛扫弦示范",
+    artist: "AI 音乐学园",
     instrument: "ukulele",
     level: "P1",
     key: "C",
@@ -401,8 +401,8 @@ export const beginnerSongCatalog = [
   },
   {
     id: "song-riptide-style-progression",
-    title: "Riptide Style Progression",
-    artist: "AI Ukulele Academy",
+    title: "Riptide 风格进行",
+    artist: "AI 音乐学园",
     instrument: "ukulele",
     level: "P2",
     key: "Am",
@@ -422,37 +422,37 @@ export const mvpContentModules = [
   {
     id: "today",
     tab: "home",
-    title: "Today",
-    purpose: "Recommend one concrete practice path.",
+    title: "今日",
+    purpose: "推荐一条明确的当日练习路径。",
     primaryTemplateId: "practice-rhythm-down-four",
     linkedSongId: "song-four-chord-hum"
   },
   {
     id: "learn",
     tab: "learn",
-    title: "Learning Path",
-    purpose: "Show required, optional and Pro lessons.",
+    title: "学习路径",
+    purpose: "展示必修、选修和 Pro 课程。",
     skillPathIds: mvpSkillPath.map((step) => step.id)
   },
   {
     id: "practice",
     tab: "practice",
-    title: "Practice Tools",
-    purpose: "Open tuner, metronome, rhythm, transition and song fragment practice.",
+    title: "练琴工具",
+    purpose: "打开调音、节拍器、节奏型、和弦转换和歌曲片段练习。",
     practiceTemplateIds: mvpPracticeTemplates.map((template) => template.id)
   },
   {
     id: "songs",
     tab: "songs",
-    title: "Song Library",
-    purpose: "Browse beginner song fragments and locked Pro examples.",
+    title: "曲谱库",
+    purpose: "浏览入门歌曲片段和锁定的 Pro 示例。",
     songIds: beginnerSongCatalog.map((song) => song.id)
   },
   {
     id: "profile",
     tab: "me",
-    title: "Practice Profile",
-    purpose: "Review local stats, achievements and recent practice history."
+    title: "练习档案",
+    purpose: "查看本地统计、成就和最近练习记录。"
   }
 ];
 
