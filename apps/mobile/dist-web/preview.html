@@ -447,6 +447,9 @@
   .lyrics { padding: 16px; font-size: 15px; line-height: 2.35; }
   .lyric-line.now { padding-left: 6px; border-radius: 6px; background: linear-gradient(90deg, #FFF3E0, transparent); }
   .chord { display: inline-block; min-width: 20px; text-align: center; margin-right: 4px; padding: 1px 5px; border-radius: 5px; color: #fff; background: var(--orange); font-size: 12px; font-weight: 900; }
+  .follow-lyrics { margin-top: 12px; padding: 10px 0 0; border-top: 1px solid var(--line); }
+  .follow-lyrics .lyric-line { line-height: 2; color: var(--text-2); font-size: 14px; }
+  .follow-lyrics .lyric-line.now { color: var(--text-1); font-weight: 850; }
   .sticky-actions { position: sticky; bottom: 0; display: flex; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--line); background: #fff; }
   .sticky-actions .primary { flex: 1; }
   .tuner-page { color: var(--text-1); background: linear-gradient(180deg, #FFFDF8 0%, #F5F0E6 100%); }
@@ -1439,6 +1442,10 @@ function openPracticeTemplate(templateId) {
     return;
   }
   if (template.sheet === "follow") {
+    if (activeSong().templateId !== template.id) {
+      activeSongTitle = songs.find(song => song.templateId === template.id)?.title || activeSongTitle;
+    }
+    followState.beat = 0;
     openSheet("follow");
     renderFollow();
   }
@@ -1521,7 +1528,7 @@ function setupPracticeSheets() {
   }
   const follow = $("#follow");
   if (follow) {
-    follow.innerHTML = `<div class="sheet-head"><button class="back" data-close="follow">‹</button><h2>歌曲片段跟弹</h2><p>把节奏型和和弦转换放回真实歌曲。</p></div><div class="tool-screen"><div class="tool-panel card"><div class="module-row"><h3>《童年》前 4 小节</h3><b>70 BPM</b></div><div class="beat-dots" id="followDots"></div><p class="module-note" id="followHint">跟着红点进第一拍，蓝点切换和弦。</p><button class="primary" id="followToggle" style="width:100%">开始跟弹</button><button class="ghost" id="followComplete" style="width:100%;margin-top:10px">提交本段</button></div><div class="tool-panel card"><div class="module-row"><b>模拟评分</b><span id="followScore">60</span></div><div class="score-bars" id="followScoreBars"></div></div></div>`;
+    follow.innerHTML = `<div class="sheet-head"><button class="back" data-close="follow">‹</button><h2>歌曲片段跟弹</h2><p>把节奏型和和弦转换放回真实歌曲。</p></div><div class="tool-screen"><div class="tool-panel card"><div class="module-row"><h3 id="followSongTitle">《童年》前 4 小节</h3><b id="followSongBpm">70 BPM</b></div><div class="beat-dots" id="followDots"></div><p class="module-note" id="followHint">跟着红点进第一拍，蓝点切换和弦。</p><div class="follow-lyrics" id="followLyrics"></div><button class="primary" id="followToggle" style="width:100%">开始跟弹</button><button class="ghost" id="followComplete" style="width:100%;margin-top:10px">提交本段</button></div><div class="tool-panel card"><div class="module-row"><b>模拟评分</b><span id="followScore">60</span></div><div class="score-bars" id="followScoreBars"></div></div></div>`;
   }
 }
 function renderScoreBars(target, score) {
@@ -1604,16 +1611,27 @@ function completeTransition() {
   renderTransition();
   renderCourses();
 }
+function activeSong() {
+  return songs.find(item => item.title === activeSongTitle) || songs[0];
+}
 function renderFollow() {
-  $("#followDots").innerHTML = followChords.map((chord, index) => `<span class="beat-dot ${index === followState.beat ? "active" : ""}">${chord}</span>`).join("");
+  const song = activeSong();
+  const chords = song.chords?.length ? song.chords : followChords;
+  const activeIndex = followState.beat % chords.length;
+  $("#followSongTitle").textContent = `《${song.title}》前 ${chords.length} 小节`;
+  $("#followSongBpm").textContent = `${song.bpm} BPM`;
+  $("#followDots").innerHTML = chords.map((chord, index) => `<span class="beat-dot ${index === activeIndex ? "active" : ""}">${chord}</span>`).join("");
   $("#followScore").textContent = followState.score;
-  $("#followHint").textContent = `第 ${followState.bars + 1} 轮 · 当前和弦 ${followChords[followState.beat]}`;
+  $("#followHint").textContent = `第 ${followState.bars + 1} 轮 · 当前和弦 ${chords[activeIndex]}`;
+  $("#followLyrics").innerHTML = (song.lyrics || []).map((line, index) => `<div class="lyric-line ${index === activeIndex ? "now" : ""}"><span class="chord">${line[0]}</span>${line[1]}</div>`).join("");
   $("#followToggle").textContent = followState.running ? "暂停跟弹" : "开始跟弹";
   renderScoreBars("#followScoreBars", followState.score);
 }
 function tickFollow() {
+  const song = activeSong();
+  const chords = song.chords?.length ? song.chords : followChords;
   playClick(followState.beat === 0);
-  followState.beat = (followState.beat + 1) % followChords.length;
+  followState.beat = (followState.beat + 1) % chords.length;
   if (followState.beat === 0) {
     followState.bars += 1;
     followState.score = Math.min(98, followState.score + 4);
@@ -1625,7 +1643,7 @@ function toggleFollow() {
   clearInterval(followState.timer);
   if (followState.running) {
     tickFollow();
-    followState.timer = setInterval(tickFollow, 60000 / 70);
+    followState.timer = setInterval(tickFollow, 60000 / activeSong().bpm);
   }
   renderFollow();
 }
@@ -1633,7 +1651,7 @@ function completeFollow() {
   followState.running = false;
   clearInterval(followState.timer);
   appState.courseProgress[5] = Math.max(appState.courseProgress[5] || 0, followState.score >= 70 ? 100 : 50);
-  addSession({ type: "跟弹", title: "童年前 4 小节", score: followState.score, minutes: Math.max(3, followState.bars * 2) });
+  addSession({ type: "跟弹", title: `${activeSong().title}前 4 小节`, score: followState.score, minutes: Math.max(3, followState.bars * 2) });
   toast(`跟弹提交：${followState.score} 分`);
   renderFollow();
   renderCourses();

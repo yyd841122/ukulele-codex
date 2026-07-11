@@ -113,6 +113,12 @@ test("MVP shared content links songs fragments rhythms and templates", () => {
   const song = getBeginnerSongById("song-four-chord-hum");
   assert.ok(song);
   assert.equal(song.access, "free");
+  assert.deepEqual(song.chordNames, ["C", "Am", "F", "G7"]);
+  assert.equal(song.practiceLines.length, 4);
+  assert.deepEqual(
+    song.practiceLines.map((line) => line.chord),
+    song.chordNames
+  );
 
   for (const rhythmPatternId of song.rhythmPatternIds) {
     assert.ok(getRhythmPatternById(rhythmPatternId));

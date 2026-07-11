@@ -377,9 +377,16 @@ export const beginnerSongCatalog = [
     difficulty: 1,
     access: "free",
     chordIds: ["uke-c", "uke-am", "uke-f", "uke-g7"],
+    chordNames: ["C", "Am", "F", "G7"],
     rhythmPatternIds: ["rhythm-down-four"],
     songFragmentIds: ["song-fragment-four-chord-hum"],
     practiceTemplateIds: ["practice-song-fragment-four-chord-hum"],
+    practiceLines: [
+      { bar: 1, chord: "C", text: "啦啦啦啦 稳住第一拍" },
+      { bar: 2, chord: "Am", text: "啦啦啦啦 提前换和弦" },
+      { bar: 3, chord: "F", text: "啦啦啦啦 右手保持匀速" },
+      { bar: 4, chord: "G7", text: "啦啦啦啦 轻轻收尾" }
+    ],
     tags: ["beginner", "four-chord", "song-fragment"]
   },
   {
@@ -394,9 +401,13 @@ export const beginnerSongCatalog = [
     difficulty: 2,
     access: "free",
     chordIds: ["uke-c", "uke-am", "uke-f", "uke-g7"],
+    chordNames: ["C", "Am", "F", "G7"],
     rhythmPatternIds: ["rhythm-down-down-up-up"],
     songFragmentIds: [],
     practiceTemplateIds: ["practice-c-am-f-g7-loop"],
+    practiceLines: [
+      { bar: 1, chord: "C", text: "先用四和弦循环代替完整曲谱" }
+    ],
     tags: ["beginner", "rhythm-pattern", "strumming"]
   },
   {
@@ -411,9 +422,13 @@ export const beginnerSongCatalog = [
     difficulty: 3,
     access: "pro",
     chordIds: ["uke-am", "uke-f", "uke-c", "uke-g7"],
+    chordNames: ["Am", "F", "C", "G7"],
     rhythmPatternIds: ["rhythm-down-down-up-up"],
     songFragmentIds: [],
     practiceTemplateIds: ["practice-c-am-f-g7-loop"],
+    practiceLines: [
+      { bar: 1, chord: "Am", text: "Pro 歌曲后续接完整曲谱" }
+    ],
     tags: ["pro", "song-practice", "progression"]
   }
 ];
