@@ -1036,11 +1036,98 @@ const songs = [
   { title: "Riptide", artist: "Vance Joy", emoji: "🌊", color: "#67E8F9", light: "#CFFAFE", stars: 3, diff: "会员", key: "Am", bpm: 102, chords: ["Am", "G", "C"], templateId: null, lyrics: [] }
 ];
 const courses = [
-  { order: 1, emoji: "🎸", title: "认识你的尤克里里", subtitle: "持琴姿势 · 四根弦 · 基本发声", progress: 100, meta: "8 分钟 · 已完成", free: true },
-  { order: 2, emoji: "🎛️", title: "学会给琴调音", subtitle: "使用调音器把 G-C-E-A 调准", progress: 100, meta: "10 分钟 · 已完成", free: true },
-  { order: 3, emoji: "🥁", title: "第一个节奏型", subtitle: "下扫四拍，建立稳定节拍感", progress: 60, meta: "12 分钟 · 进行中", free: true },
-  { order: 4, emoji: "🔁", title: "C 与 Am 的切换", subtitle: "从双和弦转换进入四和弦循环", progress: 20, meta: "12 分钟 · 进行中", free: true },
-  { order: 5, emoji: "🎤", title: "第一首弹唱《童年》", subtitle: "C-Am-F-G7 歌曲片段跟弹", progress: 0, meta: "15 分钟 · 未开始", free: true }
+  {
+    id: "course-uke-intro",
+    order: 1,
+    type: "required",
+    emoji: "🎸",
+    title: "认识你的尤克里里",
+    subtitle: "持琴姿势 · 四根弦 · 基本发声",
+    estimatedMinutes: 8,
+    access: "free",
+    defaultProgress: 100,
+    segments: ["认识四根弦", "正确持琴", "第一次拨弦", "完成课后小测"]
+  },
+  {
+    id: "course-tune-gcea",
+    order: 2,
+    type: "required",
+    emoji: "🎛️",
+    title: "学会给琴调音",
+    subtitle: "使用调音器把 G-C-E-A 调准",
+    estimatedMinutes: 10,
+    access: "free",
+    defaultProgress: 100,
+    toolId: "tuner",
+    segments: ["打开调音器", "识别 G-C-E-A", "调准四根弦", "完成调音记录"]
+  },
+  {
+    id: "course-rhythm-down-four",
+    order: 3,
+    type: "required",
+    emoji: "🥁",
+    title: "第一个节奏型",
+    subtitle: "下扫四拍，建立稳定节拍感",
+    estimatedMinutes: 12,
+    access: "free",
+    defaultProgress: 60,
+    primaryPracticeTemplateId: "practice-rhythm-down-four",
+    segments: ["听 60 BPM", "下扫四拍", "连续 2 轮", "节奏分达到 70"]
+  },
+  {
+    id: "course-c-am-transition",
+    order: 4,
+    type: "required",
+    emoji: "🔁",
+    title: "C 与 Am 的切换",
+    subtitle: "从双和弦转换进入四和弦循环",
+    estimatedMinutes: 12,
+    access: "free",
+    defaultProgress: 20,
+    primaryPracticeTemplateId: "practice-transition-c-am",
+    followupPracticeTemplateId: "practice-c-am-f-g7-loop",
+    segments: ["C 到 Am", "Am 到 F", "F 到 G7", "四和弦循环"]
+  },
+  {
+    id: "course-first-song-fragment",
+    order: 5,
+    type: "required",
+    emoji: "🎤",
+    title: "第一首弹唱《童年》",
+    subtitle: "C-Am-F-G7 歌曲片段跟弹",
+    estimatedMinutes: 15,
+    access: "free",
+    defaultProgress: 0,
+    primaryPracticeTemplateId: "practice-song-fragment-four-chord-hum",
+    linkedSongId: "song-four-chord-hum",
+    segments: ["读谱和和弦", "前 4 小节", "慢速跟弹", "提交评分"]
+  },
+  {
+    id: "course-island-strum",
+    order: 6,
+    type: "optional",
+    emoji: "🎵",
+    title: "切分节奏和扫弦方向",
+    subtitle: "下下上上、弱起和切音的入门练习",
+    estimatedMinutes: 14,
+    access: "free",
+    defaultProgress: 0,
+    primaryRhythmPatternId: "rhythm-down-down-up-up",
+    segments: ["节奏方向", "空拍练习", "切分扫弦", "应用到歌曲"]
+  },
+  {
+    id: "course-riptide-pro",
+    order: 7,
+    type: "pro",
+    emoji: "🏝️",
+    title: "完整弹唱：Riptide",
+    subtitle: "从前奏节奏进入完整歌曲跟弹",
+    estimatedMinutes: 18,
+    access: "pro",
+    defaultProgress: 0,
+    linkedSongId: "song-riptide-style-progression",
+    segments: ["歌曲结构", "主歌跟弹", "副歌跟弹", "完整录制"]
+  }
 ];
 const chordCategories = [
   { id: "all", label: "所有" },
@@ -1086,7 +1173,7 @@ function renderHome() {
   $("#rankList").innerHTML = songs.slice(0,4).map((song, index) => `<button class="rank-row clickable" data-open-song="${song.title}"><div class="no">${index + 1}</div><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light})">${song.emoji}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · ${12 - index * 2}.3 万人练过</small></div><div class="difficulty">练 ▶</div></button>`).join("");
 }
 function renderCourses() {
-  $("#courseList").innerHTML = courses.map(course => `<button class="course-card card clickable" data-course="${course.order}"><div class="thumb" style="background:linear-gradient(135deg,#FFE4D6,#fff)">${course.emoji}</div><div class="body"><div><span class="tag">必修 · 第 ${course.order} 课</span>${course.free ? "" : "<span class='member-tag'>会员</span>"}</div><h3>${course.title}</h3><p>${course.subtitle}</p><div class="course-meta"><span class="mini-progress"><i style="width:${course.progress}%"></i></span><span>${course.meta}</span></div></div></button>`).join("");
+  $("#courseList").innerHTML = courses.map(course => `<button class="course-card card clickable" data-course="${course.order}"><div class="thumb" style="background:linear-gradient(135deg,#FFE4D6,#fff)">${course.emoji}</div><div class="body"><div><span class="tag">必修 · 第 ${course.order} 课</span>${course.access === "free" ? "" : "<span class='member-tag'>会员</span>"}</div><h3>${course.title}</h3><p>${course.subtitle}</p><div class="course-meta"><span class="mini-progress"><i style="width:${course.defaultProgress}%"></i></span><span>${course.estimatedMinutes} 分钟</span></div></div></button>`).join("");
 }
 function renderSongs() {
   $("#songList").innerHTML = songs.map(song => `<button class="song-row clickable" data-open-song="${song.title}"><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light});position:relative">${song.emoji}${song.diff === "会员" ? "<span class='member-tag' style='position:absolute;right:-8px;top:-5px'>会员</span>" : ""}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · ${song.key} 调 · ${song.bpm} BPM</small></div><div class="difficulty">${starText(song.stars)}<br>${song.diff}</div></button>`).join("");
@@ -1320,10 +1407,6 @@ let activeSongFilter = "all";
 let activeSongQuery = "";
 let activeSongTitle = songs[0].title;
 let selectedCourseOrder = 3;
-const extraCourses = [
-  { order: 6, emoji: "🎵", title: "切分节奏和扫弦方向", subtitle: "下下上上、弱起和切音的入门练习", progress: 0, meta: "14 分钟 · 选修", free: true, type: "optional" },
-  { order: 7, emoji: "🏝️", title: "完整弹唱：Riptide", subtitle: "从前奏节奏进入完整歌曲跟弹", progress: 0, meta: "18 分钟 · Pro", free: false, type: "pro" }
-];
 const practiceTemplates = [
   { id: "practice-rhythm-down-four", courseOrder: 3, sheet: "rhythm", type: "节奏型", title: "下扫四拍", bpm: 60, detail: "第一拍重音，后三拍轻扫，先让右手稳定。", targets: ["强", "轻", "轻", "轻"] },
   { id: "practice-transition-c-am", courseOrder: 4, sheet: "transition", type: "和弦转换", title: "C → Am 转换", bpm: 60, detail: "提前准备二指，在下一小节第一拍落到 Am。", targets: ["C", "Am"] },
@@ -1373,11 +1456,15 @@ function playClick(accent = false) {
   } catch {}
 }
 function allCourses() {
-  return courses.concat(extraCourses).map(course => ({
+  return courses.map(course => ({
     ...course,
-    type: course.type || (course.free ? "required" : "pro"),
-    progress: appState.courseProgress[course.order] ?? course.progress
+    progress: appState.courseProgress[course.order] ?? course.defaultProgress
   }));
+}
+function courseMeta(course) {
+  if (course.progress >= 100) return "已完成";
+  if (course.progress > 0) return `${course.estimatedMinutes} 分钟 · 进行中`;
+  return `${course.estimatedMinutes} 分钟 · 未开始`;
 }
 function nextRequiredCourse() {
   const required = allCourses()
@@ -1386,20 +1473,12 @@ function nextRequiredCourse() {
   return required.find(course => course.progress < 100) || required[required.length - 1];
 }
 function courseSegments(course) {
-  const base = {
-    1: ["认识四根弦", "正确持琴", "第一次拨弦", "完成课后小测"],
-    2: ["打开调音器", "识别 G-C-E-A", "调准四根弦", "完成调音记录"],
-    3: ["听 60 BPM", "下扫四拍", "连续 2 轮", "节奏分达到 70"],
-    4: ["C 到 Am", "Am 到 F", "F 到 G7", "四和弦循环"],
-    5: ["读谱和和弦", "前 4 小节", "慢速跟弹", "提交评分"],
-    6: ["节奏方向", "空拍练习", "切分扫弦", "应用到歌曲"],
-    7: ["歌曲结构", "主歌跟弹", "副歌跟弹", "完整录制"]
-  };
-  return base[course.order] || ["预习", "练习", "复盘", "完成"];
+  return course.segments || ["预习", "练习", "复盘", "完成"];
 }
 function coursePracticeSheet(order) {
   if (Number(order) === 2) return "tuner";
-  const template = practiceTemplates.find(item => Number(item.courseOrder) === Number(order));
+  const course = allCourses().find(item => Number(item.order) === Number(order));
+  const template = practiceTemplates.find(item => item.id === course?.primaryPracticeTemplateId);
   return template?.sheet || null;
 }
 function templateProgress(template) {
@@ -1684,7 +1763,7 @@ function renderHome() {
 function renderCourses() {
   setupEnhancedPreview();
   const visible = allCourses().filter(course => course.type === activeCourseTab);
-  $("#courseList").innerHTML = visible.map(course => `<button class="course-card card clickable" data-course="${course.order}"><div class="thumb" style="background:linear-gradient(135deg,#FFE4D6,#fff)">${course.emoji}</div><div class="body"><div><span class="tag">${course.type === "required" ? "必修" : course.type === "optional" ? "选修" : "Pro"} · 第 ${course.order} 课</span>${course.free ? "" : "<span class='member-tag'>会员</span>"}</div><h3>${course.title}</h3><p>${course.subtitle}</p><div class="course-meta"><span class="mini-progress"><i style="width:${course.progress}%"></i></span><span>${course.progress >= 100 ? "已完成" : course.meta}</span></div></div></button>`).join("") || `<div class="empty-state">这个分类暂时没有课程。</div>`;
+  $("#courseList").innerHTML = visible.map(course => `<button class="course-card card clickable" data-course="${course.order}"><div class="thumb" style="background:linear-gradient(135deg,#FFE4D6,#fff)">${course.emoji}</div><div class="body"><div><span class="tag">${course.type === "required" ? "必修" : course.type === "optional" ? "选修" : "Pro"} · 第 ${course.order} 课</span>${course.access === "free" ? "" : "<span class='member-tag'>会员</span>"}</div><h3>${course.title}</h3><p>${course.subtitle}</p><div class="course-meta"><span class="mini-progress"><i style="width:${course.progress}%"></i></span><span>${courseMeta(course)}</span></div></div></button>`).join("") || `<div class="empty-state">这个分类暂时没有课程。</div>`;
   $all("[data-course-tab]").forEach(node => node.classList.toggle("active", node.dataset.courseTab === activeCourseTab));
 }
 function renderSongs() {
@@ -1721,7 +1800,7 @@ function renderMe() {
 function openCourse(order) {
   const course = allCourses().find(item => String(item.order) === String(order));
   if (!course) return;
-  if (!course.free) {
+  if (course.access !== "free") {
     $("#paywallReason").textContent = `${course.title} 属于 Pro 内容，当前先展示锁定入口。`;
     openSheet("paywall");
     return;
