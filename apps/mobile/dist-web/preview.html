@@ -337,8 +337,12 @@
   .tool-card p { margin-top: 3px; color: var(--text-2); font-size: 11px; line-height: 1.45; }
   .tool-card.feature p { color: rgba(255,255,255,.92); font-size: 12px; }
   .practice-plan { margin: 16px; padding: 16px; }
-  .plan-row { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .practice-plan-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+  .practice-plan-head small { color: var(--text-2); font-weight: 800; }
+  .plan-row { width: 100%; display: flex; gap: 10px; align-items: center; padding: 10px 0; color: var(--text-1); text-align: left; background: transparent; border-bottom: 1px solid var(--line); }
   .plan-row:last-child { border-bottom: 0; }
+  .plan-row.done .step-dot { background: linear-gradient(135deg,#16A34A,#57C785); }
+  .plan-row.current .step-dot { background: var(--grad-island); }
   .step-dot {
     width: 30px;
     height: 30px;
@@ -929,7 +933,7 @@
           <button class="tool-card card clickable" data-open="transition"><div class="emoji">🔁</div><div><b>和弦转换</b><p>C-Am · Am-F · F-G7</p></div></button>
           <button class="tool-card card clickable" data-open="follow"><div class="emoji">🎤</div><div><b>跟弹评分</b><p>节奏 · 和弦 · 完成度</p></div></button>
         </div>
-        <div class="practice-plan card">
+        <div class="practice-plan card" id="practicePlan">
           <b>今日建议路径</b>
           <div class="plan-row"><span class="step-dot">1</span><div class="row-copy"><b>调准四根弦</b><small>G-C-E-A 全部进绿色区</small></div></div>
           <div class="plan-row"><span class="step-dot">2</span><div class="row-copy"><b>节奏型练习</b><small>60 BPM 下扫四拍，稳定 2 轮</small></div></div>
@@ -1329,6 +1333,7 @@ function addSession(session) {
   appState.lastScore = session.score || appState.lastScore;
   saveAppState();
   renderHome();
+  renderPracticePlan();
   renderMe();
 }
 function playClick(accent = false) {
@@ -1353,6 +1358,12 @@ function allCourses() {
     progress: appState.courseProgress[course.order] ?? course.progress
   }));
 }
+function nextRequiredCourse() {
+  const required = allCourses()
+    .filter(course => course.type === "required")
+    .sort((a, b) => a.order - b.order);
+  return required.find(course => course.progress < 100) || required[required.length - 1];
+}
 function courseSegments(course) {
   const base = {
     1: ["认识四根弦", "正确持琴", "第一次拨弦", "完成课后小测"],
@@ -1369,6 +1380,50 @@ function coursePracticeSheet(order) {
   if (Number(order) === 2) return "tuner";
   const template = practiceTemplates.find(item => Number(item.courseOrder) === Number(order));
   return template?.sheet || null;
+}
+function templateProgress(template) {
+  return appState.courseProgress[template.courseOrder] ?? 0;
+}
+function renderPracticePlan() {
+  const plan = $("#practicePlan");
+  if (!plan) return;
+  plan.innerHTML = `
+    <div class="practice-plan-head"><b>今日建议路径</b><small>按弹唱顺序练</small></div>
+    ${practiceTemplates.map((template, index) => {
+      const progress = templateProgress(template);
+      const state = progress >= 100 ? "done" : progress > 0 ? "current" : "";
+      const stateText = progress >= 100 ? "已完成" : progress > 0 ? "进行中" : "未开始";
+      return `<button class="plan-row clickable ${state}" data-practice-template="${template.id}">
+        <span class="step-dot">${progress >= 100 ? "✓" : index + 1}</span>
+        <div class="row-copy">
+          <b>${template.type} · ${template.title}</b>
+          <small>${template.bpm} BPM · ${stateText} · ${template.detail}</small>
+          <span class="mini-progress" style="width:100%;margin-top:7px"><i style="width:${progress}%"></i></span>
+        </div>
+      </button>`;
+    }).join("")}
+  `;
+}
+function openPracticeTemplate(templateId) {
+  const template = practiceTemplates.find(item => item.id === templateId);
+  if (!template) return;
+  if (template.sheet === "rhythm") {
+    rhythmState.pattern = 0;
+    rhythmState.beat = 0;
+    openSheet("rhythm");
+    renderRhythm();
+    return;
+  }
+  if (template.sheet === "transition") {
+    transitionState.index = template.id === "practice-transition-c-am" ? 0 : transitionState.index;
+    openSheet("transition");
+    renderTransition();
+    return;
+  }
+  if (template.sheet === "follow") {
+    openSheet("follow");
+    renderFollow();
+  }
 }
 function setupEnhancedPreview() {
   const courseTabs = document.querySelector(".course-tabs");
@@ -1571,6 +1626,22 @@ function renderHome() {
   if (checkin) {
     checkin.innerHTML = `<div><b>连续打卡 <span style="color:var(--orange-dark)">${appState.streak}</span> 天 🔥</b><small>今日已练 ${appState.todayMinutes} 分钟 · ${doneText}</small></div><div class="streak"><span class="day done">一</span><span class="day done">二</span><span class="day done">三</span><span class="day done">四</span><span class="day done">五</span><span class="day done">六</span><span class="day now">日</span></div>`;
   }
+  const nextCourse = nextRequiredCourse();
+  const continueCard = document.querySelector(".continue");
+  if (continueCard && nextCourse) {
+    const practiceSheet = coursePracticeSheet(nextCourse.order);
+    continueCard.removeAttribute("data-open-song");
+    continueCard.dataset.course = String(nextCourse.order);
+    continueCard.innerHTML = `
+      <div class="cover">${nextCourse.emoji}</div>
+      <div class="copy">
+        <b>继续学习：${nextCourse.title}</b>
+        <p>${nextCourse.subtitle}${practiceSheet ? " · 可直接进入练习" : ""}</p>
+        <div class="progress"><i style="width:${nextCourse.progress}%"></i></div>
+      </div>
+      <div class="play-round">▶</div>
+    `;
+  }
   $("#hotSongs").innerHTML = songs.map(song => `<button class="song-card clickable" data-open-song="${song.title}"><div class="cover" style="background:linear-gradient(135deg,${song.color},${song.light})">${song.emoji}</div><b>${song.title}</b><small>${song.artist}</small><div class="stars">${starText(song.stars)}</div></button>`).join("");
   $("#rankList").innerHTML = songs.slice(0,4).map((song, index) => `<button class="rank-row clickable" data-open-song="${song.title}"><div class="no">${index + 1}</div><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light})">${song.emoji}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · ${12 - index * 2}.3 万人练过</small></div><div class="difficulty">练 ▶</div></button>`).join("");
 }
@@ -1682,6 +1753,7 @@ function bindEnhancedPreview() {
     const songFilter = event.target.closest("[data-song-filter]");
     const checkin = event.target.closest("[data-checkin]");
     const course = event.target.closest("[data-course]");
+    const practiceTemplate = event.target.closest("[data-practice-template]");
     const transitionPick = event.target.closest("[data-transition-index]");
     if (courseTab) {
       activeCourseTab = courseTab.dataset.courseTab;
@@ -1700,6 +1772,7 @@ function bindEnhancedPreview() {
       toast("今日打卡完成");
     }
     if (course) openCourse(course.dataset.course);
+    if (practiceTemplate) openPracticeTemplate(practiceTemplate.dataset.practiceTemplate);
     if (transitionPick) {
       transitionState.index = Number(transitionPick.dataset.transitionIndex);
       transitionState.reps = 0;
@@ -1749,6 +1822,7 @@ renderRhythm();
 renderTransition();
 renderFollow();
 renderHome();
+renderPracticePlan();
 renderCourses();
 renderSongs();
 renderMe();
