@@ -1006,6 +1006,7 @@ export default function App() {
             latestPracticeSummary={latestPracticeSummary}
             onClearHistory={clearPracticeRecords}
             practiceHistorySummary={practiceHistorySummary}
+            practicePathSummary={practicePathSummary}
             recentPracticeSummaries={recentPracticeSummaries}
           />
         )}
@@ -1184,7 +1185,10 @@ function HomeScreen({
         <View style={styles.recommendationMetaRow}>
           <ScoreBox label="BPM" value={`${nextPracticeRecommendation.bpm}`} />
           <ScoreBox label="模式" value={nextPracticeRecommendation.loopMode === "auto" ? "循环" : "单练"} />
-          <ScoreBox label="目标" value={nextPracticeRecommendation.focusChord ?? "四和弦"} />
+          <ScoreBox
+            label="目标"
+            value={nextPracticeRecommendation.focusChord ?? getPracticeTemplateShortLabel(getPracticeTemplateById(nextPracticeRecommendation.templateId))}
+          />
         </View>
         <Pressable accessibilityRole="button" onPress={onStartRecommendation} style={styles.recommendationButton}>
           <Text style={styles.recommendationButtonText}>按建议开始</Text>
@@ -1202,21 +1206,7 @@ function HomeScreen({
         <Text style={styles.reviewReportNote}>
           {latestPracticeSummary?.advice ?? "完成一次跟练后，这里会汇总节奏、完成度和下一步建议。"}
         </Text>
-        <View style={styles.pathSummaryList}>
-          {practicePathSummary.map((item) => (
-            <View key={item.templateId} style={styles.pathSummaryRow}>
-              <View style={styles.pathSummaryCopy}>
-                <Text style={styles.pathSummaryTitle}>{item.title}</Text>
-                <Text style={styles.pathSummaryMeta}>
-                  {item.completedCount}/{item.targetCount} · 节奏 {item.bestRhythmScore ?? "--"} · {item.attempts} 次
-                </Text>
-              </View>
-              <Text style={[styles.pathSummaryBadge, item.status === "passed" && styles.pathSummaryBadgePassed]}>
-                {practicePathStatusLabel(item.status)}
-              </Text>
-            </View>
-          ))}
-        </View>
+        <PracticePathSummaryList items={practicePathSummary} />
       </View>
 
       <SectionTitle title="第一课进度" detail={practiceMilestone.title} />
@@ -1739,11 +1729,13 @@ function ProfileScreen({
   latestPracticeSummary,
   onClearHistory,
   practiceHistorySummary,
+  practicePathSummary,
   recentPracticeSummaries
 }: {
   latestPracticeSummary?: PracticeRecordSummary;
   onClearHistory: () => void;
   practiceHistorySummary: PracticeHistorySummary;
+  practicePathSummary: PracticePathSummaryItem[];
   recentPracticeSummaries: PracticeRecordSummary[];
 }) {
   const badges = [
@@ -1780,6 +1772,11 @@ function ProfileScreen({
         ))}
       </View>
 
+      <SectionTitle title="练习路径" detail="节奏 · 换和弦 · 歌曲片段" />
+      <View style={styles.reviewReportPanel}>
+        <PracticePathSummaryList items={practicePathSummary} />
+      </View>
+
       <SectionTitle title="最近练习" detail={latestPracticeSummary ? latestPracticeSummary.title : "还没有记录"} />
       <View style={styles.practiceSession}>
         <View style={styles.practiceHistoryHeader}>
@@ -1813,6 +1810,26 @@ function ProfileScreen({
           </View>
         )}
       </View>
+    </View>
+  );
+}
+
+function PracticePathSummaryList({ items }: { items: PracticePathSummaryItem[] }) {
+  return (
+    <View style={styles.pathSummaryList}>
+      {items.map((item) => (
+        <View key={item.templateId} style={styles.pathSummaryRow}>
+          <View style={styles.pathSummaryCopy}>
+            <Text style={styles.pathSummaryTitle}>{item.title}</Text>
+            <Text style={styles.pathSummaryMeta}>
+              {item.completedCount}/{item.targetCount} · 节奏 {item.bestRhythmScore ?? "--"} · {item.attempts} 次
+            </Text>
+          </View>
+          <Text style={[styles.pathSummaryBadge, item.status === "passed" && styles.pathSummaryBadgePassed]}>
+            {practicePathStatusLabel(item.status)}
+          </Text>
+        </View>
+      ))}
     </View>
   );
 }
