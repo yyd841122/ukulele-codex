@@ -764,6 +764,55 @@
     font-size: 11px;
     line-height: 1.35;
   }
+  .mini-chord-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .mini-chord-card {
+    min-width: 58px;
+    padding: 7px 6px 6px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: rgba(255,255,255,.82);
+    text-align: center;
+  }
+  .mini-chord-card b {
+    display: block;
+    margin-top: 4px;
+    color: var(--text-1);
+    font-size: 13px;
+    line-height: 1;
+  }
+  .mini-chord-card .fret-diagram {
+    width: 42px;
+    height: 58px;
+  }
+  .mini-chord-card .nut-marker-row {
+    top: -5px;
+    font-size: 10px;
+  }
+  .mini-chord-card .fret-board {
+    left: 5px;
+    right: 5px;
+    top: 14px;
+  }
+  .mini-chord-card .fret-dot {
+    width: 8px;
+    height: 8px;
+    margin-left: -4px;
+    margin-top: -4px;
+  }
+  .mini-chord-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .target-mini .mini-chord-list {
+    margin-top: 7px;
+  }
   .chord-library {
     color: #111827;
     background:
@@ -1280,6 +1329,19 @@ function renderChordDiagram(chord) {
   const markers = [0, 1, 2, 3].map(index => `<span>${chord.markers?.[index] || ""}</span>`).join("");
   return `<div class="fret-diagram"><div class="nut-marker-row">${markers}</div><div class="fret-board">${stringLines}${fretLines}${dots}</div></div>`;
 }
+function chordByName(name) {
+  return chords.find(chord => chord.name === name) || null;
+}
+function renderMiniChordCard(name) {
+  const chord = chordByName(name);
+  if (!chord) return `<span class="mini-chord-card"><b>${name}</b></span>`;
+  return `<span class="mini-chord-card">${renderChordDiagram(chord)}<b>${chord.name}</b></span>`;
+}
+function renderMiniChordList(names = []) {
+  const uniqueNames = [...new Set(names.filter(Boolean))];
+  if (!uniqueNames.length) return "";
+  return `<div class="mini-chord-list">${uniqueNames.map(renderMiniChordCard).join("")}</div>`;
+}
 function chordCard(chord) {
   return `<button class="chord-card clickable" data-chord="${chord.name}">
     ${renderChordDiagram(chord)}
@@ -1559,6 +1621,12 @@ function targetDetail(template, target, index) {
   }
   return `第 ${index + 1} 小节 · 跟随节拍`;
 }
+function targetChordName(template, target) {
+  if (!template) return target;
+  if (chordByName(target)) return target;
+  if (template.id.includes("rhythm")) return "C";
+  return target;
+}
 function renderTargetInsight(selector, template, activeIndex = 0) {
   const node = $(selector);
   if (!node || !template) return;
@@ -1569,6 +1637,7 @@ function renderTargetInsight(selector, template, activeIndex = 0) {
         <span class="no">${index + 1}</span>
         <b>${targetSummary(template, target, index)}</b>
         <small>${targetDetail(template, target, index)}</small>
+        ${renderMiniChordList([targetChordName(template, target)])}
       </button>`).join("")}
     </div>
   `;
@@ -1662,13 +1731,13 @@ function renderCourseResources(course) {
   const song = courseSong(course);
   const rows = [];
   if (template) {
-    rows.push(`<div class="course-resource-row"><b>练习</b><span>${template.title} · ${template.bpm} BPM · ${template.targets.join(" ")}</span></div>`);
+    rows.push(`<div class="course-resource-row"><b>练习</b><span>${template.title} · ${template.bpm} BPM${renderMiniChordList(template.targets.map(target => targetChordName(template, target)))}</span></div>`);
   }
   if (followupTemplate) {
-    rows.push(`<div class="course-resource-row"><b>跟进</b><span>${followupTemplate.title} · ${followupTemplate.bpm} BPM · ${followupTemplate.targets.join(" ")}</span></div>`);
+    rows.push(`<div class="course-resource-row"><b>跟进</b><span>${followupTemplate.title} · ${followupTemplate.bpm} BPM${renderMiniChordList(followupTemplate.targets.map(target => targetChordName(followupTemplate, target)))}</span></div>`);
   }
   if (song) {
-    rows.push(`<div class="course-resource-row"><b>歌曲</b><span>${song.title} · ${song.key} 调 · ${song.chords.join(" ")}</span></div>`);
+    rows.push(`<div class="course-resource-row"><b>歌曲</b><span>${song.title} · ${song.key} 调${renderMiniChordList(song.chords)}</span></div>`);
   }
   $("#courseResources").innerHTML = rows.join("") || `<div class="course-resource-row"><b>步骤</b><span>先完成本课步骤，再进入下一节课。</span></div>`;
 }
@@ -1879,7 +1948,7 @@ function renderTransition() {
   $("#transitionScore").textContent = transitionState.score;
   $("#transitionToggle").textContent = transitionState.running ? "暂停转换练习" : "开始转换练习";
   renderTargetInsight("#transitionInsight", template, activeTargetIndex);
-  $("#transitionList").innerHTML = transitionPairs.map((item, index) => `<button class="segment-item ${index === transitionState.index ? "active" : ""}" data-transition-index="${index}"><span class="segment-index">${index + 1}</span><b>${item.from} → ${item.to}</b><small>${item.tip}</small></button>`).join("");
+  $("#transitionList").innerHTML = transitionPairs.map((item, index) => `<button class="segment-item ${index === transitionState.index ? "active" : ""}" data-transition-index="${index}"><span class="segment-index">${index + 1}</span><div><b>${item.from} → ${item.to}</b><small>${item.tip}</small>${renderMiniChordList([item.from, item.to])}</div></button>`).join("");
   renderScoreBars("#transitionScoreBars", transitionState.score);
 }
 function tickTransition() {
@@ -2013,7 +2082,7 @@ function renderSongs() {
     const searchMatch = !query || `${song.title} ${song.artist} ${song.key}`.toLowerCase().includes(query);
     return filterMatch && searchMatch;
   });
-  $("#songList").innerHTML = visible.map(song => `<button class="song-row clickable" data-open-song="${song.title}"><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light});position:relative">${song.emoji}${song.diff === "会员" ? "<span class='member-tag' style='position:absolute;right:-8px;top:-5px'>会员</span>" : ""}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · ${song.key} 调 · ${song.bpm} BPM · ${song.chords.join("-")}</small></div><div class="difficulty">${starText(song.stars)}<br>${song.diff}</div></button>`).join("") || `<div class="empty-state">没有找到匹配曲谱。</div>`;
+  $("#songList").innerHTML = visible.map(song => `<button class="song-row clickable" data-open-song="${song.title}"><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light});position:relative">${song.emoji}${song.diff === "会员" ? "<span class='member-tag' style='position:absolute;right:-8px;top:-5px'>会员</span>" : ""}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · ${song.key} 调 · ${song.bpm} BPM</small>${renderMiniChordList(song.chords)}</div><div class="difficulty">${starText(song.stars)}<br>${song.diff}</div></button>`).join("") || `<div class="empty-state">没有找到匹配曲谱。</div>`;
   $all("[data-song-filter]").forEach(node => node.classList.toggle("active", node.dataset.songFilter === activeSongFilter));
 }
 function renderMe() {
@@ -2106,10 +2175,14 @@ function openSong(title) {
   activeSongTitle = song.title;
   $("#detailTitle").textContent = song.title;
   $("#detailArtist").textContent = `${song.artist} · ${song.diff}弹唱`;
-  $("#songDetail .key-row").innerHTML = `<span>Key ${song.key}</span><span>${song.bpm} BPM</span><span>${song.chords.join("-")}</span><span>${starText(song.stars)} ${song.diff}</span>`;
+  $("#songDetail .key-row").innerHTML = `<span>Key ${song.key}</span><span>${song.bpm} BPM</span><span>${starText(song.stars)} ${song.diff}</span>`;
+  const keyRow = $("#songDetail .key-row");
+  const existingChordList = $("#songDetail .mini-chord-list");
+  if (existingChordList) existingChordList.remove();
+  keyRow.insertAdjacentHTML("afterend", renderMiniChordList(song.chords));
   $("#detailPlay").textContent = song.templateId ? "开始歌曲片段跟弹" : "先练四和弦";
   $("#lyrics").innerHTML = song.lyrics
-    .map((line, index) => `<div class="lyric-line ${index === 0 ? "now" : ""}"><span class="chord">${line[0]}</span>${line[1]}</div>`)
+    .map((line, index) => `<div class="lyric-line ${index === 0 ? "now" : ""}"><span class="chord">${line[0]}</span>${line[1]}${renderMiniChordList([line[0]])}</div>`)
     .join("");
   openSheet("songDetail");
 }

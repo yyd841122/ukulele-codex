@@ -228,6 +228,11 @@ function getPracticeTemplateGoalMeta(template: PracticeTemplate) {
   return "目标：四和弦循环连续完成";
 }
 
+function getPracticeTemplateChordNames(template?: PracticeTemplate | null) {
+  if (!template) return [];
+  return Array.from(new Set((template.targets ?? []).map((target) => getPracticeTargetChord(target))));
+}
+
 function getSongForPracticeTemplate(template: PracticeTemplate) {
   return practiceContent.songs.find((song) =>
     Array.isArray(song.practiceTemplateIds) && song.practiceTemplateIds.includes(template.id)
@@ -1774,7 +1779,7 @@ function SongsScreen({
               <View style={styles.songTitleBlock}>
                 <Text style={styles.songTitle}>{song.title}</Text>
                 <Text style={styles.songMeta}>{song.artist} · {song.level} · {song.key} 调 · {song.bpm} BPM</Text>
-                <Text style={styles.songChordLine}>{song.chordNames?.join(" · ") ?? "C · Am · F · G7"}</Text>
+                <ChordMiniList chordNames={song.chordNames ?? ["C", "Am", "F", "G7"]} />
               </View>
               <Text style={[styles.songAccessBadge, locked && styles.songAccessBadgeLocked]}>
                 {locked ? "Pro" : "免费"}
@@ -1783,7 +1788,7 @@ function SongsScreen({
             <View style={styles.songLineList}>
               {getSongPracticeLines(song).map((line) => (
                 <View key={`${song.id}-${line.bar}`} style={styles.songPreviewLine}>
-                  <Text style={styles.songPreviewChord}>{line.chord}</Text>
+                  <ChordMiniCard chordName={line.chord ?? "C"} />
                   <Text style={styles.songPreviewText}>{line.text}</Text>
                 </View>
               ))}
@@ -2250,6 +2255,7 @@ function PracticeScreen({
                   <Text style={[styles.practiceTargetMiniDetail, active && styles.practiceTargetMiniDetailActive]} numberOfLines={2}>
                     {getPracticeTargetDetail(target, activeTemplate)}
                   </Text>
+                  <ChordMiniCard chordName={getPracticeTargetChord(target)} dense />
                 </Pressable>
               );
             })}
@@ -2524,9 +2530,8 @@ function CourseDetailPanel({
   const song = getCourseSong(course);
   const completedSegmentCount = Math.min(segments.length, Math.floor(pathItem.progress / 25));
   const activeSegmentIndex = Math.min(segments.length - 1, completedSegmentCount);
-  const templateChordNames = template
-    ? Array.from(new Set(template.targets.map((target) => getPracticeTargetChord(target)))).join(" ")
-    : "";
+  const templateChordNames = getPracticeTemplateChordNames(template);
+  const followupChordNames = getPracticeTemplateChordNames(followupTemplate);
 
   return (
     <View style={styles.courseDetailPanel}>
@@ -2577,25 +2582,34 @@ function CourseDetailPanel({
           {template ? (
             <View style={styles.courseResourceRow}>
               <Text style={styles.courseResourceLabel}>练习</Text>
-              <Text style={styles.courseResourceValue} numberOfLines={2}>
-                {getPracticeTemplateTitle(template)} · {template.bpm} BPM · {templateChordNames}
-              </Text>
+              <View style={styles.courseResourceBody}>
+                <Text style={styles.courseResourceValue} numberOfLines={2}>
+                  {getPracticeTemplateTitle(template)} · {template.bpm} BPM
+                </Text>
+                <ChordMiniList chordNames={templateChordNames} />
+              </View>
             </View>
           ) : null}
           {followupTemplate ? (
             <View style={styles.courseResourceRow}>
               <Text style={styles.courseResourceLabel}>跟进</Text>
-              <Text style={styles.courseResourceValue} numberOfLines={2}>
-                {getPracticeTemplateTitle(followupTemplate)} · {followupTemplate.bpm} BPM
-              </Text>
+              <View style={styles.courseResourceBody}>
+                <Text style={styles.courseResourceValue} numberOfLines={2}>
+                  {getPracticeTemplateTitle(followupTemplate)} · {followupTemplate.bpm} BPM
+                </Text>
+                <ChordMiniList chordNames={followupChordNames} />
+              </View>
             </View>
           ) : null}
           {song ? (
             <View style={styles.courseResourceRow}>
               <Text style={styles.courseResourceLabel}>歌曲</Text>
-              <Text style={styles.courseResourceValue} numberOfLines={2}>
-                {song.title} · {song.key} 调 · {song.chordNames?.join(" ") ?? ""}
-              </Text>
+              <View style={styles.courseResourceBody}>
+                <Text style={styles.courseResourceValue} numberOfLines={2}>
+                  {song.title} · {song.key} 调
+                </Text>
+                <ChordMiniList chordNames={song.chordNames ?? []} />
+              </View>
             </View>
           ) : null}
         </View>
@@ -2734,6 +2748,76 @@ function MiniFingering({ chordName }: { chordName: string }) {
     <View style={styles.miniFingering}>
       {chord.fingering.map((fret, index) => (
         <Text key={`${chord.id}-mini-${index}`} style={styles.miniFret}>{fret}</Text>
+      ))}
+    </View>
+  );
+}
+
+function MicroChordDiagram({ chord }: { chord: NonNullable<ReturnType<typeof getBeginnerChord>> }) {
+  const fretsToShow = 4;
+
+  return (
+    <View style={styles.microChordDiagram}>
+      <View style={styles.microMarkerRow}>
+        {chord.fingering.map((fret, index) => (
+          <Text key={`${chord.id}-micro-marker-${index}`} style={styles.microMarker}>
+            {fret < 0 ? "×" : fret === 0 ? "○" : "●"}
+          </Text>
+        ))}
+      </View>
+      <View style={styles.microFretboard}>
+        {ukuleleStringLabels.map((label, index) => (
+          <View
+            key={`${chord.id}-micro-string-${label}`}
+            style={[styles.microStringLine, { left: `${(index / (ukuleleStringLabels.length - 1)) * 100}%` }]}
+          />
+        ))}
+        {Array.from({ length: fretsToShow + 1 }, (_, index) => (
+          <View
+            key={`${chord.id}-micro-fret-${index}`}
+            style={[styles.microFretLine, index === 0 && styles.microNutLine, { top: `${(index / fretsToShow) * 100}%` }]}
+          />
+        ))}
+        {chord.fingering.map((fret, index) => {
+          if (fret <= 0) return null;
+          return (
+            <View
+              key={`${chord.id}-micro-dot-${index}`}
+              style={[
+                styles.microFingerDot,
+                {
+                  left: `${(index / (ukuleleStringLabels.length - 1)) * 100}%`,
+                  top: `${((Math.min(fret, fretsToShow) - 0.5) / fretsToShow) * 100}%`
+                }
+              ]}
+            />
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function ChordMiniCard({ chordName, dense = false }: { chordName: string; dense?: boolean }) {
+  const chord = getBeginnerChord(chordName);
+  if (!chord) return <Text style={styles.chordMiniFallback}>{chordName}</Text>;
+
+  return (
+    <View style={[styles.chordMiniCard, dense && styles.chordMiniCardDense]}>
+      <Text style={[styles.chordMiniName, dense && styles.chordMiniNameDense]}>{chord.name}</Text>
+      <MicroChordDiagram chord={chord} />
+    </View>
+  );
+}
+
+function ChordMiniList({ chordNames }: { chordNames: string[] }) {
+  const uniqueNames = Array.from(new Set(chordNames.filter(Boolean)));
+  if (uniqueNames.length === 0) return null;
+
+  return (
+    <View style={styles.chordMiniList}>
+      {uniqueNames.map((name) => (
+        <ChordMiniCard key={`mini-chord-${name}`} chordName={name} />
       ))}
     </View>
   );
@@ -3097,6 +3181,10 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     lineHeight: 17
   },
+  courseResourceBody: {
+    flex: 1,
+    gap: 6
+  },
   courseActionButton: {
     minHeight: 48,
     borderRadius: 8,
@@ -3231,7 +3319,7 @@ const styles = StyleSheet.create({
   },
   songTitleBlock: {
     flex: 1,
-    gap: 3
+    gap: 5
   },
   songTitle: {
     color: colors.forest,
@@ -3268,7 +3356,7 @@ const styles = StyleSheet.create({
   },
   songPreviewLine: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 10,
     borderRadius: 8,
     backgroundColor: "#F8F3EA",
@@ -4678,6 +4766,96 @@ const styles = StyleSheet.create({
   targetChordBox: {
     alignItems: "center",
     gap: 4
+  },
+  chordMiniList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6
+  },
+  chordMiniCard: {
+    minWidth: 58,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#DED6CA",
+    backgroundColor: "#FFFDF8",
+    paddingHorizontal: 6,
+    paddingVertical: 5,
+    alignItems: "center",
+    gap: 4
+  },
+  chordMiniCardDense: {
+    alignSelf: "flex-start",
+    minWidth: 52,
+    marginTop: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 4
+  },
+  chordMiniName: {
+    color: colors.forest,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  chordMiniNameDense: {
+    fontSize: 11
+  },
+  chordMiniFallback: {
+    color: colors.forest,
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  microChordDiagram: {
+    width: 42,
+    alignItems: "center"
+  },
+  microMarkerRow: {
+    width: 42,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 1
+  },
+  microMarker: {
+    width: 9,
+    color: colors.ink,
+    fontSize: 9,
+    lineHeight: 10,
+    textAlign: "center",
+    fontWeight: "900"
+  },
+  microFretboard: {
+    position: "relative",
+    width: 36,
+    height: 48,
+    marginTop: 2
+  },
+  microStringLine: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    width: 1,
+    marginLeft: -0.5,
+    backgroundColor: "#697078"
+  },
+  microFretLine: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    height: 1,
+    marginTop: -0.5,
+    backgroundColor: "#697078"
+  },
+  microNutLine: {
+    height: 3,
+    marginTop: -1.5,
+    backgroundColor: colors.ink
+  },
+  microFingerDot: {
+    position: "absolute",
+    width: 9,
+    height: 9,
+    marginLeft: -4.5,
+    marginTop: -4.5,
+    borderRadius: 999,
+    backgroundColor: "#FF8A3D"
   },
   miniFingering: {
     flexDirection: "row",
