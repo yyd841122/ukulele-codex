@@ -44,6 +44,7 @@ import { useRealtimeTunerStream } from "./src/audio/useRealtimeTunerStream";
 import { clearPracticeHistory, loadPracticeHistory, savePracticeHistory } from "./src/storage/practiceHistoryStore";
 
 type Tab = "home" | "tuner" | "practice" | "songs" | "me";
+type CourseFilter = "required" | "optional" | "pro";
 
 const tabs: Array<{ id: Tab; label: string }> = [
   { id: "home", label: "今日" },
@@ -51,6 +52,12 @@ const tabs: Array<{ id: Tab; label: string }> = [
   { id: "practice", label: "练琴" },
   { id: "songs", label: "曲谱" },
   { id: "me", label: "我的" }
+];
+
+const courseFilters: Array<{ id: CourseFilter; label: string }> = [
+  { id: "required", label: "必修" },
+  { id: "optional", label: "选修" },
+  { id: "pro", label: "Pro" }
 ];
 
 const IN_TUNE_CENTS = 8;
@@ -679,8 +686,8 @@ function evaluateLocalLessonPathProgress(
   };
 }
 
-function buildRequiredCoursePath(history: PracticeSessionRecord[]): CoursePathItem[] {
-  return buildMvpCourseProgressPath(history, { type: "required" }) as CoursePathItem[];
+function buildCoursePath(history: PracticeSessionRecord[], type: CourseFilter = "required"): CoursePathItem[] {
+  return buildMvpCourseProgressPath(history, { type }) as CoursePathItem[];
 }
 
 function localizeLessonPathProgress(progress: LessonPathProgress): LessonPathProgress {
@@ -994,9 +1001,13 @@ function HomeScreen({
   contentSummary: typeof sharedContentSummary;
   onStart: () => void;
 }) {
-  const requiredCoursePath = buildRequiredCoursePath(practiceHistory);
-  const pathItems = requiredCoursePath.length > 0
-    ? requiredCoursePath
+  const [courseFilter, setCourseFilter] = useState<CourseFilter>("required");
+  const coursePath = useMemo(
+    () => buildCoursePath(practiceHistory, courseFilter),
+    [practiceHistory, courseFilter]
+  );
+  const pathItems = coursePath.length > 0
+    ? coursePath
     : lessonPathProgress.nodes.map((node) => ({
         id: node.id,
         title: node.title,
@@ -1018,10 +1029,10 @@ function HomeScreen({
   const selectedPathItem = pathItems.find((item) => item.id === activeCourseId) ?? null;
 
   useEffect(() => {
-    if (!selectedCourseId && recommendedCourseId) {
+    if (recommendedCourseId && !pathItems.some((item) => item.id === selectedCourseId)) {
       setSelectedCourseId(recommendedCourseId);
     }
-  }, [recommendedCourseId, selectedCourseId]);
+  }, [pathItems, recommendedCourseId, selectedCourseId]);
 
   return (
     <View style={styles.stack}>
@@ -1036,6 +1047,28 @@ function HomeScreen({
       </View>
 
       <SectionTitle title="课程路径" detail={`${completedPathItems}/${pathItems.length} · ${pathPercent}%`} />
+      <View style={styles.courseFilterRow}>
+        {courseFilters.map((item) => {
+          const selected = item.id === courseFilter;
+          const count = practiceContent.courses.filter((course) => course.type === item.id).length;
+          return (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              key={item.id}
+              onPress={() => {
+                setCourseFilter(item.id);
+                setSelectedCourseId(null);
+              }}
+              style={[styles.courseFilterButton, selected && styles.courseFilterButtonActive]}
+            >
+              <Text style={[styles.courseFilterText, selected && styles.courseFilterTextActive]}>
+                {item.label} {count}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
       <View style={styles.lessonPathPanel}>
         {pathItems.map((item, index) => (
           <Pressable
@@ -2589,6 +2622,33 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     padding: 10
+  },
+  courseFilterRow: {
+    flexDirection: "row",
+    gap: 8
+  },
+  courseFilterButton: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#EEE8DC",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8
+  },
+  courseFilterButtonActive: {
+    borderColor: colors.forest,
+    backgroundColor: colors.forest
+  },
+  courseFilterText: {
+    color: "#756D64",
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  courseFilterTextActive: {
+    color: "#FFF8EC"
   },
   lessonPathNodeWrap: {
     flex: 1,
