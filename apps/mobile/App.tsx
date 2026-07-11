@@ -160,6 +160,18 @@ function getCourseActionLabel(course: CourseCatalogItem) {
   return "查看和弦库";
 }
 
+function getCoursePracticeTemplate(course: CourseCatalogItem) {
+  return course.primaryPracticeTemplateId
+    ? practiceTemplates.find((template) => template.id === course.primaryPracticeTemplateId) ?? null
+    : null;
+}
+
+function getCourseSong(course: CourseCatalogItem) {
+  return course.linkedSongId
+    ? practiceContent.songs.find((song) => song.id === course.linkedSongId) ?? null
+    : null;
+}
+
 function getPracticeBeatNumbers(template: PracticeTemplate) {
   const beatsPerBar = Number(String(template.timeSignature ?? "4/4").split("/")[0]);
   const count = Number.isFinite(beatsPerBar) ? Math.max(1, Math.min(12, Math.round(beatsPerBar))) : 4;
@@ -2050,8 +2062,13 @@ function CourseDetailPanel({
   onOpenCourse: () => void;
 }) {
   const segments = getCourseSegments(course);
+  const template = getCoursePracticeTemplate(course);
+  const song = getCourseSong(course);
   const completedSegmentCount = Math.min(segments.length, Math.floor(pathItem.progress / 25));
   const activeSegmentIndex = Math.min(segments.length - 1, completedSegmentCount);
+  const templateChordNames = template
+    ? Array.from(new Set(template.targets.map((target) => getPracticeTargetChord(target)))).join(" ")
+    : "";
 
   return (
     <View style={styles.courseDetailPanel}>
@@ -2096,6 +2113,27 @@ function CourseDetailPanel({
           );
         })}
       </View>
+
+      {template || song ? (
+        <View style={styles.courseResourcePanel}>
+          {template ? (
+            <View style={styles.courseResourceRow}>
+              <Text style={styles.courseResourceLabel}>练习</Text>
+              <Text style={styles.courseResourceValue} numberOfLines={2}>
+                {getPracticeTemplateTitle(template)} · {template.bpm} BPM · {templateChordNames}
+              </Text>
+            </View>
+          ) : null}
+          {song ? (
+            <View style={styles.courseResourceRow}>
+              <Text style={styles.courseResourceLabel}>歌曲</Text>
+              <Text style={styles.courseResourceValue} numberOfLines={2}>
+                {song.title} · {song.key} 调 · {song.chordNames?.join(" ") ?? ""}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
 
       <Pressable accessibilityRole="button" onPress={onOpenCourse} style={styles.courseActionButton}>
         <Text style={styles.primaryButtonText}>{getCourseActionLabel(course)}</Text>
@@ -2522,6 +2560,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     lineHeight: 16
+  },
+  courseResourcePanel: {
+    borderRadius: 8,
+    backgroundColor: "#F8F3EA",
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 10,
+    gap: 8
+  },
+  courseResourceRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10
+  },
+  courseResourceLabel: {
+    width: 36,
+    color: "#8A8176",
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  courseResourceValue: {
+    flex: 1,
+    color: colors.forest,
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 17
   },
   courseActionButton: {
     minHeight: 48,
