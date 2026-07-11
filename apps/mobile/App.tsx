@@ -2172,6 +2172,9 @@ function PracticeScreen({
         <Text style={styles.sessionMeta}>
           已完成 {completedCount}/{practiceTargets.length} · 第 {getPracticeTargetBar(activeTarget, currentStep)} 小节 · 第 {practiceBeat + 1} 拍
         </Text>
+        <Text style={styles.practiceCueText}>
+          {activeReport?.suggestion ?? activeTemplate.display?.subtitle ?? "跟着节拍完成当前目标。"}
+        </Text>
         <View style={styles.templatePicker}>
           <View style={styles.pathHeader}>
             <Text style={styles.pathTitle}>练习路径</Text>
@@ -3922,6 +3925,16 @@ const styles = StyleSheet.create({
     color: "#756D64",
     fontSize: 12,
     fontWeight: "700"
+  },
+  practiceCueText: {
+    borderRadius: 8,
+    backgroundColor: "#F8F3EA",
+    color: colors.forest,
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 17,
+    paddingHorizontal: 10,
+    paddingVertical: 8
   },
   practiceMainGrid: {
     flexDirection: "row",
