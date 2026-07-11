@@ -1413,8 +1413,8 @@ const defaultAppState = {
   checkinDone: false,
   courseProgress: { 1: 100, 2: 100, 3: 60, 4: 20, 5: 0, 6: 0, 7: 0 },
   sessions: [
-    { type: "节奏", title: "下扫四拍", score: 72, minutes: 4, at: "今天 09:10" },
-    { type: "换和弦", title: "C → Am", score: 68, minutes: 3, at: "昨天 20:03" }
+    { type: "节奏", title: "下扫四拍", templateId: "practice-rhythm-down-four", courseId: "course-rhythm-down-four", score: 72, minutes: 4, completedCount: 4, totalSteps: 4, at: "今天 09:10" },
+    { type: "换和弦", title: "C → Am", templateId: "practice-transition-c-am", courseId: "course-c-am-transition", score: 68, minutes: 3, completedCount: 1, totalSteps: 2, at: "昨天 20:03" }
   ],
   lastScore: 72
 };
@@ -1455,8 +1455,35 @@ const followState = { beat: 0, bars: 0, running: false, timer: null, score: 60 }
 function saveAppState() {
   localStorage.setItem("ukulelePreviewState", JSON.stringify(appState));
 }
+function templateById(templateId) {
+  return practiceTemplates.find(item => item.id === templateId) || null;
+}
+function courseByTemplateId(templateId) {
+  return courses.find(item => [item.primaryPracticeTemplateId, item.followupPracticeTemplateId].includes(templateId)) || null;
+}
+function songByTemplateId(templateId) {
+  return songs.find(item => item.templateId === templateId) || null;
+}
+function normalizeSession(session) {
+  const template = templateById(session.templateId) || practiceTemplates.find(item => item.title === session.title) || null;
+  const course = session.courseId
+    ? courses.find(item => item.id === session.courseId)
+    : courseByTemplateId(template?.id);
+  const song = session.songId
+    ? songs.find(item => item.id === session.songId) || songByTemplateId(template?.id)
+    : songByTemplateId(template?.id);
+  return {
+    ...session,
+    templateId: session.templateId || template?.id || null,
+    courseId: session.courseId || course?.id || null,
+    songId: session.songId || course?.linkedSongId || null,
+    contentLabel: [course ? `第 ${course.order} 课` : null, song?.title].filter(Boolean).join(" · ") || "本地练习",
+    completedCount: session.completedCount ?? session.totalSteps ?? template?.targets?.length ?? 0,
+    totalSteps: session.totalSteps ?? template?.targets?.length ?? 0
+  };
+}
 function addSession(session) {
-  appState.sessions = [{ ...session, at: "刚刚" }, ...appState.sessions].slice(0, 5);
+  appState.sessions = [normalizeSession({ ...session, at: "刚刚" }), ...appState.sessions].slice(0, 5);
   appState.todayMinutes += session.minutes || 1;
   appState.lastScore = session.score || appState.lastScore;
   saveAppState();
@@ -1696,7 +1723,16 @@ function completeRhythm() {
   rhythmState.running = false;
   clearInterval(rhythmState.timer);
   appState.courseProgress[3] = Math.max(appState.courseProgress[3] || 0, rhythmState.score >= 70 ? 100 : 75);
-  addSession({ type: "节奏", title: rhythmPatterns[rhythmState.pattern].name, score: rhythmState.score, minutes: Math.max(2, rhythmState.bars) });
+  addSession({
+    type: "节奏",
+    title: rhythmPatterns[rhythmState.pattern].name,
+    templateId: "practice-rhythm-down-four",
+    courseId: "course-rhythm-down-four",
+    score: rhythmState.score,
+    minutes: Math.max(2, rhythmState.bars),
+    completedCount: 4,
+    totalSteps: 4
+  });
   toast(`节奏练习完成：${rhythmState.score} 分`);
   renderRhythm();
   renderCourses();
@@ -1728,7 +1764,16 @@ function completeTransition() {
   transitionState.running = false;
   clearInterval(transitionState.timer);
   appState.courseProgress[4] = Math.max(appState.courseProgress[4] || 0, transitionState.score >= 70 ? 100 : 65);
-  addSession({ type: "换和弦", title: transitionPairs[transitionState.index].from + " → " + transitionPairs[transitionState.index].to, score: transitionState.score, minutes: 3 });
+  addSession({
+    type: "换和弦",
+    title: transitionPairs[transitionState.index].from + " → " + transitionPairs[transitionState.index].to,
+    templateId: transitionState.index === 0 ? "practice-transition-c-am" : "practice-c-am-f-g7-loop",
+    courseId: "course-c-am-transition",
+    score: transitionState.score,
+    minutes: 3,
+    completedCount: Math.min(transitionPairs.length, transitionState.reps),
+    totalSteps: transitionState.index === 0 ? 2 : 4
+  });
   toast(`转换练习完成：${transitionState.score} 分`);
   renderTransition();
   renderCourses();
@@ -1773,7 +1818,17 @@ function completeFollow() {
   followState.running = false;
   clearInterval(followState.timer);
   appState.courseProgress[5] = Math.max(appState.courseProgress[5] || 0, followState.score >= 70 ? 100 : 50);
-  addSession({ type: "跟弹", title: `${activeSong().title}前 4 小节`, score: followState.score, minutes: Math.max(3, followState.bars * 2) });
+  addSession({
+    type: "跟弹",
+    title: `${activeSong().title}前 4 小节`,
+    templateId: "practice-song-fragment-four-chord-hum",
+    courseId: "course-first-song-fragment",
+    songId: "song-four-chord-hum",
+    score: followState.score,
+    minutes: Math.max(3, followState.bars * 2),
+    completedCount: 4,
+    totalSteps: 4
+  });
   toast(`跟弹提交：${followState.score} 分`);
   renderFollow();
   renderCourses();
@@ -1837,7 +1892,10 @@ function renderMe() {
   if (hero) hero.textContent = `Lv.4 · 最近得分 ${appState.lastScore}`;
   const recent = $("#recentSessions");
   if (recent) {
-    recent.innerHTML = appState.sessions.map((item, index) => `<div class="segment-item"><span class="segment-index">${index + 1}</span><b>${item.type} · ${item.title}</b><small>${item.at} · ${item.minutes} 分钟 · ${item.score} 分</small></div>`).join("") || `<div class="empty-state">完成一次练习后，这里会出现本地记录。</div>`;
+    recent.innerHTML = appState.sessions.map((rawItem, index) => {
+      const item = normalizeSession(rawItem);
+      return `<div class="segment-item"><span class="segment-index">${index + 1}</span><b>${item.type} · ${item.title}</b><small>${item.contentLabel} · ${item.completedCount}/${item.totalSteps} · ${item.at} · ${item.minutes} 分钟 · ${item.score} 分</small></div>`;
+    }).join("") || `<div class="empty-state">完成一次练习后，这里会出现本地记录。</div>`;
   }
 }
 function openCourse(order) {
