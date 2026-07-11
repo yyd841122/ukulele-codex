@@ -800,6 +800,30 @@ export default function App() {
     setActiveTab("practice");
   }
 
+  function openCourse(courseId: string) {
+    const course = practiceContent.courses.find((item) => item.id === courseId);
+    if (!course) return;
+
+    if (course.toolId === "tuner") {
+      setActiveTab("tuner");
+      return;
+    }
+
+    if (course.primaryPracticeTemplateId) {
+      const template = getPracticeTemplateById(course.primaryPracticeTemplateId);
+      startPractice({
+        templateId: template.id,
+        bpm: template.bpm,
+        tempoId: tempoIdFromBpm(template.bpm),
+        loopMode: "auto",
+        focusChord: template.targets?.[0]?.chord ?? null
+      });
+      return;
+    }
+
+    setActiveTab("chords");
+  }
+
   function markPracticeMilestonePassed() {
     const now = new Date().toISOString();
     appendPracticeRecord({
@@ -848,6 +872,7 @@ export default function App() {
             nextPracticeRecommendation={nextPracticeRecommendation}
             onClearHistory={clearPracticeRecords}
             onMarkMilestonePassed={markPracticeMilestonePassed}
+            onOpenCourse={openCourse}
             onStart={() => startPractice()}
             onStartRecommendation={() => startPractice(nextPracticeRecommendation)}
             lessonPathProgress={lessonPathProgress}
@@ -892,6 +917,7 @@ function HomeScreen({
   nextPracticeRecommendation,
   onClearHistory,
   onMarkMilestonePassed,
+  onOpenCourse,
   onStartRecommendation,
   practiceMilestone,
   practiceHistorySummary,
@@ -904,6 +930,7 @@ function HomeScreen({
   nextPracticeRecommendation: NextPracticeRecommendation;
   onClearHistory: () => void;
   onMarkMilestonePassed: () => void;
+  onOpenCourse: (courseId: string) => void;
   onStartRecommendation: () => void;
   practiceMilestone: PracticeMilestoneEvaluation;
   practiceHistorySummary: PracticeHistorySummary;
@@ -942,7 +969,13 @@ function HomeScreen({
       <SectionTitle title="课程路径" detail={`${completedPathItems}/${pathItems.length} · ${pathPercent}%`} />
       <View style={styles.lessonPathPanel}>
         {pathItems.map((item, index) => (
-          <View key={item.id} style={styles.lessonPathNodeWrap}>
+          <Pressable
+            key={item.id}
+            accessibilityRole="button"
+            accessibilityLabel={`打开课程${item.title}`}
+            onPress={() => onOpenCourse(item.id)}
+            style={styles.lessonPathNodeWrap}
+          >
             <View
               style={[
                 styles.lessonPathDot,
@@ -966,7 +999,7 @@ function HomeScreen({
             <Text style={[styles.lessonPathStatus, item.status === "done" && styles.lessonPathStatusDone]}>
               {lessonPathStatusLabel(item.status)}
             </Text>
-          </View>
+          </Pressable>
         ))}
       </View>
 
