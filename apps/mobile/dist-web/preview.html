@@ -1519,6 +1519,11 @@ function saveAppState() {
 function templateById(templateId) {
   return practiceTemplates.find(item => item.id === templateId) || null;
 }
+function activeRhythmTemplate() {
+  return rhythmState.pattern === 1
+    ? templateById("practice-rhythm-down-down-up-up")
+    : templateById("practice-rhythm-down-four");
+}
 function templateGoalMeta(template) {
   if (!template) return "按当前练习目标完成一轮";
   if (template.id.includes("rhythm")) return "目标：稳定扫弦方向和重音";
@@ -1810,9 +1815,7 @@ function renderScoreBars(target, score) {
 }
 function renderRhythm() {
   const pattern = rhythmPatterns[rhythmState.pattern];
-  const template = rhythmState.pattern === 1
-    ? templateById("practice-rhythm-down-down-up-up")
-    : templateById("practice-rhythm-down-four");
+  const template = activeRhythmTemplate();
   $("#rhythmName").textContent = pattern.name;
   $("#rhythmBpm").textContent = `${pattern.bpm} BPM`;
   $("#rhythmHint").textContent = pattern.hint;
@@ -1844,16 +1847,19 @@ function toggleRhythm() {
 function completeRhythm() {
   rhythmState.running = false;
   clearInterval(rhythmState.timer);
-  appState.courseProgress[3] = Math.max(appState.courseProgress[3] || 0, rhythmState.score >= 70 ? 100 : 75);
+  const template = activeRhythmTemplate();
+  const course = allCourses().find(item => item.order === template?.courseOrder);
+  const courseOrder = template?.courseOrder ?? 3;
+  appState.courseProgress[courseOrder] = Math.max(appState.courseProgress[courseOrder] || 0, rhythmState.score >= 70 ? 100 : 75);
   addSession({
     type: "节奏",
     title: rhythmPatterns[rhythmState.pattern].name,
-    templateId: "practice-rhythm-down-four",
-    courseId: "course-rhythm-down-four",
+    templateId: template?.id ?? "practice-rhythm-down-four",
+    courseId: course?.id ?? "course-rhythm-down-four",
     score: rhythmState.score,
     minutes: Math.max(2, rhythmState.bars),
-    completedCount: 4,
-    totalSteps: 4
+    completedCount: template?.targets.length ?? 4,
+    totalSteps: template?.targets.length ?? 4
   });
   toast(`节奏练习完成：${rhythmState.score} 分`);
   renderRhythm();
