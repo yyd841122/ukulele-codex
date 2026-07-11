@@ -185,6 +185,49 @@ function getPracticeTargetCue(target?: PracticeTarget) {
   return target && "cue" in target && typeof target.cue === "string" ? target.cue : undefined;
 }
 
+function getStrokeLabel(stroke?: string) {
+  if (stroke === "down") return "下扫";
+  if (stroke === "up") return "上扫";
+  if (stroke === "mute") return "切音";
+  return "扫弦";
+}
+
+function getPracticeTargetSummary(target: PracticeTarget | undefined, template: PracticeTemplate) {
+  const chord = getPracticeTargetChord(target);
+  if (template.type === "rhythm_pattern") {
+    return `${getStrokeLabel(target?.stroke)}${target?.accent ? " · 重音" : " · 轻拍"}`;
+  }
+  if (template.type === "chord_transition") {
+    return `${chord} · 第 ${getPracticeTargetBar(target)} 小节落稳`;
+  }
+  if (template.type === "song_fragment") {
+    return `${chord} · ${target?.lyric ?? "跟弹"}`;
+  }
+  return `${chord} · 和弦目标`;
+}
+
+function getPracticeTargetDetail(target: PracticeTarget | undefined, template: PracticeTemplate) {
+  const beat = target?.beat ?? 1;
+  const subdivision = target?.subdivision && target.subdivision > 1 ? `.${target.subdivision}` : "";
+  if (template.type === "rhythm_pattern") {
+    return `第 ${beat}${subdivision} 拍 · 右手 ${getStrokeLabel(target?.stroke)} · ${target?.accent ? "第一拍重音" : "保持轻拍"}`;
+  }
+  if (template.type === "chord_transition") {
+    return `第 ${getPracticeTargetBar(target)} 小节第 ${beat} 拍前完成换指`;
+  }
+  if (template.type === "song_fragment") {
+    return `第 ${getPracticeTargetBar(target)} 小节 · 歌词 ${target?.lyric ?? "la"} · 跟随当前和弦`;
+  }
+  return `第 ${getPracticeTargetBar(target)} 小节 · 第 ${beat} 拍`;
+}
+
+function getPracticeTemplateGoalMeta(template: PracticeTemplate) {
+  if (template.type === "rhythm_pattern") return "目标：稳定扫弦方向和重音";
+  if (template.type === "chord_transition") return "目标：换指在下一小节第一拍前落稳";
+  if (template.type === "song_fragment") return "目标：把节奏、和弦和歌词放回同一条时间线";
+  return "目标：四和弦循环连续完成";
+}
+
 function getSongForPracticeTemplate(template: PracticeTemplate) {
   return practiceContent.songs.find((song) =>
     Array.isArray(song.practiceTemplateIds) && song.practiceTemplateIds.includes(template.id)
@@ -2175,6 +2218,43 @@ function PracticeScreen({
         <Text style={styles.practiceCueText}>
           {activeReport?.suggestion ?? activeTemplate.display?.subtitle ?? "跟着节拍完成当前目标。"}
         </Text>
+        <View style={styles.practiceTargetInsight}>
+          <View style={styles.practiceTargetInsightHeader}>
+            <Text style={styles.practiceTargetInsightLabel}>{activeTemplate.display?.targetLabel ?? "当前目标"}</Text>
+            <Text style={styles.practiceTargetInsightMeta}>{getPracticeTemplateGoalMeta(activeTemplate)}</Text>
+          </View>
+          <View style={styles.practiceTargetInsightGrid}>
+            {practiceTargets.map((target, index) => {
+              const active = index === currentStep;
+              const completed = completedSteps[index];
+              return (
+                <Pressable
+                  accessibilityRole="button"
+                  key={`${target.id}-insight`}
+                  style={[
+                    styles.practiceTargetMiniCard,
+                    active && styles.practiceTargetMiniCardActive,
+                    completed && styles.practiceTargetMiniCardDone
+                  ]}
+                  onPress={() => {
+                    setCurrentStep(index);
+                    setPracticeBeat(0);
+                  }}
+                >
+                  <Text style={[styles.practiceTargetMiniIndex, active && styles.practiceTargetMiniIndexActive]}>
+                    {completed ? "✓" : getPracticeTargetBar(target, index)}
+                  </Text>
+                  <Text style={[styles.practiceTargetMiniTitle, active && styles.practiceTargetMiniTitleActive]} numberOfLines={1}>
+                    {getPracticeTargetSummary(target, activeTemplate)}
+                  </Text>
+                  <Text style={[styles.practiceTargetMiniDetail, active && styles.practiceTargetMiniDetailActive]} numberOfLines={2}>
+                    {getPracticeTargetDetail(target, activeTemplate)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
         <View style={styles.templatePicker}>
           <View style={styles.pathHeader}>
             <Text style={styles.pathTitle}>练习路径</Text>
@@ -3935,6 +4015,92 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     paddingHorizontal: 10,
     paddingVertical: 8
+  },
+  practiceTargetInsight: {
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#DED6CA",
+    backgroundColor: "#FFFDF8",
+    gap: 8
+  },
+  practiceTargetInsightHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 10
+  },
+  practiceTargetInsightLabel: {
+    color: colors.forest,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  practiceTargetInsightMeta: {
+    flex: 1,
+    color: "#756D64",
+    fontSize: 11,
+    fontWeight: "800",
+    lineHeight: 15,
+    textAlign: "right"
+  },
+  practiceTargetInsightGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6
+  },
+  practiceTargetMiniCard: {
+    flexGrow: 1,
+    flexBasis: "48%",
+    minHeight: 64,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E6DED1",
+    backgroundColor: "#F7F1E7",
+    padding: 8
+  },
+  practiceTargetMiniCardActive: {
+    borderColor: colors.forest,
+    backgroundColor: "#E7F1EA"
+  },
+  practiceTargetMiniCardDone: {
+    borderColor: successGreen,
+    backgroundColor: "#F0FDF4"
+  },
+  practiceTargetMiniIndex: {
+    alignSelf: "flex-start",
+    minWidth: 20,
+    borderRadius: 999,
+    overflow: "hidden",
+    backgroundColor: "#EEE8DC",
+    color: "#756D64",
+    fontSize: 11,
+    lineHeight: 20,
+    textAlign: "center",
+    fontWeight: "900"
+  },
+  practiceTargetMiniIndexActive: {
+    backgroundColor: colors.forest,
+    color: "#FFF8EC"
+  },
+  practiceTargetMiniTitle: {
+    marginTop: 5,
+    color: colors.forest,
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  practiceTargetMiniTitleActive: {
+    color: colors.forest
+  },
+  practiceTargetMiniDetail: {
+    marginTop: 2,
+    color: "#756D64",
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: "700"
+  },
+  practiceTargetMiniDetailActive: {
+    color: colors.ink,
+    fontWeight: "800"
   },
   practiceMainGrid: {
     flexDirection: "row",

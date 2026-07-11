@@ -705,6 +705,65 @@
   .beat-dots { display: flex; justify-content: space-between; margin: 14px 0; }
   .beat-dot { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; color: #fff; font-weight: 900; background: #9CA3AF; }
   .beat-dot.active { background: var(--orange); transform: scale(1.08); }
+  .target-insight {
+    display: grid;
+    gap: 8px;
+    margin: 12px 0;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #FFFDF8;
+  }
+  .target-insight-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .target-insight-head b { color: var(--text-1); }
+  .target-insight-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .target-mini {
+    min-height: 72px;
+    padding: 9px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    text-align: left;
+    background: #F8FAFC;
+  }
+  .target-mini.active {
+    border-color: var(--orange);
+    background: #FFF7ED;
+  }
+  .target-mini .no {
+    display: inline-grid;
+    place-items: center;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    background: var(--orange);
+  }
+  .target-mini b {
+    display: block;
+    margin-top: 6px;
+    color: var(--text-1);
+    font-size: 13px;
+  }
+  .target-mini small {
+    display: block;
+    margin-top: 3px;
+    color: var(--text-2);
+    font-size: 11px;
+    line-height: 1.35;
+  }
   .chord-library {
     color: #111827;
     background:
@@ -1460,6 +1519,55 @@ function saveAppState() {
 function templateById(templateId) {
   return practiceTemplates.find(item => item.id === templateId) || null;
 }
+function templateGoalMeta(template) {
+  if (!template) return "按当前练习目标完成一轮";
+  if (template.id.includes("rhythm")) return "目标：稳定扫弦方向和重音";
+  if (template.id.includes("transition")) return "目标：下一小节第一拍前落稳";
+  if (template.id.includes("song-fragment")) return "目标：节奏、和弦和歌词同步";
+  return "目标：四和弦连续循环";
+}
+function targetSummary(template, target, index) {
+  if (!template) return target;
+  if (template.id.includes("rhythm")) {
+    if (target === "强") return "下扫 · 重音";
+    if (target === "轻") return "下扫 · 轻拍";
+    return `${target} · 方向`;
+  }
+  if (template.id.includes("transition")) {
+    return `${target} · 第 ${index + 1} 小节`;
+  }
+  if (template.id.includes("song-fragment")) {
+    return `${target} · la`;
+  }
+  return `${target} · 和弦目标`;
+}
+function targetDetail(template, target, index) {
+  if (!template) return "跟随节拍完成当前目标";
+  if (template.id.includes("rhythm")) {
+    return `第 ${index + 1} 拍 · ${target === "强" ? "第一拍重音" : target === "轻" ? "保持轻扫" : "按方向扫弦"}`;
+  }
+  if (template.id.includes("transition")) {
+    return index === 0 ? "先稳住起始和弦" : "第一拍前完成换指";
+  }
+  if (template.id.includes("song-fragment")) {
+    return `第 ${index + 1} 小节 · 跟随当前和弦进入歌词`;
+  }
+  return `第 ${index + 1} 小节 · 跟随节拍`;
+}
+function renderTargetInsight(selector, template, activeIndex = 0) {
+  const node = $(selector);
+  if (!node || !template) return;
+  node.innerHTML = `
+    <div class="target-insight-head"><b>${template.type}目标</b><span>${templateGoalMeta(template)}</span></div>
+    <div class="target-insight-grid">
+      ${template.targets.map((target, index) => `<button class="target-mini ${index === activeIndex ? "active" : ""}" data-target-index="${index}">
+        <span class="no">${index + 1}</span>
+        <b>${targetSummary(template, target, index)}</b>
+        <small>${targetDetail(template, target, index)}</small>
+      </button>`).join("")}
+    </div>
+  `;
+}
 function courseByTemplateId(templateId) {
   return courses.find(item => [item.primaryPracticeTemplateId, item.followupPracticeTemplateId].includes(templateId)) || null;
 }
@@ -1679,15 +1787,15 @@ function setupExtraSheets() {
 function setupPracticeSheets() {
   const rhythm = $("#rhythm");
   if (rhythm) {
-    rhythm.innerHTML = `<div class="sheet-head"><button class="back" data-close="rhythm">‹</button><h2>节奏型练习</h2><p>从最简单的右手节奏进入真实弹唱。</p></div><div class="tool-screen"><div class="tool-panel card"><div class="module-row"><h3 id="rhythmName">下扫四拍</h3><b id="rhythmBpm">60 BPM</b></div><div class="beat-dots" id="rhythmDots"></div><p class="module-note" id="rhythmHint"></p><div class="module-row"><button class="mini-button" id="rhythmPrev">上一个</button><button class="mini-button" id="rhythmNext">下一个</button></div><button class="primary" id="rhythmToggle" style="width:100%">开始练习</button><button class="ghost" id="rhythmComplete" style="width:100%;margin-top:10px">完成本组</button></div><div class="tool-panel card"><div class="module-row"><b>本组反馈</b><span id="rhythmBars">0 小节</span></div><div class="score-bars" id="rhythmScoreBars"></div></div></div>`;
+    rhythm.innerHTML = `<div class="sheet-head"><button class="back" data-close="rhythm">‹</button><h2>节奏型练习</h2><p>从最简单的右手节奏进入真实弹唱。</p></div><div class="tool-screen"><div class="tool-panel card"><div class="module-row"><h3 id="rhythmName">下扫四拍</h3><b id="rhythmBpm">60 BPM</b></div><div class="beat-dots" id="rhythmDots"></div><p class="module-note" id="rhythmHint"></p><div class="target-insight" id="rhythmInsight"></div><div class="module-row"><button class="mini-button" id="rhythmPrev">上一个</button><button class="mini-button" id="rhythmNext">下一个</button></div><button class="primary" id="rhythmToggle" style="width:100%">开始练习</button><button class="ghost" id="rhythmComplete" style="width:100%;margin-top:10px">完成本组</button></div><div class="tool-panel card"><div class="module-row"><b>本组反馈</b><span id="rhythmBars">0 小节</span></div><div class="score-bars" id="rhythmScoreBars"></div></div></div>`;
   }
   const transition = $("#transition");
   if (transition) {
-    transition.innerHTML = `<div class="sheet-head"><button class="back" data-close="transition">‹</button><h2>和弦转换</h2><p>两个和弦一组，练稳后再进入歌曲。</p></div><div class="tool-screen"><div class="tool-panel card"><div class="module-row"><h3 id="transitionTitle">C → Am</h3><b id="transitionReps">0 次</b></div><p class="module-note" id="transitionTip"></p><div class="segment-list" id="transitionList"></div><div class="module-row"><button class="mini-button" id="transitionNext">下一组</button><button class="mini-button" id="transitionComplete">完成本组</button></div><button class="primary" id="transitionToggle" style="width:100%;margin-top:10px">开始转换练习</button></div><div class="tool-panel card"><div class="module-row"><b>转换稳定度</b><span id="transitionScore">58</span></div><div class="score-bars" id="transitionScoreBars"></div></div></div>`;
+    transition.innerHTML = `<div class="sheet-head"><button class="back" data-close="transition">‹</button><h2>和弦转换</h2><p>两个和弦一组，练稳后再进入歌曲。</p></div><div class="tool-screen"><div class="tool-panel card"><div class="module-row"><h3 id="transitionTitle">C → Am</h3><b id="transitionReps">0 次</b></div><p class="module-note" id="transitionTip"></p><div class="target-insight" id="transitionInsight"></div><div class="segment-list" id="transitionList"></div><div class="module-row"><button class="mini-button" id="transitionNext">下一组</button><button class="mini-button" id="transitionComplete">完成本组</button></div><button class="primary" id="transitionToggle" style="width:100%;margin-top:10px">开始转换练习</button></div><div class="tool-panel card"><div class="module-row"><b>转换稳定度</b><span id="transitionScore">58</span></div><div class="score-bars" id="transitionScoreBars"></div></div></div>`;
   }
   const follow = $("#follow");
   if (follow) {
-    follow.innerHTML = `<div class="sheet-head"><button class="back" data-close="follow">‹</button><h2>歌曲片段跟弹</h2><p>把节奏型和和弦转换放回真实歌曲。</p></div><div class="tool-screen"><div class="tool-panel card"><div class="module-row"><h3 id="followSongTitle">《童年》前 4 小节</h3><b id="followSongBpm">70 BPM</b></div><div class="beat-dots" id="followDots"></div><p class="module-note" id="followHint">跟着红点进第一拍，蓝点切换和弦。</p><div class="follow-lyrics" id="followLyrics"></div><button class="primary" id="followToggle" style="width:100%">开始跟弹</button><button class="ghost" id="followComplete" style="width:100%;margin-top:10px">提交本段</button></div><div class="tool-panel card"><div class="module-row"><b>模拟评分</b><span id="followScore">60</span></div><div class="score-bars" id="followScoreBars"></div></div></div>`;
+    follow.innerHTML = `<div class="sheet-head"><button class="back" data-close="follow">‹</button><h2>歌曲片段跟弹</h2><p>把节奏型和和弦转换放回真实歌曲。</p></div><div class="tool-screen"><div class="tool-panel card"><div class="module-row"><h3 id="followSongTitle">《童年》前 4 小节</h3><b id="followSongBpm">70 BPM</b></div><div class="beat-dots" id="followDots"></div><p class="module-note" id="followHint">跟着红点进第一拍，蓝点切换和弦。</p><div class="target-insight" id="followInsight"></div><div class="follow-lyrics" id="followLyrics"></div><button class="primary" id="followToggle" style="width:100%">开始跟弹</button><button class="ghost" id="followComplete" style="width:100%;margin-top:10px">提交本段</button></div><div class="tool-panel card"><div class="module-row"><b>模拟评分</b><span id="followScore">60</span></div><div class="score-bars" id="followScoreBars"></div></div></div>`;
   }
 }
 function renderScoreBars(target, score) {
@@ -1702,12 +1810,16 @@ function renderScoreBars(target, score) {
 }
 function renderRhythm() {
   const pattern = rhythmPatterns[rhythmState.pattern];
+  const template = rhythmState.pattern === 1
+    ? templateById("practice-rhythm-down-down-up-up")
+    : templateById("practice-rhythm-down-four");
   $("#rhythmName").textContent = pattern.name;
   $("#rhythmBpm").textContent = `${pattern.bpm} BPM`;
   $("#rhythmHint").textContent = pattern.hint;
   $("#rhythmBars").textContent = `${rhythmState.bars} 小节`;
   $("#rhythmToggle").textContent = rhythmState.running ? "暂停练习" : "开始练习";
   $("#rhythmDots").innerHTML = pattern.beats.map((beatLabel, index) => `<span class="beat-dot ${index === rhythmState.beat ? "active" : ""}">${beatLabel}</span>`).join("");
+  renderTargetInsight("#rhythmInsight", template, rhythmState.beat % (template?.targets.length || 1));
   renderScoreBars("#rhythmScoreBars", rhythmState.score);
 }
 function tickRhythm() {
@@ -1749,11 +1861,18 @@ function completeRhythm() {
 }
 function renderTransition() {
   const pair = transitionPairs[transitionState.index];
+  const template = transitionState.index === 0
+    ? templateById("practice-transition-c-am")
+    : templateById("practice-c-am-f-g7-loop");
+  const activeTargetIndex = template?.id === "practice-transition-c-am"
+    ? Math.min(1, transitionState.reps % 2)
+    : transitionState.index % (template?.targets.length || 1);
   $("#transitionTitle").textContent = `${pair.from} → ${pair.to}`;
   $("#transitionTip").textContent = pair.tip;
   $("#transitionReps").textContent = `${transitionState.reps} 次`;
   $("#transitionScore").textContent = transitionState.score;
   $("#transitionToggle").textContent = transitionState.running ? "暂停转换练习" : "开始转换练习";
+  renderTargetInsight("#transitionInsight", template, activeTargetIndex);
   $("#transitionList").innerHTML = transitionPairs.map((item, index) => `<button class="segment-item ${index === transitionState.index ? "active" : ""}" data-transition-index="${index}"><span class="segment-index">${index + 1}</span><b>${item.from} → ${item.to}</b><small>${item.tip}</small></button>`).join("");
   renderScoreBars("#transitionScoreBars", transitionState.score);
 }
@@ -1794,12 +1913,14 @@ function activeSong() {
 function renderFollow() {
   const song = activeSong();
   const chords = song.chords?.length ? song.chords : followChords;
+  const template = templateById("practice-song-fragment-four-chord-hum");
   const activeIndex = followState.beat % chords.length;
   $("#followSongTitle").textContent = `《${song.title}》前 ${chords.length} 小节`;
   $("#followSongBpm").textContent = `${song.bpm} BPM`;
   $("#followDots").innerHTML = chords.map((chord, index) => `<span class="beat-dot ${index === activeIndex ? "active" : ""}">${chord}</span>`).join("");
   $("#followScore").textContent = followState.score;
   $("#followHint").textContent = `第 ${followState.bars + 1} 轮 · 当前和弦 ${chords[activeIndex]}`;
+  renderTargetInsight("#followInsight", template, activeIndex);
   $("#followLyrics").innerHTML = (song.lyrics || []).map((line, index) => `<div class="lyric-line ${index === activeIndex ? "now" : ""}"><span class="chord">${line[0]}</span>${line[1]}</div>`).join("");
   $("#followToggle").textContent = followState.running ? "暂停跟弹" : "开始跟弹";
   renderScoreBars("#followScoreBars", followState.score);
