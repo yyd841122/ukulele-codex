@@ -6,6 +6,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   View
 } from "react-native";
 import * as sharedPractice from "@ukulele/shared";
@@ -66,6 +67,7 @@ const lightBeatBlue = "#2F7A9A";
 const ukuleleStringLabels = ["G", "C", "E", "A"];
 type PracticeTempoId = "custom" | "slow" | "standard" | "advanced";
 type PracticeLoopMode = "auto" | "single";
+type SongFilter = "all" | "entry" | "advanced" | "pro";
 const tempoLabelById: Record<Exclude<PracticeTempoId, "custom">, string> = {
   slow: "慢速",
   standard: "标准",
@@ -1543,14 +1545,66 @@ function SongsScreen({
   onStartSongPractice: (templateId: string) => void;
 }) {
   const songs = practiceContent.songs;
-  const freeSongs = songs.filter((song) => song.access === "free");
-  const lockedSongs = songs.filter((song) => song.access !== "free");
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<SongFilter>("all");
+  const filters: Array<{ id: SongFilter; label: string }> = [
+    { id: "all", label: "全部" },
+    { id: "entry", label: "入门" },
+    { id: "advanced", label: "进阶" },
+    { id: "pro", label: "Pro" }
+  ];
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleSongs = songs.filter((song) => {
+    const filterMatch =
+      filter === "all" ||
+      (filter === "entry" && song.difficulty <= 1 && song.access === "free") ||
+      (filter === "advanced" && song.difficulty > 1 && song.access === "free") ||
+      (filter === "pro" && song.access === "pro");
+    const searchText = `${song.title} ${song.artist} ${song.key} ${song.level} ${(song.chordNames ?? []).join(" ")}`.toLowerCase();
+    return filterMatch && (!normalizedQuery || searchText.includes(normalizedQuery));
+  });
 
   return (
     <View style={styles.stack}>
       <SectionTitle title="曲谱库" detail={`${songs.length} 首 · 从歌曲片段进入弹唱`} />
-      {freeSongs.map((song) => {
+      <View style={styles.songSearchPanel}>
+        <TextInput
+          accessibilityLabel="搜索曲谱"
+          autoCapitalize="none"
+          autoCorrect={false}
+          onChangeText={setQuery}
+          placeholder="搜索歌曲、调式、和弦"
+          placeholderTextColor="#9A9288"
+          style={styles.songSearchInput}
+          value={query}
+        />
+        <View style={styles.songFilterRow}>
+          {filters.map((item) => {
+            const selected = item.id === filter;
+            return (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                key={item.id}
+                onPress={() => setFilter(item.id)}
+                style={[styles.songFilterButton, selected && styles.songFilterButtonActive]}
+              >
+                <Text style={[styles.songFilterText, selected && styles.songFilterTextActive]}>{item.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      {visibleSongs.length === 0 ? (
+        <View style={styles.emptyPanel}>
+          <Text style={styles.historyEmpty}>没有找到匹配曲谱。</Text>
+        </View>
+      ) : null}
+
+      {visibleSongs.map((song) => {
         const templateId = song.practiceTemplateIds?.[0] ?? "practice-c-am-f-g7-loop";
+        const locked = song.access !== "free";
         return (
           <View key={song.id} style={styles.songDetailCard}>
             <View style={styles.songDetailHeader}>
@@ -1559,9 +1613,12 @@ function SongsScreen({
               </View>
               <View style={styles.songTitleBlock}>
                 <Text style={styles.songTitle}>{song.title}</Text>
-                <Text style={styles.songMeta}>{song.artist} · {song.key} 调 · {song.bpm} BPM</Text>
+                <Text style={styles.songMeta}>{song.artist} · {song.level} · {song.key} 调 · {song.bpm} BPM</Text>
                 <Text style={styles.songChordLine}>{song.chordNames?.join(" · ") ?? "C · Am · F · G7"}</Text>
               </View>
+              <Text style={[styles.songAccessBadge, locked && styles.songAccessBadgeLocked]}>
+                {locked ? "Pro" : "免费"}
+              </Text>
             </View>
             <View style={styles.songLineList}>
               {getSongPracticeLines(song).map((line) => (
@@ -1571,8 +1628,15 @@ function SongsScreen({
                 </View>
               ))}
             </View>
-            <Pressable accessibilityRole="button" onPress={() => onStartSongPractice(templateId)} style={styles.songPracticeButton}>
-              <Text style={styles.primaryButtonText}>开始歌曲片段跟弹</Text>
+            <Pressable
+              accessibilityRole="button"
+              disabled={locked}
+              onPress={() => onStartSongPractice(templateId)}
+              style={[styles.songPracticeButton, locked && styles.songPracticeButtonDisabled]}
+            >
+              <Text style={[styles.primaryButtonText, locked && styles.songPracticeButtonTextDisabled]}>
+                {locked ? "后续解锁完整曲谱" : "开始歌曲片段跟弹"}
+              </Text>
             </Pressable>
           </View>
         );
@@ -1589,17 +1653,6 @@ function SongsScreen({
         ))}
       </View>
 
-      {lockedSongs.length > 0 ? (
-        <>
-          <SectionTitle title="Pro 曲谱" detail="后续会员模块解锁" />
-          {lockedSongs.map((song) => (
-            <View key={song.id} style={styles.lockedSongRow}>
-              <Text style={styles.lockedSongTitle}>{song.title}</Text>
-              <Text style={styles.lockedSongMeta}>{song.artist} · {song.key} 调 · {song.chordNames?.join(" ")}</Text>
-            </View>
-          ))}
-        </>
-      ) : null}
     </View>
   );
 }
@@ -2762,6 +2815,53 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 12
   },
+  songSearchPanel: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    padding: 10,
+    gap: 10
+  },
+  songSearchInput: {
+    minHeight: 44,
+    borderRadius: 8,
+    backgroundColor: "#F2EBDD",
+    color: colors.forest,
+    fontSize: 14,
+    fontWeight: "700",
+    paddingHorizontal: 12
+  },
+  songFilterRow: {
+    flexDirection: "row",
+    gap: 8
+  },
+  songFilterButton: {
+    flex: 1,
+    minHeight: 36,
+    borderRadius: 8,
+    backgroundColor: "#F2EBDD",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  songFilterButtonActive: {
+    backgroundColor: colors.forest
+  },
+  songFilterText: {
+    color: "#756D64",
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  songFilterTextActive: {
+    color: "#FFF8EC"
+  },
+  emptyPanel: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    padding: 14
+  },
   songDetailHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -2799,6 +2899,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "900"
   },
+  songAccessBadge: {
+    minWidth: 44,
+    borderRadius: 999,
+    overflow: "hidden",
+    backgroundColor: "#E6F4EA",
+    color: successGreen,
+    fontSize: 11,
+    fontWeight: "900",
+    lineHeight: 26,
+    textAlign: "center"
+  },
+  songAccessBadgeLocked: {
+    backgroundColor: "#F2EBDD",
+    color: "#756D64"
+  },
   songLineList: {
     gap: 6
   },
@@ -2829,6 +2944,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.coral,
     alignItems: "center",
     justifyContent: "center"
+  },
+  songPracticeButtonDisabled: {
+    backgroundColor: "#E6DED0"
+  },
+  songPracticeButtonTextDisabled: {
+    color: "#756D64"
   },
   chordLibraryGrid: {
     flexDirection: "row",
