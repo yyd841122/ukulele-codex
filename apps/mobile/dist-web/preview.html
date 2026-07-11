@@ -201,6 +201,21 @@
     background: rgba(255,255,255,.25);
   }
   .continue .copy { flex: 1; }
+  .continue .status-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 3px;
+    font-size: 11px;
+    font-weight: 900;
+    opacity: .94;
+  }
+  .continue .status-pill {
+    padding: 2px 8px;
+    border-radius: 999px;
+    color: var(--teal);
+    background: rgba(255,255,255,.86);
+  }
   .continue b { font-size: 15px; }
   .continue p { margin-top: 3px; font-size: 12px; opacity: .92; }
   .progress { height: 5px; margin-top: 8px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.3); }
@@ -279,6 +294,9 @@
     overflow: hidden;
     display: flex;
   }
+  .course-card.current { outline: 2px solid rgba(255, 138, 61, .55); }
+  .course-card.done { background: #F7FFF8; }
+  .course-card.locked { opacity: .72; }
   .course-card .thumb {
     width: 92px;
     display: grid;
@@ -287,6 +305,19 @@
   }
   .course-card .body { flex: 1; padding: 14px 14px 14px 0; }
   .tag { color: var(--teal); font-size: 10px; font-weight: 900; }
+  .course-status {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    color: var(--text-2);
+    background: #F2EDE5;
+    font-size: 9px;
+    font-weight: 900;
+  }
+  .course-status.done { color: #0D8F45; background: #DCFCE7; }
+  .course-status.current { color: #B45309; background: #FEF3C7; }
+  .course-status.locked { color: #7C3AED; background: #F3E8FF; }
   .member-tag {
     display: inline-block;
     margin-left: 5px;
@@ -681,9 +712,10 @@
     color: var(--text-3);
     font-size: 12px;
   }
-  .course-resource-row span {
+  .course-resource-body {
     font-weight: 800;
   }
+  .course-resource-body .mini-chord-list { margin-top: 7px; }
   .paywall-card {
     margin: 16px;
     padding: 18px;
@@ -1794,6 +1826,27 @@ function courseMeta(course) {
   if (course.progress > 0) return `${course.estimatedMinutes} 分钟 · 进行中`;
   return `${course.estimatedMinutes} 分钟 · 未开始`;
 }
+function courseState(course) {
+  if (course.access !== "free") return "locked";
+  if (course.progress >= 100) return "done";
+  if (course.progress > 0) return "current";
+  return "todo";
+}
+function courseStateText(course) {
+  const state = courseState(course);
+  if (state === "done") return "已完成";
+  if (state === "current") return "继续";
+  if (state === "locked") return "会员";
+  return "待开始";
+}
+function courseActionText(course) {
+  const sheet = coursePracticeSheet(course.order);
+  if (course.toolId === "tuner") return "打开调音器";
+  if (sheet === "rhythm") return "进入节奏练习";
+  if (sheet === "transition") return "进入和弦转换";
+  if (sheet === "follow") return "进入歌曲跟弹";
+  return "查看课程";
+}
 function nextRequiredCourse() {
   const required = allCourses()
     .filter(course => course.type === "required")
@@ -1824,15 +1877,15 @@ function renderCourseResources(course) {
   const song = courseSong(course);
   const rows = [];
   if (template) {
-    rows.push(`<div class="course-resource-row"><b>练习</b><span>${template.title} · ${template.bpm} BPM${renderMiniChordList(template.targets.map(target => targetChordName(template, target)))}</span></div>`);
+    rows.push(`<div class="course-resource-row"><b>练习</b><div class="course-resource-body">${template.title} · ${template.bpm} BPM${renderMiniChordList(template.targets.map(target => targetChordName(template, target)))}</div></div>`);
   }
   if (followupTemplate) {
-    rows.push(`<div class="course-resource-row"><b>跟进</b><span>${followupTemplate.title} · ${followupTemplate.bpm} BPM${renderMiniChordList(followupTemplate.targets.map(target => targetChordName(followupTemplate, target)))}</span></div>`);
+    rows.push(`<div class="course-resource-row"><b>跟进</b><div class="course-resource-body">${followupTemplate.title} · ${followupTemplate.bpm} BPM${renderMiniChordList(followupTemplate.targets.map(target => targetChordName(followupTemplate, target)))}</div></div>`);
   }
   if (song) {
-    rows.push(`<div class="course-resource-row"><b>歌曲</b><span>${song.title} · ${song.key} 调${renderMiniChordList(song.chords)}</span></div>`);
+    rows.push(`<div class="course-resource-row"><b>歌曲</b><div class="course-resource-body">${song.title} · ${song.key} 调${renderMiniChordList(song.chords)}</div></div>`);
   }
-  $("#courseResources").innerHTML = rows.join("") || `<div class="course-resource-row"><b>步骤</b><span>先完成本课步骤，再进入下一节课。</span></div>`;
+  $("#courseResources").innerHTML = rows.join("") || `<div class="course-resource-row"><b>步骤</b><div class="course-resource-body">先完成本课步骤，再进入下一节课。</div></div>`;
 }
 function templateProgress(template) {
   return appState.courseProgress[template.courseOrder] ?? 0;
@@ -2149,8 +2202,9 @@ function renderHome() {
     continueCard.innerHTML = `
       <div class="cover">${nextCourse.emoji}</div>
       <div class="copy">
+        <div class="status-line"><span class="status-pill">${courseStateText(nextCourse)}</span><span>${nextCourse.progress}% · 第 ${nextCourse.order} 课</span></div>
         <b>继续学习：${nextCourse.title}</b>
-        <p>${nextCourse.subtitle}${practiceSheet ? " · 可直接进入练习" : ""}</p>
+        <p>${nextCourse.subtitle}${practiceSheet ? ` · ${courseActionText(nextCourse)}` : ""}</p>
         <div class="progress"><i style="width:${nextCourse.progress}%"></i></div>
       </div>
       <div class="play-round">▶</div>
@@ -2162,7 +2216,25 @@ function renderHome() {
 function renderCourses() {
   setupEnhancedPreview();
   const visible = allCourses().filter(course => course.type === activeCourseTab);
-  $("#courseList").innerHTML = visible.map(course => `<button class="course-card card clickable" data-course="${course.order}"><div class="thumb" style="background:linear-gradient(135deg,#FFE4D6,#fff)">${course.emoji}</div><div class="body"><div><span class="tag">${course.type === "required" ? "必修" : course.type === "optional" ? "选修" : "Pro"} · 第 ${course.order} 课</span>${course.access === "free" ? "" : "<span class='member-tag'>会员</span>"}</div><h3>${course.title}</h3><p>${course.subtitle}</p><div class="course-meta"><span class="mini-progress"><i style="width:${course.progress}%"></i></span><span>${courseMeta(course)}</span></div></div></button>`).join("") || `<div class="empty-state">这个分类暂时没有课程。</div>`;
+  $("#courseList").innerHTML = visible.map(course => {
+    const state = courseState(course);
+    return `<button class="course-card card clickable ${state}" data-course="${course.order}">
+      <div class="thumb" style="background:linear-gradient(135deg,#FFE4D6,#fff)">${course.emoji}</div>
+      <div class="body">
+        <div>
+          <span class="tag">${course.type === "required" ? "必修" : course.type === "optional" ? "选修" : "Pro"} · 第 ${course.order} 课</span>
+          <span class="course-status ${state}">${courseStateText(course)}</span>
+          ${course.access === "free" ? "" : "<span class='member-tag'>会员</span>"}
+        </div>
+        <h3>${course.title}</h3>
+        <p>${course.subtitle}</p>
+        <div class="course-meta">
+          <span class="mini-progress"><i style="width:${course.progress}%"></i></span>
+          <span>${courseMeta(course)} · ${courseActionText(course)}</span>
+        </div>
+      </div>
+    </button>`;
+  }).join("") || `<div class="empty-state">这个分类暂时没有课程。</div>`;
   $all("[data-course-tab]").forEach(node => node.classList.toggle("active", node.dataset.courseTab === activeCourseTab));
 }
 function renderSongs() {
