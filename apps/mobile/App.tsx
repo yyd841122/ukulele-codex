@@ -271,6 +271,15 @@ type LessonPathProgress = {
   milestoneStatus?: PracticeMilestoneStatus;
 };
 
+type CoursePathItem = {
+  id: string;
+  title: string;
+  subtitle: string;
+  status: LessonPathStatus;
+  detail: string;
+  progress: number;
+};
+
 type PracticeLaunchConfig = {
   templateId?: string;
   bpm: number;
@@ -613,6 +622,27 @@ function evaluateLocalLessonPathProgress(
   };
 }
 
+function buildRequiredCoursePath(): CoursePathItem[] {
+  return practiceContent.courses
+    .filter((course) => course.type === "required")
+    .sort((a, b) => a.order - b.order)
+    .map((course) => {
+      const progress = Math.max(0, Math.min(100, course.defaultProgress ?? 0));
+      const status: LessonPathStatus = progress >= 100 ? "done" : progress > 0 ? "current" : "locked";
+      const minutes = course.estimatedMinutes ? `${course.estimatedMinutes} 分钟` : "MVP";
+      const accessLabel = course.access === "pro" ? "Pro" : "免费";
+
+      return {
+        id: course.id,
+        title: course.title,
+        subtitle: course.subtitle,
+        status,
+        detail: `${minutes} · ${accessLabel}`,
+        progress
+      };
+    });
+}
+
 function localizeLessonPathProgress(progress: LessonPathProgress): LessonPathProgress {
   const titleById: Record<string, string> = {
     tuning: "调音",
@@ -881,6 +911,22 @@ function HomeScreen({
   contentSummary: typeof sharedContentSummary;
   onStart: () => void;
 }) {
+  const requiredCoursePath = buildRequiredCoursePath();
+  const pathItems = requiredCoursePath.length > 0
+    ? requiredCoursePath
+    : lessonPathProgress.nodes.map((node) => ({
+        id: node.id,
+        title: node.title,
+        subtitle: node.detail,
+        status: node.status,
+        detail: node.type,
+        progress: node.status === "done" ? 100 : node.status === "current" ? 50 : 0
+      }));
+  const completedPathItems = pathItems.filter((item) => item.status === "done").length;
+  const pathPercent = pathItems.length === 0
+    ? 0
+    : Math.round(pathItems.reduce((sum, item) => sum + item.progress, 0) / pathItems.length);
+
   return (
     <View style={styles.stack}>
       <View style={styles.heroBand}>
@@ -893,31 +939,32 @@ function HomeScreen({
         </Pressable>
       </View>
 
-      <SectionTitle title="今日路径" detail={`${lessonPathProgress.completedNodes}/${lessonPathProgress.totalNodes} · ${lessonPathProgress.percent}%`} />
+      <SectionTitle title="课程路径" detail={`${completedPathItems}/${pathItems.length} · ${pathPercent}%`} />
       <View style={styles.lessonPathPanel}>
-        {lessonPathProgress.nodes.map((node, index) => (
-          <View key={node.id} style={styles.lessonPathNodeWrap}>
+        {pathItems.map((item, index) => (
+          <View key={item.id} style={styles.lessonPathNodeWrap}>
             <View
               style={[
                 styles.lessonPathDot,
-                node.status === "done" && styles.lessonPathDotDone,
-                node.status === "current" && styles.lessonPathDotCurrent,
-                node.status === "locked" && styles.lessonPathDotLocked
+                item.status === "done" && styles.lessonPathDotDone,
+                item.status === "current" && styles.lessonPathDotCurrent,
+                item.status === "locked" && styles.lessonPathDotLocked
               ]}
             >
               <Text
                 style={[
                   styles.lessonPathDotText,
-                  (node.status === "done" || node.status === "current") && styles.lessonPathDotTextActive
+                  (item.status === "done" || item.status === "current") && styles.lessonPathDotTextActive
                 ]}
               >
                 {index + 1}
               </Text>
             </View>
-            <Text style={styles.lessonPathTitle}>{node.title}</Text>
-            <Text style={styles.lessonPathDetail} numberOfLines={2}>{node.detail}</Text>
-            <Text style={[styles.lessonPathStatus, node.status === "done" && styles.lessonPathStatusDone]}>
-              {lessonPathStatusLabel(node.status)}
+            <Text style={styles.lessonPathTitle} numberOfLines={2}>{item.title}</Text>
+            <Text style={styles.lessonPathDetail} numberOfLines={2}>{item.subtitle}</Text>
+            <Text style={styles.lessonPathMeta} numberOfLines={1}>{item.detail}</Text>
+            <Text style={[styles.lessonPathStatus, item.status === "done" && styles.lessonPathStatusDone]}>
+              {lessonPathStatusLabel(item.status)}
             </Text>
           </View>
         ))}
@@ -2123,7 +2170,7 @@ const styles = StyleSheet.create({
     lineHeight: 22
   },
   lessonPathPanel: {
-    minHeight: 118,
+    minHeight: 142,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.line,
@@ -2176,6 +2223,12 @@ const styles = StyleSheet.create({
     color: "#756D64",
     fontSize: 11,
     lineHeight: 15,
+    textAlign: "center"
+  },
+  lessonPathMeta: {
+    color: "#9A9288",
+    fontSize: 10,
+    lineHeight: 13,
     textAlign: "center"
   },
   lessonPathStatus: {
