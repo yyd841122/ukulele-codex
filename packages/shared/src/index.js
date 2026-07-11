@@ -742,9 +742,13 @@ const practiceRecordTimeMs = (record) => {
 };
 
 export const createPracticeSessionRecord = ({
+  courseId,
   exerciseId,
+  lessonId,
+  songId,
   startedAt,
   endedAt,
+  templateId,
   bpm,
   mode,
   loopMode = "guided",
@@ -761,7 +765,11 @@ export const createPracticeSessionRecord = ({
 
   return {
     version: practiceRecordVersion,
+    courseId,
     exerciseId,
+    lessonId,
+    songId,
+    templateId: templateId ?? exerciseId,
     startedAt: inferredStartedAt,
     endedAt: inferredEndedAt,
     createdAt: createdAt ?? inferredEndedAt ?? inferredStartedAt,

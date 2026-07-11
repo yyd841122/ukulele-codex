@@ -193,13 +193,16 @@ type PracticeLogEvent = {
 };
 
 type PracticeSessionInput = {
+  courseId?: string | null;
   events: PracticeLogEvent[];
   completedSteps: boolean[];
   bpm: number;
   mode: PracticeLoopMode;
   lessonId: string;
   exerciseId: string;
+  songId?: string | null;
   template: PracticeTemplate;
+  templateId?: string;
   rhythmSummary?: RhythmPracticeSummary;
 };
 
@@ -232,7 +235,11 @@ type RhythmPracticeSummary = {
 
 type SharedPracticeRecord = {
   version?: number;
+  courseId?: string | null;
   exerciseId?: string;
+  lessonId?: string;
+  songId?: string | null;
+  templateId?: string;
   startedAt?: string;
   endedAt?: string;
   createdAt?: string;
@@ -357,9 +364,13 @@ function createPracticeSessionRecord(input: PracticeSessionInput): PracticeSessi
   const completedCount = input.completedSteps.filter(Boolean).length;
   const targets = input.template.targets ?? chordLoopPractice.targets;
   const sharedInput = {
+    courseId: input.courseId,
     exerciseId: input.exerciseId,
+    lessonId: input.lessonId,
+    songId: input.songId,
     startedAt: new Date(startedAtMs).toISOString(),
     endedAt: new Date(endedAtMs).toISOString(),
+    templateId: input.templateId ?? input.template.id,
     bpm: input.bpm,
     mode: input.mode,
     targets,
@@ -394,6 +405,7 @@ function summarizePracticeRecord(record: PracticeSessionRecord): PracticeRecordS
   const completedAll = completedTargetCount >= totalSteps;
   const mode = record.mode ?? record.loopMode ?? "auto";
   const modeLabel = mode === "auto" ? "自动循环" : "只练当前";
+  const templateLabel = getPracticeTemplateTitle(record.template ?? getPracticeTemplateById(record.templateId ?? record.exerciseId));
   const durationLabel = formatPracticeDuration(sharedSummary.durationSec ?? record.durationSec ?? 0);
   const endedAt = record.endedAt ?? new Date().toISOString();
   const bpm = record.bpm ?? chordLoopPractice.bpm;
@@ -411,7 +423,7 @@ function summarizePracticeRecord(record: PracticeSessionRecord): PracticeRecordS
         : "先保持四拍稳定，再追求更快换和弦。";
 
   return {
-    title: `${modeLabel} · ${new Date(endedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`,
+    title: `${templateLabel} · ${modeLabel} · ${new Date(endedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`,
     durationLabel,
     completedStepsLabel: `${completedTargetCount}/${totalSteps}`,
     bpmLabel: `${bpm} BPM`,
@@ -848,8 +860,10 @@ export default function App() {
     const now = new Date().toISOString();
     appendPracticeRecord({
       id: `pass-${Date.now()}`,
+      courseId: "course-c-am-transition",
       lessonId: mvpLesson.id,
       exerciseId: chordLoopPractice.id,
+      templateId: chordLoopPractice.id,
       template: chordLoopPractice,
       startedAt: now,
       endedAt: now,
@@ -1801,13 +1815,16 @@ function PracticeScreen({
     }
 
     const record = createPracticeSessionRecord({
+      courseId: activeCourse?.id ?? null,
       events,
       completedSteps: steps,
       bpm: practiceBpm,
       mode: practiceLoopMode,
       lessonId: mvpLesson.id,
       exerciseId: activeTemplate.id,
+      songId: activeSong?.id ?? null,
       template: activeTemplate,
+      templateId: activeTemplate.id,
       rhythmSummary: summarizePracticeRhythm(events, practiceBpm)
     });
     onPracticeRecord(record);

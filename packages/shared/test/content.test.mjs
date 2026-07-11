@@ -233,9 +233,13 @@ test("design tokens define accessible touch target minimum", () => {
 
 test("practice session record handles empty events", () => {
   const record = createPracticeSessionRecord({
+    courseId: "course-c-am-transition",
     exerciseId: chordLoopPractice.id,
+    lessonId: "lesson-mvp-001",
+    songId: "song-four-chord-hum",
     startedAt: "2026-07-01T00:00:00.000Z",
     endedAt: "2026-07-01T00:01:00.000Z",
+    templateId: chordLoopPractice.id,
     bpm: chordLoopPractice.bpm,
     loopMode: "loop",
     targets: chordLoopPractice.targets,
@@ -243,7 +247,11 @@ test("practice session record handles empty events", () => {
   });
 
   assert.equal(record.version, practiceRecordVersion);
+  assert.equal(record.courseId, "course-c-am-transition");
   assert.equal(record.exerciseId, chordLoopPractice.id);
+  assert.equal(record.lessonId, "lesson-mvp-001");
+  assert.equal(record.songId, "song-four-chord-hum");
+  assert.equal(record.templateId, chordLoopPractice.id);
   assert.equal(record.targets.length, chordLoopPractice.targets.length);
   assert.deepEqual(record.events, []);
   assert.deepEqual(summarizePracticeRecord(record), {
