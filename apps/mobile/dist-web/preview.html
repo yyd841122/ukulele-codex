@@ -1659,6 +1659,7 @@ function setupExtraSheets() {
           <div class="course-resource-panel" id="courseResources"></div>
           <button class="primary" id="courseNext" style="width:100%;margin-top:14px">完成下一步</button>
           <button class="ghost" id="coursePractice" style="width:100%;margin-top:10px">进入本课练习</button>
+          <button class="ghost" id="courseFollowup" style="width:100%;margin-top:10px;display:none">进入跟进练习</button>
         </div>
       </div>
     </section>
@@ -1934,6 +1935,9 @@ function renderCourseDetail() {
   renderCourseResources(course);
   $("#courseNext").textContent = progress >= 100 ? "本课已完成" : "完成下一步";
   $("#coursePractice").textContent = practiceSheet ? "进入本课练习" : "查看课程步骤";
+  const followupTemplate = courseFollowupPracticeTemplate(course);
+  $("#courseFollowup").style.display = followupTemplate ? "block" : "none";
+  $("#courseFollowup").textContent = followupTemplate ? `进入跟进 · ${followupTemplate.title}` : "进入跟进练习";
 }
 function completeCourseStep() {
   const current = appState.courseProgress[selectedCourseOrder] || 0;
@@ -1954,6 +1958,16 @@ function openCoursePractice() {
   if (sheet === "rhythm") renderRhythm();
   if (sheet === "transition") renderTransition();
   if (sheet === "follow") renderFollow();
+}
+function openCourseFollowupPractice() {
+  const course = allCourses().find(item => item.order === selectedCourseOrder);
+  const followupTemplate = courseFollowupPracticeTemplate(course);
+  if (!followupTemplate) {
+    toast("这节课暂无跟进练习");
+    return;
+  }
+  closeSheet("courseDetail");
+  openPracticeTemplate(followupTemplate.id);
 }
 function openSong(title) {
   const song = songs.find(item => item.title === title) || songs[0];
@@ -2018,6 +2032,7 @@ function bindEnhancedPreview() {
   document.addEventListener("click", event => {
     if (event.target.id === "courseNext") completeCourseStep();
     if (event.target.id === "coursePractice") openCoursePractice();
+    if (event.target.id === "courseFollowup") openCourseFollowupPractice();
     if (event.target.id === "detailPlay") {
       startSongPractice();
     }

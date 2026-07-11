@@ -1031,6 +1031,7 @@ export default function App() {
             onMarkMilestonePassed={markPracticeMilestonePassed}
             onOpenCourse={openCourse}
             onStart={() => startPractice()}
+            onStartPracticeTemplate={startPracticeTemplate}
             onStartRecommendation={() => startPractice(nextPracticeRecommendation)}
             lessonPathProgress={lessonPathProgress}
             practiceMilestone={practiceMilestone}
@@ -1086,6 +1087,7 @@ function HomeScreen({
   onMarkMilestonePassed,
   onOpenCourse,
   onStartRecommendation,
+  onStartPracticeTemplate,
   practiceMilestone,
   practiceHistory,
   practiceHistorySummary,
@@ -1101,6 +1103,7 @@ function HomeScreen({
   onMarkMilestonePassed: () => void;
   onOpenCourse: (courseId: string) => void;
   onStartRecommendation: () => void;
+  onStartPracticeTemplate: (templateId: string) => void;
   practiceMilestone: PracticeMilestoneEvaluation;
   practiceHistory: PracticeSessionRecord[];
   practiceHistorySummary: PracticeHistorySummary;
@@ -1218,6 +1221,7 @@ function HomeScreen({
           course={selectedCourse}
           pathItem={selectedPathItem}
           onOpenCourse={() => onOpenCourse(selectedCourse.id)}
+          onStartPracticeTemplate={onStartPracticeTemplate}
         />
       ) : null}
 
@@ -2423,11 +2427,13 @@ function PracticeScreen({
 function CourseDetailPanel({
   course,
   pathItem,
-  onOpenCourse
+  onOpenCourse,
+  onStartPracticeTemplate
 }: {
   course: CourseCatalogItem;
   pathItem: CoursePathItem;
   onOpenCourse: () => void;
+  onStartPracticeTemplate: (templateId: string) => void;
 }) {
   const segments = getCourseSegments(course);
   const template = getCoursePracticeTemplate(course);
@@ -2515,6 +2521,17 @@ function CourseDetailPanel({
       <Pressable accessibilityRole="button" onPress={onOpenCourse} style={styles.courseActionButton}>
         <Text style={styles.primaryButtonText}>{getCourseActionLabel(course)}</Text>
       </Pressable>
+      {followupTemplate && course.followupPracticeTemplateId ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => onStartPracticeTemplate(course.followupPracticeTemplateId as string)}
+          style={styles.courseSecondaryActionButton}
+        >
+          <Text style={styles.courseSecondaryActionText}>
+            练跟进 · {getPracticeTemplateTitle(followupTemplate)}
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -3003,6 +3020,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.coral,
     alignItems: "center",
     justifyContent: "center"
+  },
+  courseSecondaryActionButton: {
+    minHeight: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#F8F3EA",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12
+  },
+  courseSecondaryActionText: {
+    color: colors.forest,
+    fontSize: 14,
+    fontWeight: "900"
   },
   practiceCoursePanel: {
     flexDirection: "row",
