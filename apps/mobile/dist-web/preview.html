@@ -1008,18 +1008,36 @@
 </div>
 <script>
 const songs = [
-  { title: "童年", artist: "罗大佑", emoji: "🌈", color: "#FCD34D", light: "#FDE68A", stars: 1, diff: "入门", key: "C", bpm: 70 },
-  { title: "小幸运", artist: "田馥甄", emoji: "🍀", color: "#86EFAC", light: "#BBF7D0", stars: 2, diff: "进阶", key: "C", bpm: 78 },
-  { title: "晴天", artist: "周杰伦", emoji: "☀️", color: "#FDBA74", light: "#FED7AA", stars: 2, diff: "进阶", key: "G", bpm: 76 },
-  { title: "Lemon", artist: "米津玄师", emoji: "🍋", color: "#FDE68A", light: "#FEF3C7", stars: 3, diff: "会员", key: "C", bpm: 88 },
-  { title: "Riptide", artist: "Vance Joy", emoji: "🌊", color: "#67E8F9", light: "#CFFAFE", stars: 3, diff: "会员", key: "Am", bpm: 102 }
+  {
+    title: "童年",
+    artist: "罗大佑",
+    emoji: "🌈",
+    color: "#FCD34D",
+    light: "#FDE68A",
+    stars: 1,
+    diff: "入门",
+    key: "C",
+    bpm: 70,
+    chords: ["C", "Am", "F", "G7"],
+    templateId: "practice-song-fragment-four-chord-hum",
+    lyrics: [
+      ["C", "啦啦啦啦 稳住第一拍"],
+      ["Am", "啦啦啦啦 提前换和弦"],
+      ["F", "啦啦啦啦 右手保持匀速"],
+      ["G7", "啦啦啦啦 轻轻收尾"]
+    ]
+  },
+  { title: "小幸运", artist: "田馥甄", emoji: "🍀", color: "#86EFAC", light: "#BBF7D0", stars: 2, diff: "进阶", key: "C", bpm: 78, chords: ["C", "G", "Am", "F"], templateId: "practice-c-am-f-g7-loop", lyrics: [["C", "先用四和弦练习代替完整曲谱"]] },
+  { title: "晴天", artist: "周杰伦", emoji: "☀️", color: "#FDBA74", light: "#FED7AA", stars: 2, diff: "进阶", key: "G", bpm: 76, chords: ["G", "D", "Em", "C"], templateId: "practice-c-am-f-g7-loop", lyrics: [["G", "进阶歌曲后续接完整曲谱"]] },
+  { title: "Lemon", artist: "米津玄师", emoji: "🍋", color: "#FDE68A", light: "#FEF3C7", stars: 3, diff: "会员", key: "C", bpm: 88, chords: ["C", "G", "Am", "F"], templateId: null, lyrics: [] },
+  { title: "Riptide", artist: "Vance Joy", emoji: "🌊", color: "#67E8F9", light: "#CFFAFE", stars: 3, diff: "会员", key: "Am", bpm: 102, chords: ["Am", "G", "C"], templateId: null, lyrics: [] }
 ];
 const courses = [
   { order: 1, emoji: "🎸", title: "认识你的尤克里里", subtitle: "持琴姿势 · 四根弦 · 基本发声", progress: 100, meta: "8 分钟 · 已完成", free: true },
   { order: 2, emoji: "🎛️", title: "学会给琴调音", subtitle: "使用调音器把 G-C-E-A 调准", progress: 100, meta: "10 分钟 · 已完成", free: true },
   { order: 3, emoji: "🥁", title: "第一个节奏型", subtitle: "下扫四拍，建立稳定节拍感", progress: 60, meta: "12 分钟 · 进行中", free: true },
   { order: 4, emoji: "🔁", title: "C 与 Am 的切换", subtitle: "从双和弦转换进入四和弦循环", progress: 20, meta: "12 分钟 · 进行中", free: true },
-  { order: 5, emoji: "🎤", title: "第一首弹唱《童年》", subtitle: "C-Am-F-G7 歌曲片段跟弹", progress: 0, meta: "15 分钟 · 未开始", free: false }
+  { order: 5, emoji: "🎤", title: "第一首弹唱《童年》", subtitle: "C-Am-F-G7 歌曲片段跟弹", progress: 0, meta: "15 分钟 · 未开始", free: true }
 ];
 const chordCategories = [
   { id: "all", label: "所有" },
@@ -1115,10 +1133,10 @@ function openSong(title) {
   $("#detailTitle").textContent = song.title;
   $("#detailArtist").textContent = `${song.artist} · ${song.diff}弹唱`;
   $("#lyrics").innerHTML = [
-    [["C","我听见雨滴落在青青草地"]],
-    [["Am","我听见远方下课钟声响起"]],
-    [["F","可是我没有听见你的声音"]],
-    [["G7","认真呼唤我姓名"]],
+    [["C","啦啦啦啦 稳住第一拍"]],
+    [["Am","啦啦啦啦 提前换和弦"]],
+    [["F","啦啦啦啦 右手保持匀速"]],
+    [["G7","啦啦啦啦 轻轻收尾"]],
     [["C","把四个和弦接成完整歌曲片段"]]
   ].map((line, index) => `<div class="lyric-line ${index === 2 ? "now" : ""}">${line.map(([chord, text]) => `<span class="chord">${chord}</span>${text}`).join(" ")}</div>`).join("");
   openSheet("songDetail");
@@ -1274,7 +1292,6 @@ $("#tunerCalibrate").addEventListener("click", () => {
 $("#metroToggle").addEventListener("click", toggleMetro);
 $("#bpmDown").addEventListener("click", () => { bpm = Math.max(40, bpm - 5); renderMetro(); });
 $("#bpmUp").addEventListener("click", () => { bpm = Math.min(240, bpm + 5); renderMetro(); });
-$("#detailPlay").addEventListener("click", () => toast("进入歌曲片段跟弹"));
 const defaultAppState = {
   todayMinutes: 12,
   streak: 7,
@@ -1298,6 +1315,7 @@ let appState = loadAppState();
 let activeCourseTab = "required";
 let activeSongFilter = "all";
 let activeSongQuery = "";
+let activeSongTitle = songs[0].title;
 let selectedCourseOrder = 3;
 const extraCourses = [
   { order: 6, emoji: "🎵", title: "切分节奏和扫弦方向", subtitle: "下下上上、弱起和切音的入门练习", progress: 0, meta: "14 分钟 · 选修", free: true, type: "optional" },
@@ -1663,7 +1681,7 @@ function renderSongs() {
     const searchMatch = !query || `${song.title} ${song.artist} ${song.key}`.toLowerCase().includes(query);
     return filterMatch && searchMatch;
   });
-  $("#songList").innerHTML = visible.map(song => `<button class="song-row clickable" data-open-song="${song.title}"><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light});position:relative">${song.emoji}${song.diff === "会员" ? "<span class='member-tag' style='position:absolute;right:-8px;top:-5px'>会员</span>" : ""}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · ${song.key} 调 · ${song.bpm} BPM</small></div><div class="difficulty">${starText(song.stars)}<br>${song.diff}</div></button>`).join("") || `<div class="empty-state">没有找到匹配曲谱。</div>`;
+  $("#songList").innerHTML = visible.map(song => `<button class="song-row clickable" data-open-song="${song.title}"><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light});position:relative">${song.emoji}${song.diff === "会员" ? "<span class='member-tag' style='position:absolute;right:-8px;top:-5px'>会员</span>" : ""}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · ${song.key} 调 · ${song.bpm} BPM · ${song.chords.join("-")}</small></div><div class="difficulty">${starText(song.stars)}<br>${song.diff}</div></button>`).join("") || `<div class="empty-state">没有找到匹配曲谱。</div>`;
   $all("[data-song-filter]").forEach(node => node.classList.toggle("active", node.dataset.songFilter === activeSongFilter));
 }
 function renderMe() {
@@ -1736,16 +1754,20 @@ function openSong(title) {
     openSheet("paywall");
     return;
   }
+  activeSongTitle = song.title;
   $("#detailTitle").textContent = song.title;
   $("#detailArtist").textContent = `${song.artist} · ${song.diff}弹唱`;
-  $("#lyrics").innerHTML = [
-    [["C","我听见雨滴落在青青草地"]],
-    [["Am","我听见远方下课钟声响起"]],
-    [["F","可是我没有听见你的声音"]],
-    [["G7","认真呼唤我姓名"]],
-    [["C","把四个和弦接成完整歌曲片段"]]
-  ].map((line, index) => `<div class="lyric-line ${index === 2 ? "now" : ""}">${line.map(([chord, text]) => `<span class="chord">${chord}</span>${text}`).join(" ")}</div>`).join("");
+  $("#songDetail .key-row").innerHTML = `<span>Key ${song.key}</span><span>${song.bpm} BPM</span><span>${song.chords.join("-")}</span><span>${starText(song.stars)} ${song.diff}</span>`;
+  $("#detailPlay").textContent = song.templateId ? "开始歌曲片段跟弹" : "先练四和弦";
+  $("#lyrics").innerHTML = song.lyrics
+    .map((line, index) => `<div class="lyric-line ${index === 0 ? "now" : ""}"><span class="chord">${line[0]}</span>${line[1]}</div>`)
+    .join("");
   openSheet("songDetail");
+}
+function startSongPractice() {
+  const song = songs.find(item => item.title === activeSongTitle) || songs[0];
+  closeSheet("songDetail");
+  openPracticeTemplate(song.templateId || "practice-c-am-f-g7-loop");
 }
 function bindEnhancedPreview() {
   document.addEventListener("click", event => {
@@ -1789,9 +1811,7 @@ function bindEnhancedPreview() {
     if (event.target.id === "courseNext") completeCourseStep();
     if (event.target.id === "coursePractice") openCoursePractice();
     if (event.target.id === "detailPlay") {
-      closeSheet("songDetail");
-      openSheet("follow");
-      renderFollow();
+      startSongPractice();
     }
     if (event.target.id === "rhythmToggle") toggleRhythm();
     if (event.target.id === "rhythmComplete") completeRhythm();
