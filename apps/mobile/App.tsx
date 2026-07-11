@@ -17,6 +17,7 @@ import {
   designPrinciples,
   designTokens,
   filterBeginnerSongs,
+  getMvpCourseForPracticeTemplate,
   mvpPracticeTemplates,
   mvpLesson,
   mvpPracticeContent,
@@ -1706,6 +1707,7 @@ function PracticeScreen({
   const practiceTargets = activeTemplate.targets ?? chordLoopPractice.targets;
   const activeBeatNumbers = useMemo(() => getPracticeBeatNumbers(activeTemplate), [activeTemplate]);
   const activeTemplateIndex = Math.max(0, practiceTemplates.findIndex((template) => template.id === activeTemplate.id));
+  const activeCourse = getMvpCourseForPracticeTemplate(activeTemplate.id);
   const activeSong = useMemo(() => getSongForPracticeTemplate(activeTemplate), [activeTemplate]);
   const songPracticeLines = useMemo(() => getSongPracticeLines(activeSong), [activeSong]);
   const [completedSteps, setCompletedSteps] = useState<boolean[]>(() =>
@@ -1940,6 +1942,17 @@ function PracticeScreen({
   return (
     <View style={styles.stack}>
       <SectionTitle title="跟练" detail={`${getPracticeTemplateShortLabel(activeTemplate)} · ${practiceBpm} BPM · ${activeTemplate.timeSignature}`} />
+      {activeCourse ? (
+        <View style={styles.practiceCoursePanel}>
+          <View style={styles.practiceCourseBadge}>
+            <Text style={styles.practiceCourseBadgeText}>第 {activeCourse.order} 课</Text>
+          </View>
+          <View style={styles.practiceCourseCopy}>
+            <Text style={styles.practiceCourseTitle}>{activeCourse.title}</Text>
+            <Text style={styles.practiceCourseMeta}>{activeCourse.subtitle}</Text>
+          </View>
+        </View>
+      ) : null}
       <View style={styles.practiceSession}>
         <View style={styles.reportHeader}>
           <View>
@@ -2747,6 +2760,43 @@ const styles = StyleSheet.create({
     backgroundColor: colors.coral,
     alignItems: "center",
     justifyContent: "center"
+  },
+  practiceCoursePanel: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    padding: 10,
+    gap: 10
+  },
+  practiceCourseBadge: {
+    minWidth: 62,
+    borderRadius: 8,
+    backgroundColor: "#E6F4EA",
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    alignItems: "center"
+  },
+  practiceCourseBadgeText: {
+    color: successGreen,
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  practiceCourseCopy: {
+    flex: 1,
+    gap: 3
+  },
+  practiceCourseTitle: {
+    color: colors.forest,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  practiceCourseMeta: {
+    color: "#756D64",
+    fontSize: 12,
+    lineHeight: 17
   },
   songDetailCard: {
     borderRadius: 8,

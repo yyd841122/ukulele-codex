@@ -16,6 +16,8 @@ import {
   formatPracticeDayKey,
   getBeginnerSongById,
   getContentModuleById,
+  getMvpCourseForPracticeTemplate,
+  getMvpCoursesForPracticeTemplate,
   getMvpCourseById,
   getMvpPracticeTemplate,
   getPracticeTemplatesByType,
@@ -206,6 +208,18 @@ test("MVP course progress can be inferred from practice history", () => {
   const coursePath = buildMvpCourseProgressPath([passingRecord]);
   assert.equal(coursePath.find((course) => course.id === rhythmCourse.id).status, "done");
   assert.equal(coursePath.find((course) => course.id === transitionCourse.id).status, "current");
+});
+
+test("practice templates can resolve their owning courses", () => {
+  assert.equal(
+    getMvpCourseForPracticeTemplate("practice-rhythm-down-four").id,
+    "course-rhythm-down-four"
+  );
+  assert.deepEqual(
+    getMvpCoursesForPracticeTemplate("practice-c-am-f-g7-loop").map((course) => course.id),
+    ["course-c-am-transition"]
+  );
+  assert.equal(getMvpCourseForPracticeTemplate("missing-template"), null);
 });
 
 test("M0 agent backlog has pending microphone integration", () => {

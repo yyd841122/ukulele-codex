@@ -640,6 +640,14 @@ export const getContentModuleById = (id) =>
 export const getMvpCourseById = (id) =>
   mvpCourseCatalog.find((course) => course.id === id) ?? null;
 
+export const getMvpCoursesForPracticeTemplate = (templateId) =>
+  mvpCourseCatalog.filter((course) =>
+    [course.primaryPracticeTemplateId, course.followupPracticeTemplateId].includes(templateId)
+  );
+
+export const getMvpCourseForPracticeTemplate = (templateId) =>
+  getMvpCoursesForPracticeTemplate(templateId)[0] ?? null;
+
 export const practiceRecordVersion = 1;
 
 const copyIfPresent = (source, target, key) => {
