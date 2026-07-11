@@ -433,6 +433,41 @@ export const beginnerSongCatalog = [
   }
 ];
 
+/**
+ * @param {{
+ *   access?: "free" | "pro" | string,
+ *   maxDifficulty?: number,
+ *   minDifficulty?: number,
+ *   query?: string
+ * }} [options]
+ */
+export const filterBeginnerSongs = ({
+  access,
+  maxDifficulty,
+  minDifficulty,
+  query = ""
+} = {}) => {
+  const normalizedQuery = String(query).trim().toLowerCase();
+  const queryTokens = normalizedQuery.split(/\s+/).filter(Boolean);
+
+  return beginnerSongCatalog.filter((song) => {
+    const accessMatch = !access || song.access === access;
+    const maxDifficultyMatch = maxDifficulty == null || song.difficulty <= maxDifficulty;
+    const minDifficultyMatch = minDifficulty == null || song.difficulty >= minDifficulty;
+    const searchText = [
+      song.title,
+      song.artist,
+      song.key,
+      song.level,
+      ...(song.chordNames ?? []),
+      ...(song.tags ?? [])
+    ].join(" ").toLowerCase();
+    const queryMatch = queryTokens.length === 0 || queryTokens.every((token) => searchText.includes(token));
+
+    return accessMatch && maxDifficultyMatch && minDifficultyMatch && queryMatch;
+  });
+};
+
 export const mvpCourseCatalog = [
   {
     id: "course-uke-intro",

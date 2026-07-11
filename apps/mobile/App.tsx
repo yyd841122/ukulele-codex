@@ -15,6 +15,7 @@ import {
   chordLoopPractice,
   designPrinciples,
   designTokens,
+  filterBeginnerSongs,
   mvpPracticeTemplates,
   mvpLesson,
   mvpPracticeContent,
@@ -1553,15 +1554,11 @@ function SongsScreen({
     { id: "advanced", label: "进阶" },
     { id: "pro", label: "Pro" }
   ];
-  const normalizedQuery = query.trim().toLowerCase();
-  const visibleSongs = songs.filter((song) => {
-    const filterMatch =
-      filter === "all" ||
-      (filter === "entry" && song.difficulty <= 1 && song.access === "free") ||
-      (filter === "advanced" && song.difficulty > 1 && song.access === "free") ||
-      (filter === "pro" && song.access === "pro");
-    const searchText = `${song.title} ${song.artist} ${song.key} ${song.level} ${(song.chordNames ?? []).join(" ")}`.toLowerCase();
-    return filterMatch && (!normalizedQuery || searchText.includes(normalizedQuery));
+  const visibleSongs = filterBeginnerSongs({
+    query,
+    access: filter === "pro" ? "pro" : filter === "all" ? undefined : "free",
+    maxDifficulty: filter === "entry" ? 1 : undefined,
+    minDifficulty: filter === "advanced" ? 2 : undefined
   });
 
   return (

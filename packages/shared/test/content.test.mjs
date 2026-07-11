@@ -10,6 +10,7 @@ import {
   designTokens,
   evaluateMvpLessonProgress,
   evaluatePracticeMilestone,
+  filterBeginnerSongs,
   formatPracticeDayKey,
   getBeginnerSongById,
   getContentModuleById,
@@ -155,6 +156,25 @@ test("MVP shared content links songs fragments rhythms and templates", () => {
   for (const templateId of song.practiceTemplateIds) {
     assert.ok(getMvpPracticeTemplate(templateId));
   }
+});
+
+test("song catalog can be filtered for library views", () => {
+  assert.deepEqual(
+    filterBeginnerSongs({ access: "free", maxDifficulty: 1 }).map((song) => song.id),
+    ["song-four-chord-hum"]
+  );
+  assert.deepEqual(
+    filterBeginnerSongs({ access: "free", minDifficulty: 2 }).map((song) => song.id),
+    ["song-island-strum-demo"]
+  );
+  assert.deepEqual(
+    filterBeginnerSongs({ access: "pro" }).map((song) => song.id),
+    ["song-riptide-style-progression"]
+  );
+  assert.deepEqual(
+    filterBeginnerSongs({ query: "Am G7" }).map((song) => song.id),
+    ["song-four-chord-hum", "song-island-strum-demo", "song-riptide-style-progression"]
+  );
 });
 
 test("M0 agent backlog has pending microphone integration", () => {
