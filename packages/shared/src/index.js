@@ -1197,6 +1197,45 @@ export const createNextPracticeRecommendation = (history = [], options = {}) => 
   });
 };
 
+export const summarizeMvpPracticePath = (history = []) => {
+  const rawHistory = Array.isArray(history) ? history.filter((record) => record && typeof record === "object") : [];
+  const records = normalizePracticeHistory(rawHistory, rawHistory.length);
+
+  return mvpPracticeRecommendationPath.map((step) => {
+    const template = getMvpPracticeTemplate(step.templateId);
+    const course = mvpCourseCatalog.find((item) => item.id === step.courseId) ?? null;
+    const stepRecords = template
+      ? records.filter((record) => practiceRecordMatchesTemplateId(record, template.id))
+      : [];
+    const latestRecord = stepRecords[0] ?? null;
+    const rhythmScores = stepRecords
+      .map((record) => practiceRecordRhythmScore(record))
+      .filter((score) => score !== null);
+    const targetCount = template
+      ? (latestRecord ? practiceRecordTargetCount(latestRecord, template) : practiceTargetsForTemplate(template).length)
+      : 0;
+    const completedCount = latestRecord ? practiceRecordCompletedCount(latestRecord) : 0;
+    const passed = template
+      ? stepRecords.some((record) => practiceRecordPassesTemplate(record, template))
+      : false;
+
+    return {
+      courseId: step.courseId,
+      templateId: step.templateId,
+      songId: course?.linkedSongId ?? null,
+      type: template?.type ?? "unknown",
+      title: course?.title ?? template?.display?.title ?? step.templateId,
+      attempts: stepRecords.length,
+      status: passed ? "passed" : stepRecords.length > 0 ? "in_progress" : "not_started",
+      completedCount,
+      targetCount,
+      bestRhythmScore: rhythmScores.length > 0 ? Math.max(...rhythmScores) : null,
+      latestRhythmScore: latestRecord ? practiceRecordRhythmScore(latestRecord) : null,
+      weakPoint: latestRecord && template ? practiceRecordWeakPoint(latestRecord, template) : null
+    };
+  });
+};
+
 const milestoneCompletedCountForRecord = (record) => {
   const completedTargetCount = numberOrNull(record?.completedTargetCount);
   if (completedTargetCount !== null) {

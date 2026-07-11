@@ -37,6 +37,7 @@ import {
   practiceRecordVersion,
   practiceTempoPresets,
   summarizePracticeHistory,
+  summarizeMvpPracticePath,
   summarizePracticeRecord,
   ukuleleInstrument
 } from "../src/index.js";
@@ -774,4 +775,41 @@ test("content path recommendation advances from transition to song fragment", ()
   assert.equal(recommendation.templateId, "practice-song-fragment-four-chord-hum");
   assert.equal(recommendation.courseId, "course-first-song-fragment");
   assert.equal(recommendation.songId, "song-four-chord-hum");
+});
+
+test("MVP practice path summary starts with empty template states", () => {
+  const summary = summarizeMvpPracticePath([]);
+
+  assert.deepEqual(summary.map((item) => [item.templateId, item.status, item.attempts]), [
+    ["practice-rhythm-down-four", "not_started", 0],
+    ["practice-transition-c-am", "not_started", 0],
+    ["practice-song-fragment-four-chord-hum", "not_started", 0]
+  ]);
+});
+
+test("MVP practice path summary reports passed and in-progress templates", () => {
+  const summary = summarizeMvpPracticePath([
+    {
+      endedAt: "2026-07-05T10:00:00.000Z",
+      templateId: "practice-rhythm-down-four",
+      completedCount: 4,
+      totalSteps: 4,
+      rhythmScore: 78
+    },
+    {
+      endedAt: "2026-07-05T10:05:00.000Z",
+      templateId: "practice-transition-c-am",
+      completedCount: 1,
+      totalSteps: 2,
+      rhythmScore: 66,
+      events: [{ type: "bar", step: 1, chord: "Am" }]
+    }
+  ]);
+
+  assert.equal(summary[0].status, "passed");
+  assert.equal(summary[0].bestRhythmScore, 78);
+  assert.equal(summary[1].status, "in_progress");
+  assert.equal(summary[1].completedCount, 1);
+  assert.equal(summary[1].weakPoint, "Am");
+  assert.equal(summary[2].status, "not_started");
 });

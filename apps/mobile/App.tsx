@@ -302,6 +302,21 @@ type PracticeMilestoneEvaluation = {
   canPass: boolean;
 };
 
+type PracticePathSummaryItem = {
+  courseId: string;
+  templateId: string;
+  songId?: string | null;
+  type: string;
+  title: string;
+  attempts: number;
+  status: "not_started" | "in_progress" | "passed";
+  completedCount: number;
+  targetCount: number;
+  bestRhythmScore: number | null;
+  latestRhythmScore: number | null;
+  weakPoint: string | null;
+};
+
 type LessonPathStatus = "done" | "current" | "pending" | "locked";
 
 type LessonPathNode = {
@@ -361,6 +376,7 @@ type SharedPracticeTools = Partial<{
     history: Array<Record<string, unknown>>,
     options?: Record<string, unknown>
   ) => LessonPathProgress;
+  summarizeMvpPracticePath: (history: Array<Record<string, unknown>>) => PracticePathSummaryItem[];
   evaluateLessonProgress: (
     history: Array<Record<string, unknown>>,
     template?: Record<string, unknown>
@@ -741,6 +757,31 @@ function localizeMilestoneEvaluation(evaluation: PracticeMilestoneEvaluation): P
   };
 }
 
+function summarizeLocalPracticePath(history: PracticeSessionRecord[]): PracticePathSummaryItem[] {
+  const sharedSummary = sharedPracticeTools.summarizeMvpPracticePath?.(history);
+  if (sharedSummary) {
+    return sharedSummary;
+  }
+  return ["practice-rhythm-down-four", "practice-transition-c-am", "practice-song-fragment-four-chord-hum"].map((templateId) => {
+    const template = getPracticeTemplateById(templateId);
+    const course = getMvpCourseForPracticeTemplate(templateId);
+    return {
+      courseId: course?.id ?? "",
+      templateId,
+      songId: course?.linkedSongId ?? null,
+      type: template.type,
+      title: course?.title ?? getPracticeTemplateTitle(template),
+      attempts: 0,
+      status: "not_started",
+      completedCount: 0,
+      targetCount: template.targets.length,
+      bestRhythmScore: null,
+      latestRhythmScore: null,
+      weakPoint: null
+    };
+  });
+}
+
 function normalizeRecommendation(recommendation: NextPracticeRecommendation): NextPracticeRecommendation {
   const tempoId = recommendation.tempoId === "custom" ? tempoIdFromBpm(recommendation.bpm) : recommendation.tempoId;
   const normalized = {
@@ -814,6 +855,10 @@ export default function App() {
   );
   const practiceHistorySummary = useMemo(
     () => summarizeLocalPracticeHistory(practiceHistory),
+    [practiceHistory]
+  );
+  const practicePathSummary = useMemo(
+    () => summarizeLocalPracticePath(practiceHistory),
     [practiceHistory]
   );
   const nextPracticeRecommendation = useMemo(
@@ -946,6 +991,7 @@ export default function App() {
             practiceMilestone={practiceMilestone}
             practiceHistory={practiceHistory}
             practiceHistorySummary={practiceHistorySummary}
+            practicePathSummary={practicePathSummary}
             recentPracticeSummaries={recentPracticeSummaries}
             contentSummary={sharedContentSummary}
           />
@@ -997,6 +1043,7 @@ function HomeScreen({
   practiceMilestone,
   practiceHistory,
   practiceHistorySummary,
+  practicePathSummary,
   recentPracticeSummaries,
   contentSummary,
   onStart
@@ -1011,6 +1058,7 @@ function HomeScreen({
   practiceMilestone: PracticeMilestoneEvaluation;
   practiceHistory: PracticeSessionRecord[];
   practiceHistorySummary: PracticeHistorySummary;
+  practicePathSummary: PracticePathSummaryItem[];
   recentPracticeSummaries: PracticeRecordSummary[];
   contentSummary: typeof sharedContentSummary;
   onStart: () => void;
@@ -1154,6 +1202,21 @@ function HomeScreen({
         <Text style={styles.reviewReportNote}>
           {latestPracticeSummary?.advice ?? "完成一次跟练后，这里会汇总节奏、完成度和下一步建议。"}
         </Text>
+        <View style={styles.pathSummaryList}>
+          {practicePathSummary.map((item) => (
+            <View key={item.templateId} style={styles.pathSummaryRow}>
+              <View style={styles.pathSummaryCopy}>
+                <Text style={styles.pathSummaryTitle}>{item.title}</Text>
+                <Text style={styles.pathSummaryMeta}>
+                  {item.completedCount}/{item.targetCount} · 节奏 {item.bestRhythmScore ?? "--"} · {item.attempts} 次
+                </Text>
+              </View>
+              <Text style={[styles.pathSummaryBadge, item.status === "passed" && styles.pathSummaryBadgePassed]}>
+                {practicePathStatusLabel(item.status)}
+              </Text>
+            </View>
+          ))}
+        </View>
       </View>
 
       <SectionTitle title="第一课进度" detail={practiceMilestone.title} />
@@ -2533,6 +2596,12 @@ function lessonPathStatusLabel(status: LessonPathStatus) {
   return "未解锁";
 }
 
+function practicePathStatusLabel(status: PracticePathSummaryItem["status"]) {
+  if (status === "passed") return "已达标";
+  if (status === "in_progress") return "练习中";
+  return "未开始";
+}
+
 function tuningActionLabel(cents: number) {
   const amount = Math.abs(cents).toFixed(1);
   if (Math.abs(cents) <= IN_TUNE_CENTS) {
@@ -3157,6 +3226,51 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     fontWeight: "700"
+  },
+  pathSummaryList: {
+    gap: 8
+  },
+  pathSummaryRow: {
+    minHeight: 58,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#F8F3EA",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10
+  },
+  pathSummaryCopy: {
+    flex: 1,
+    gap: 3
+  },
+  pathSummaryTitle: {
+    color: colors.forest,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  pathSummaryMeta: {
+    color: "#756D64",
+    fontSize: 11,
+    fontWeight: "700"
+  },
+  pathSummaryBadge: {
+    minWidth: 56,
+    borderRadius: 999,
+    backgroundColor: "#EEE8DC",
+    color: "#756D64",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    overflow: "hidden",
+    textAlign: "center",
+    fontSize: 11,
+    fontWeight: "900"
+  },
+  pathSummaryBadgePassed: {
+    backgroundColor: "#E6F4EA",
+    color: successGreen
   },
   primaryButton: {
     minHeight: 48,
