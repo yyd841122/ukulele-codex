@@ -1691,17 +1691,11 @@ function ChordScreen() {
       <SectionTitle title="基础和弦" detail="入门四组" />
       {beginnerChords.map((chord) => (
         <View key={chord.id} style={styles.chordCard}>
-          <View>
+          <View style={styles.chordCardCopy}>
             <Text style={styles.chordName}>{chord.name}</Text>
             <Text style={styles.chordMeta}>难度 {chord.difficulty} · {chord.tags.join(" / ")}</Text>
           </View>
-          <View style={styles.fretRow}>
-            {chord.fingering.map((fret, index) => (
-              <View key={`${chord.id}-${index}`} style={styles.fretCell}>
-                <Text style={styles.fretText}>{fret}</Text>
-              </View>
-            ))}
-          </View>
+          <ChordDiagram chord={chord} compact />
         </View>
       ))}
     </View>
@@ -2490,8 +2484,7 @@ function PracticeScreen({
                 <Text style={styles.targetBeat}>第 {getPracticeTargetBar(target, index)} 小节 · 第 {target.beat ?? 1} 拍</Text>
               </View>
               <View style={styles.targetChordBox}>
-                <Text style={styles.targetChord}>{chord}</Text>
-                <MiniFingering chordName={chord} />
+                <ChordMiniCard chordName={chord} dense />
               </View>
             </View>
           );
@@ -2777,19 +2770,6 @@ function ChordDiagram({ chord, compact = false }: { chord: NonNullable<ReturnTyp
           ))}
         </View>
       </View>
-    </View>
-  );
-}
-
-function MiniFingering({ chordName }: { chordName: string }) {
-  const chord = getBeginnerChord(chordName);
-  if (!chord) return null;
-
-  return (
-    <View style={styles.miniFingering}>
-      {chord.fingering.map((fret, index) => (
-        <Text key={`${chord.id}-mini-${index}`} style={styles.miniFret}>{fret}</Text>
-      ))}
     </View>
   );
 }
@@ -4066,6 +4046,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12
   },
+  chordCardCopy: {
+    flex: 1,
+    minWidth: 0
+  },
   chordName: {
     fontSize: 28,
     fontWeight: "900",
@@ -4950,21 +4934,6 @@ const styles = StyleSheet.create({
     marginTop: -4.5,
     borderRadius: 999,
     backgroundColor: "#FF8A3D"
-  },
-  miniFingering: {
-    flexDirection: "row",
-    gap: 2
-  },
-  miniFret: {
-    minWidth: 13,
-    minHeight: 15,
-    borderRadius: 5,
-    overflow: "hidden",
-    textAlign: "center",
-    color: colors.forest,
-    backgroundColor: "#EEE8DC",
-    fontSize: 9,
-    fontWeight: "900"
   },
   resetButton: {
     minHeight: 44,
