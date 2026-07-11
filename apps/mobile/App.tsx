@@ -2358,6 +2358,12 @@ function PracticeScreen({
             </Text>
           </Pressable>
         </View>
+        {activeTemplate.type === "chord_transition" ? (
+          <ChordTransitionFocusPanel
+            chordNames={getPracticeTemplateChordNames(activeTemplate)}
+            activeChordName={getPracticeTargetChord(activeTarget)}
+          />
+        ) : null}
         <View style={styles.practiceMainGrid}>
           <View style={styles.practiceChordColumn}>
             <ChordFingeringGuide chordName={getPracticeTargetChord(activeTarget)} compact />
@@ -2670,6 +2676,41 @@ function ChordFingeringGuide({ chordName, compact = false }: { chordName: string
       <Text style={[styles.fingeringHelp, compact && styles.fingeringHelpCompact]}>
         {compact ? `指法 ${chord.fingering.join("-")} · 数字为手指` : "只弹 ○ / ● 的弦；× 的弦不弹。● 里的数字是手指编号：1 食指 · 2 中指 · 3 无名指。"}
       </Text>
+    </View>
+  );
+}
+
+function ChordTransitionFocusPanel({
+  chordNames,
+  activeChordName
+}: {
+  chordNames: string[];
+  activeChordName: string;
+}) {
+  const visibleNames = chordNames.slice(0, 2);
+  if (visibleNames.length < 2) return null;
+
+  return (
+    <View style={styles.chordTransitionFocusPanel}>
+      <View style={styles.chordTransitionFocusHeader}>
+        <Text style={styles.chordTransitionFocusTitle}>换和弦指法对照</Text>
+        <Text style={styles.chordTransitionFocusMeta}>看图换指，不只看代码</Text>
+      </View>
+      <View style={styles.chordTransitionDiagramRow}>
+        {visibleNames.map((name, index) => {
+          const chord = getBeginnerChord(name);
+          if (!chord) return null;
+          const active = name === activeChordName;
+          return (
+            <View key={`transition-focus-${name}`} style={[styles.chordTransitionDiagramCard, active && styles.chordTransitionDiagramCardActive]}>
+              <Text style={[styles.chordTransitionDiagramLabel, active && styles.chordTransitionDiagramLabelActive]}>
+                {index === 0 ? "起始" : "换到"} · {name}
+              </Text>
+              <ChordDiagram chord={chord} compact />
+            </View>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -4523,6 +4564,59 @@ const styles = StyleSheet.create({
   },
   practiceMicButtonTextReady: {
     color: successGreen
+  },
+  chordTransitionFocusPanel: {
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#DED6CA",
+    backgroundColor: "#FFFDF8",
+    gap: 8
+  },
+  chordTransitionFocusHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10
+  },
+  chordTransitionFocusTitle: {
+    color: colors.forest,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  chordTransitionFocusMeta: {
+    flex: 1,
+    color: "#756D64",
+    fontSize: 11,
+    fontWeight: "800",
+    textAlign: "right"
+  },
+  chordTransitionDiagramRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 8
+  },
+  chordTransitionDiagramCard: {
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#F7F1E7",
+    padding: 8,
+    alignItems: "center",
+    gap: 6
+  },
+  chordTransitionDiagramCardActive: {
+    borderColor: colors.amber,
+    backgroundColor: "#FFF4D9"
+  },
+  chordTransitionDiagramLabel: {
+    color: "#756D64",
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  chordTransitionDiagramLabelActive: {
+    color: colors.forest
   },
   fingeringGuide: {
     marginTop: 2,
