@@ -283,6 +283,9 @@ type NextPracticeRecommendation = {
   tempoId: PracticeTempoId;
   loopMode: PracticeLoopMode;
   focusChord?: string | null;
+  templateId?: string;
+  courseId?: string;
+  songId?: string;
   reason: string;
 };
 
@@ -522,7 +525,7 @@ function summarizeLocalPracticeHistory(history: PracticeSessionRecord[]): Practi
 
 function createLocalNextPracticeRecommendation(history: PracticeSessionRecord[]): NextPracticeRecommendation {
   const sharedRecommendation =
-    sharedPracticeTools.createNextPracticeRecommendation?.(history, { template: chordLoopPractice })
+    sharedPracticeTools.createNextPracticeRecommendation?.(history, { contentPath: true })
     ?? sharedPracticeTools.recommendNextPractice?.(history, chordLoopPractice);
   if (sharedRecommendation) {
     return normalizeRecommendation(sharedRecommendation);
@@ -752,17 +755,28 @@ function normalizeRecommendation(recommendation: NextPracticeRecommendation): Ne
 
 function localizeRecommendation(recommendation: NextPracticeRecommendation): NextPracticeRecommendation {
   const modeLabel = recommendation.loopMode === "single" ? "只练当前" : "自动循环";
-  const targetLabel = recommendation.focusChord ?? "C-Am-F-G7";
+  const template = getPracticeTemplateById(recommendation.templateId);
+  const targetLabel = recommendation.focusChord ?? getPracticeTemplateShortLabel(template);
   const title = recommendation.loopMode === "single"
     ? `稳住 ${targetLabel}`
-    : recommendation.bpm >= 85
-      ? "升到进阶速度"
-      : recommendation.bpm <= 60
-        ? "从慢速循环开始"
-        : "保持标准速度";
+    : template.type === "rhythm_pattern"
+      ? "先稳右手节奏"
+      : template.type === "chord_transition"
+        ? "练和弦转换"
+        : template.type === "song_fragment"
+          ? "进入歌曲片段"
+          : recommendation.bpm >= 85
+            ? "升到进阶速度"
+            : recommendation.bpm <= 60
+              ? "从慢速循环开始"
+              : "保持标准速度";
   const detail = recommendation.loopMode === "single"
     ? `用 ${recommendation.bpm} BPM ${modeLabel}，先把 ${targetLabel} 的换指和完成时机练稳。`
-    : `用 ${recommendation.bpm} BPM ${modeLabel}，完整跑顺四和弦循环。`;
+    : template.type === "rhythm_pattern"
+      ? `用 ${recommendation.bpm} BPM ${modeLabel}，先把右手节奏型扫稳。`
+      : template.type === "song_fragment"
+        ? `用 ${recommendation.bpm} BPM ${modeLabel}，跟着歌曲片段练小节、和弦和节奏。`
+        : `用 ${recommendation.bpm} BPM ${modeLabel}，完整跑顺 ${targetLabel}。`;
 
   return {
     ...recommendation,

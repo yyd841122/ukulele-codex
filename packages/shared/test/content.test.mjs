@@ -727,3 +727,51 @@ test("next practice recommendation keeps single mode on unfinished weak chord", 
   assert.equal(recommendation.focusChord, "F");
   assert.equal(recommendation.reason, "Latest single-mode practice was not complete.");
 });
+
+test("content path recommendation starts with rhythm pattern", () => {
+  const recommendation = createNextPracticeRecommendation([], { contentPath: true });
+
+  assert.equal(recommendation.templateId, "practice-rhythm-down-four");
+  assert.equal(recommendation.courseId, "course-rhythm-down-four");
+  assert.equal(recommendation.bpm, 60);
+  assert.equal(recommendation.loopMode, "auto");
+});
+
+test("content path recommendation advances from rhythm to chord transition", () => {
+  const recommendation = createNextPracticeRecommendation([
+    {
+      endedAt: "2026-07-05T10:00:00.000Z",
+      templateId: "practice-rhythm-down-four",
+      completedCount: 4,
+      totalSteps: 4,
+      rhythmScore: 78
+    }
+  ], { contentPath: "mvp" });
+
+  assert.equal(recommendation.templateId, "practice-transition-c-am");
+  assert.equal(recommendation.courseId, "course-c-am-transition");
+  assert.equal(recommendation.bpm, 60);
+});
+
+test("content path recommendation advances from transition to song fragment", () => {
+  const recommendation = createNextPracticeRecommendation([
+    {
+      endedAt: "2026-07-05T10:00:00.000Z",
+      templateId: "practice-rhythm-down-four",
+      completedCount: 4,
+      totalSteps: 4,
+      rhythmScore: 78
+    },
+    {
+      endedAt: "2026-07-05T10:05:00.000Z",
+      templateId: "practice-transition-c-am",
+      completedCount: 2,
+      totalSteps: 2,
+      rhythmScore: 76
+    }
+  ], { contentPath: true });
+
+  assert.equal(recommendation.templateId, "practice-song-fragment-four-chord-hum");
+  assert.equal(recommendation.courseId, "course-first-song-fragment");
+  assert.equal(recommendation.songId, "song-four-chord-hum");
+});

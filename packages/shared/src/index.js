@@ -1021,17 +1021,106 @@ const practiceRecordWeakPoint = (record, template) => {
   return summarizePracticeRecord(record).weakPoint ?? currentChord;
 };
 
-const makePracticeRecommendation = ({ title, detail, bpm, tempoId, loopMode, focusChord, reason }) => ({
+const practiceRecordMatchesTemplateId = (record, templateId) =>
+  record?.exerciseId === templateId ||
+  record?.templateId === templateId ||
+  record?.template?.id === templateId;
+
+const practiceRecordHasPassedStatus = (record) => {
+  if (record?.passed === true || record?.result?.passed === true) {
+    return true;
+  }
+  return [record?.status, record?.result, record?.result?.status]
+    .filter((value) => typeof value === "string")
+    .some((value) => ["passed", "complete", "completed", "done"].includes(value.toLowerCase()));
+};
+
+const practiceRecordPassesTemplate = (record, template) => {
+  const targetCount = practiceRecordTargetCount(record, template);
+  const completedCount = practiceRecordCompletedCount(record);
+  const rhythmScore = practiceRecordRhythmScore(record);
+  const passingScore = numberOrNull(template?.passingScore) ?? chordLoopPractice.passingScore;
+  return practiceRecordHasPassedStatus(record) ||
+    (targetCount > 0 && completedCount >= targetCount && rhythmScore !== null && rhythmScore >= passingScore);
+};
+
+const mvpPracticeRecommendationPath = [
+  { courseId: "course-rhythm-down-four", templateId: "practice-rhythm-down-four" },
+  { courseId: "course-c-am-transition", templateId: "practice-transition-c-am" },
+  { courseId: "course-first-song-fragment", templateId: "practice-song-fragment-four-chord-hum" }
+];
+
+const makePracticeRecommendation = ({
   title,
   detail,
   bpm,
   tempoId,
   loopMode,
   focusChord,
-  reason
-});
+  reason,
+  templateId,
+  courseId,
+  songId
+}) => {
+  const recommendation = {
+    title,
+    detail,
+    bpm,
+    tempoId,
+    loopMode,
+    focusChord,
+    reason
+  };
+  if (templateId) recommendation.templateId = templateId;
+  if (courseId) recommendation.courseId = courseId;
+  if (songId) recommendation.songId = songId;
+  return recommendation;
+};
+
+const createNextContentPathRecommendation = (history = []) => {
+  const rawHistory = Array.isArray(history) ? history.filter((record) => record && typeof record === "object") : [];
+  const records = normalizePracticeHistory(rawHistory, rawHistory.length);
+
+  for (const step of mvpPracticeRecommendationPath) {
+    const template = getMvpPracticeTemplate(step.templateId);
+    if (!template) continue;
+
+    const course = mvpCourseCatalog.find((item) => item.id === step.courseId) ?? null;
+    const stepRecords = records.filter((record) => practiceRecordMatchesTemplateId(record, template.id));
+    const passed = stepRecords.some((record) => practiceRecordPassesTemplate(record, template));
+    if (passed) continue;
+
+    const recommendation = createNextPracticeRecommendation(stepRecords, { template });
+    return makePracticeRecommendation({
+      ...recommendation,
+      templateId: template.id,
+      courseId: step.courseId,
+      songId: course?.linkedSongId,
+      reason:
+        stepRecords.length === 0
+          ? `Next MVP path step: ${course?.title ?? template.title}.`
+          : recommendation.reason
+    });
+  }
+
+  const finalStep = mvpPracticeRecommendationPath[mvpPracticeRecommendationPath.length - 1];
+  const finalTemplate = getMvpPracticeTemplate(finalStep.templateId) ?? chordLoopPractice;
+  const finalRecords = records.filter((record) => practiceRecordMatchesTemplateId(record, finalTemplate.id));
+  const recommendation = createNextPracticeRecommendation(finalRecords, { template: finalTemplate });
+  return makePracticeRecommendation({
+    ...recommendation,
+    templateId: finalTemplate.id,
+    courseId: finalStep.courseId,
+    songId: mvpCourseCatalog.find((item) => item.id === finalStep.courseId)?.linkedSongId,
+    reason: "The MVP path is complete; keep the song fragment fresh or raise the tempo."
+  });
+};
 
 export const createNextPracticeRecommendation = (history = [], options = {}) => {
+  if (options.contentPath === true || options.contentPath === "mvp") {
+    return createNextContentPathRecommendation(history);
+  }
+
   const template = options.template ?? chordLoopPractice;
   const targetsLabel = practiceTargetLabel(template);
   const slowPreset = practiceTempoPresetForId(template, "slow", 60);
@@ -1106,16 +1195,6 @@ export const createNextPracticeRecommendation = (history = [], options = {}) => 
     focusChord: null,
     reason: "Latest practice is stable enough to continue, but not ready for a tempo increase."
   });
-};
-
-const practiceRecordHasPassedStatus = (record) => {
-  if (record?.passed === true || record?.result?.passed === true) {
-    return true;
-  }
-
-  return [record?.status, record?.result, record?.result?.status]
-    .filter((value) => typeof value === "string")
-    .some((value) => value.toLowerCase() === "passed");
 };
 
 const milestoneCompletedCountForRecord = (record) => {
@@ -1313,11 +1392,6 @@ const coursePracticeTemplateIds = (course = {}) =>
   [course.primaryPracticeTemplateId, course.followupPracticeTemplateId].filter(
     (id) => typeof id === "string" && id.length > 0
   );
-
-const practiceRecordMatchesTemplateId = (record, templateId) =>
-  record?.exerciseId === templateId ||
-  record?.templateId === templateId ||
-  record?.template?.id === templateId;
 
 /**
  * @param {object} course
