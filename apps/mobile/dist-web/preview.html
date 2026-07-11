@@ -1137,6 +1137,7 @@ const courses = [
     access: "free",
     defaultProgress: 0,
     primaryRhythmPatternId: "rhythm-down-down-up-up",
+    primaryPracticeTemplateId: "practice-rhythm-down-down-up-up",
     segments: ["节奏方向", "空拍练习", "切分扫弦", "应用到歌曲"]
   },
   {
@@ -1433,6 +1434,7 @@ let activeSongTitle = songs[0].title;
 let selectedCourseOrder = 3;
 const practiceTemplates = [
   { id: "practice-rhythm-down-four", courseOrder: 3, sheet: "rhythm", type: "节奏型", title: "下扫四拍", bpm: 60, detail: "第一拍重音，后三拍轻扫，先让右手稳定。", targets: ["强", "轻", "轻", "轻"] },
+  { id: "practice-rhythm-down-down-up-up", courseOrder: 6, sheet: "rhythm", type: "节奏型", title: "下下上上", bpm: 60, detail: "常见弹唱扫弦方向，先慢速熟悉下、下上、上、下上。", targets: ["强", "下上", "轻", "上下"], patternIndex: 1 },
   { id: "practice-transition-c-am", courseOrder: 4, sheet: "transition", type: "和弦转换", title: "C → Am 转换", bpm: 60, detail: "提前准备二指，在下一小节第一拍落到 Am。", targets: ["C", "Am"] },
   { id: "practice-c-am-f-g7-loop", courseOrder: 4, sheet: "transition", type: "四和弦循环", title: "C-Am-F-G7", bpm: 70, detail: "把四个入门和弦连成稳定循环。", targets: ["C", "Am", "F", "G7"] },
   { id: "practice-song-fragment-four-chord-hum", courseOrder: 5, sheet: "follow", type: "歌曲片段", title: "童年前 4 小节", bpm: 70, detail: "把节奏和换和弦放回真实歌曲片段。", targets: ["C", "Am", "F", "G7"] }
@@ -1577,7 +1579,7 @@ function openPracticeTemplate(templateId) {
   const template = practiceTemplates.find(item => item.id === templateId);
   if (!template) return;
   if (template.sheet === "rhythm") {
-    rhythmState.pattern = 0;
+    rhythmState.pattern = template.patternIndex || 0;
     rhythmState.beat = 0;
     openSheet("rhythm");
     renderRhythm();

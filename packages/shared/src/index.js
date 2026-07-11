@@ -201,17 +201,21 @@ export const mvpSkillPath = [
   { id: "review", type: "report", title: "复盘节奏和换和弦", required: true }
 ];
 
-const rhythmDownFourTargets = beginnerRhythmPatterns[0].beats.map((beat) => ({
-  id: `beat-${beat.beat}-${beat.subdivision}`,
-  bar: 1,
-  beat: beat.beat,
-  subdivision: beat.subdivision,
-  stroke: beat.stroke,
-  accent: beat.accent,
-  chord: "C",
-  chordId: "uke-c",
-  primaryNote: "C4"
-}));
+const rhythmPatternTargets = (pattern, chord = "C", chordId = "uke-c", primaryNote = "C4") =>
+  pattern.beats.map((beat) => ({
+    id: `${pattern.id}-beat-${beat.beat}-${beat.subdivision}`,
+    bar: 1,
+    beat: beat.beat,
+    subdivision: beat.subdivision,
+    stroke: beat.stroke,
+    accent: beat.accent,
+    chord,
+    chordId,
+    primaryNote
+  }));
+
+const rhythmDownFourTargets = rhythmPatternTargets(beginnerRhythmPatterns[0]);
+const rhythmDownDownUpUpTargets = rhythmPatternTargets(beginnerRhythmPatterns[1]);
 
 const cAmTransitionTargets = [
   { id: "transition-c", bar: 1, beat: 1, chord: "C", chordId: "uke-c", primaryNote: "C4" },
@@ -270,6 +274,28 @@ export const mvpPracticeTemplates = [
       primaryLabel: "开始节奏",
       secondaryLabel: "循环一小节",
       completionLabel: "完成节奏练习"
+    }
+  },
+  {
+    id: "practice-rhythm-down-down-up-up",
+    type: "rhythm_pattern",
+    instrument: "ukulele",
+    bpm: 60,
+    timeSignature: "4/4",
+    passingScore: 70,
+    rhythmPatternId: "rhythm-down-down-up-up",
+    targets: rhythmDownDownUpUpTargets,
+    tempoPresets: practiceTempoPresets,
+    loopModes: practiceLoopModes,
+    display: {
+      title: "下下上上",
+      subtitle: "在慢速下熟悉下、下上、上、下上的常见弹唱扫弦方向。",
+      targetLabel: "扫弦方向"
+    },
+    action: {
+      primaryLabel: "开始扫弦",
+      secondaryLabel: "循环一小节",
+      completionLabel: "完成进阶节奏"
     }
   },
   {
@@ -550,6 +576,7 @@ export const mvpCourseCatalog = [
     access: "free",
     defaultProgress: 0,
     primaryRhythmPatternId: "rhythm-down-down-up-up",
+    primaryPracticeTemplateId: "practice-rhythm-down-down-up-up",
     segments: ["节奏方向", "空拍练习", "切分扫弦", "应用到歌曲"],
     tags: ["optional", "rhythm"]
   },

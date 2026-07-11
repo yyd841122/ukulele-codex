@@ -75,7 +75,7 @@ test("MVP content path includes rhythm transitions and song fragment", () => {
 });
 
 test("practice templates cover the real beginner practice ladder", () => {
-  assert.equal(getPracticeTemplatesByType("rhythm_pattern").length, 1);
+  assert.equal(getPracticeTemplatesByType("rhythm_pattern").length, 2);
   assert.equal(getPracticeTemplatesByType("chord_transition").length, 1);
   assert.equal(getPracticeTemplatesByType("chord_switch").length, 1);
   assert.equal(getPracticeTemplatesByType("song_fragment").length, 1);
@@ -215,6 +215,10 @@ test("practice templates can resolve their owning courses", () => {
   assert.equal(
     getMvpCourseForPracticeTemplate("practice-rhythm-down-four").id,
     "course-rhythm-down-four"
+  );
+  assert.equal(
+    getMvpCourseForPracticeTemplate("practice-rhythm-down-down-up-up").id,
+    "course-island-strum"
   );
   assert.deepEqual(
     getMvpCoursesForPracticeTemplate("practice-c-am-f-g7-loop").map((course) => course.id),

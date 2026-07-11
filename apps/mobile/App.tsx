@@ -103,13 +103,51 @@ const sharedContentSummary = {
   courseCount: practiceContent.courses.length,
   songCount: practiceContent.songs.length
 };
-const practiceTemplates = practiceContent.practiceTemplates.length > 0
-  ? practiceContent.practiceTemplates
-  : mvpPracticeTemplates;
-const defaultPracticeTemplate = chordLoopPractice;
+type PracticeTarget = {
+  id: string;
+  bar?: number;
+  beat?: number;
+  subdivision?: number;
+  stroke?: string;
+  accent?: boolean;
+  chord?: string;
+  chordId?: string;
+  primaryNote?: string;
+  lyric?: string;
+  cue?: string;
+  rhythmPatternId?: string;
+};
+type PracticeTemplate = {
+  id: string;
+  type: string;
+  instrument?: string;
+  bpm: number;
+  timeSignature: string;
+  passingScore?: number;
+  rhythmPatternId?: string;
+  transitionId?: string;
+  songFragmentId?: string;
+  targets: PracticeTarget[];
+  tempoPresets?: typeof practiceTempoPresets;
+  loopModes?: typeof practiceLoopModes;
+  display?: {
+    title?: string;
+    subtitle?: string;
+    targetLabel?: string;
+  };
+  action?: {
+    primaryLabel?: string;
+    secondaryLabel?: string;
+    completionLabel?: string;
+  };
+};
+const practiceTemplates = (
+  practiceContent.practiceTemplates.length > 0
+    ? practiceContent.practiceTemplates
+    : mvpPracticeTemplates
+) as PracticeTemplate[];
+const defaultPracticeTemplate = chordLoopPractice as PracticeTemplate;
 type CourseCatalogItem = typeof practiceContent.courses[number];
-type PracticeTemplate = typeof practiceTemplates[number];
-type PracticeTarget = PracticeTemplate["targets"][number];
 type SongPracticeLine = {
   bar?: number;
   chord?: string;
@@ -562,11 +600,12 @@ function createLocalNextPracticeRecommendation(history: PracticeSessionRecord[])
 
   const rhythmScore = latestRecord.rhythmSummary?.averageRhythmScore ?? 0;
   const completedCount = latestRecord.completedCount ?? 0;
-  const totalSteps = latestRecord.totalSteps ?? chordLoopPractice.targets.length;
-  const weakTarget = chordLoopPractice.targets.find((target, index) => !latestRecord.completedSteps?.[index]);
+  const fallbackTargets = defaultPracticeTemplate.targets;
+  const totalSteps = latestRecord.totalSteps ?? fallbackTargets.length;
+  const weakTarget = fallbackTargets.find((target, index) => !latestRecord.completedSteps?.[index]);
 
   if (completedCount < totalSteps || rhythmScore < 70) {
-    const focusChord = weakTarget?.chord ?? latestRecord.events?.at(-1)?.chord ?? chordLoopPractice.targets[0].chord;
+    const focusChord = weakTarget?.chord ?? latestRecord.events?.at(-1)?.chord ?? fallbackTargets[0]?.chord;
     return {
       title: `稳住 ${focusChord}`,
       detail: `用 60 BPM 只练 ${focusChord}，先把完成时机贴近节拍。`,
