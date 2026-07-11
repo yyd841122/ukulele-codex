@@ -433,6 +433,99 @@ export const beginnerSongCatalog = [
   }
 ];
 
+export const mvpCourseCatalog = [
+  {
+    id: "course-uke-intro",
+    order: 1,
+    type: "required",
+    title: "认识你的尤克里里",
+    subtitle: "持琴姿势 · 四根弦 · 基本发声",
+    estimatedMinutes: 8,
+    access: "free",
+    defaultProgress: 100,
+    skillPathId: "tuning",
+    tags: ["orientation", "beginner"]
+  },
+  {
+    id: "course-tune-gcea",
+    order: 2,
+    type: "required",
+    title: "学会给琴调音",
+    subtitle: "使用调音器把 G-C-E-A 调准",
+    estimatedMinutes: 10,
+    access: "free",
+    defaultProgress: 100,
+    skillPathId: "tuning",
+    toolId: "tuner",
+    tags: ["tuning", "beginner"]
+  },
+  {
+    id: "course-rhythm-down-four",
+    order: 3,
+    type: "required",
+    title: "第一个节奏型",
+    subtitle: "下扫四拍，建立稳定节拍感",
+    estimatedMinutes: 12,
+    access: "free",
+    defaultProgress: 60,
+    skillPathId: "rhythm",
+    primaryPracticeTemplateId: "practice-rhythm-down-four",
+    tags: ["rhythm", "beginner"]
+  },
+  {
+    id: "course-c-am-transition",
+    order: 4,
+    type: "required",
+    title: "C 与 Am 的切换",
+    subtitle: "从双和弦转换进入四和弦循环",
+    estimatedMinutes: 12,
+    access: "free",
+    defaultProgress: 20,
+    skillPathId: "transition",
+    primaryPracticeTemplateId: "practice-transition-c-am",
+    followupPracticeTemplateId: "practice-c-am-f-g7-loop",
+    tags: ["transition", "chord-loop", "beginner"]
+  },
+  {
+    id: "course-first-song-fragment",
+    order: 5,
+    type: "required",
+    title: "第一首弹唱《童年》",
+    subtitle: "C-Am-F-G7 歌曲片段跟弹",
+    estimatedMinutes: 15,
+    access: "free",
+    defaultProgress: 0,
+    skillPathId: "song-fragment",
+    primaryPracticeTemplateId: "practice-song-fragment-four-chord-hum",
+    linkedSongId: "song-four-chord-hum",
+    tags: ["song-fragment", "follow-practice", "beginner"]
+  },
+  {
+    id: "course-island-strum",
+    order: 6,
+    type: "optional",
+    title: "切分节奏和扫弦方向",
+    subtitle: "下下上上、弱起和切音的入门练习",
+    estimatedMinutes: 14,
+    access: "free",
+    defaultProgress: 0,
+    primaryRhythmPatternId: "rhythm-down-down-up-up",
+    tags: ["optional", "rhythm"]
+  },
+  {
+    id: "course-riptide-pro",
+    order: 7,
+    type: "pro",
+    title: "完整弹唱：Riptide",
+    subtitle: "从前奏节奏进入完整歌曲跟弹",
+    estimatedMinutes: 18,
+    access: "pro",
+    defaultProgress: 0,
+    linkedSongId: "song-riptide-style-progression",
+    tags: ["pro", "song-practice"]
+  }
+];
+
 export const mvpContentModules = [
   {
     id: "today",
@@ -447,7 +540,8 @@ export const mvpContentModules = [
     tab: "learn",
     title: "学习路径",
     purpose: "展示必修、选修和 Pro 课程。",
-    skillPathIds: mvpSkillPath.map((step) => step.id)
+    skillPathIds: mvpSkillPath.map((step) => step.id),
+    courseIds: mvpCourseCatalog.map((course) => course.id)
   },
   {
     id: "practice",
@@ -476,6 +570,7 @@ export const mvpPracticeContent = {
   instrumentId: ukuleleInstrument.id,
   skillPath: mvpSkillPath,
   modules: mvpContentModules,
+  courses: mvpCourseCatalog,
   rhythmPatterns: beginnerRhythmPatterns,
   chordTransitions: chordTransitionExercises,
   songFragments: beginnerSongFragments,
@@ -497,6 +592,9 @@ export const getBeginnerSongById = (id) =>
 
 export const getContentModuleById = (id) =>
   mvpContentModules.find((module) => module.id === id) ?? null;
+
+export const getMvpCourseById = (id) =>
+  mvpCourseCatalog.find((course) => course.id === id) ?? null;
 
 export const practiceRecordVersion = 1;
 

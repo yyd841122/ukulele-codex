@@ -88,6 +88,7 @@ const practiceLoopModes = sharedPracticeLoopModes.map((mode) => ({
 const practiceContent = mvpPracticeContent;
 const sharedContentSummary = {
   moduleCount: practiceContent.modules.length,
+  courseCount: practiceContent.courses.length,
   songCount: practiceContent.songs.length
 };
 const practiceTemplates = practiceContent.practiceTemplates.length > 0
@@ -885,7 +886,7 @@ function HomeScreen({
       <View style={styles.heroBand}>
         <Text style={styles.heroTitle}>{mvpLesson.title}</Text>
         <Text style={styles.heroCopy}>
-          {mvpLesson.estimatedMinutes} 分钟完成调音、节奏型、和弦转换和歌曲片段。已接入 {contentSummary.songCount} 首结构化样例。
+          {mvpLesson.estimatedMinutes} 分钟完成调音、节奏型、和弦转换和歌曲片段。已接入 {contentSummary.courseCount} 节课程和 {contentSummary.songCount} 首结构化样例。
         </Text>
         <Pressable accessibilityRole="button" onPress={onStart} style={styles.primaryButton}>
           <Text style={styles.primaryButtonText}>开始 8 分钟练习</Text>

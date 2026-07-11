@@ -13,6 +13,7 @@ import {
   formatPracticeDayKey,
   getBeginnerSongById,
   getContentModuleById,
+  getMvpCourseById,
   getMvpPracticeTemplate,
   getPracticeTemplatesByType,
   getRhythmPatternById,
@@ -22,6 +23,7 @@ import {
   beginnerSongFragments,
   chordTransitionExercises,
   mvpContentModules,
+  mvpCourseCatalog,
   mvpPracticeContent,
   mvpSkillPath,
   mvpPracticeTemplates,
@@ -107,6 +109,25 @@ test("MVP content modules cover the current app tabs", () => {
   );
   assert.equal(getContentModuleById("practice").practiceTemplateIds.length, mvpPracticeTemplates.length);
   assert.equal(getContentModuleById("songs").songIds.length, mvpPracticeContent.songs.length);
+  assert.equal(getContentModuleById("learn").courseIds.length, mvpPracticeContent.courses.length);
+});
+
+test("MVP course catalog models the beginner learning path", () => {
+  const requiredCourses = mvpCourseCatalog.filter((course) => course.type === "required");
+  assert.deepEqual(
+    requiredCourses.map((course) => course.order),
+    [1, 2, 3, 4, 5]
+  );
+  assert.deepEqual(
+    requiredCourses.map((course) => course.access),
+    ["free", "free", "free", "free", "free"]
+  );
+
+  const songCourse = getMvpCourseById("course-first-song-fragment");
+  assert.ok(songCourse);
+  assert.equal(songCourse.primaryPracticeTemplateId, "practice-song-fragment-four-chord-hum");
+  assert.ok(getMvpPracticeTemplate(songCourse.primaryPracticeTemplateId));
+  assert.ok(getBeginnerSongById(songCourse.linkedSongId));
 });
 
 test("MVP shared content links songs fragments rhythms and templates", () => {
