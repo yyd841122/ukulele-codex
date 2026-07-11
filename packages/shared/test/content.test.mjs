@@ -128,6 +128,8 @@ test("MVP course catalog models the beginner learning path", () => {
   assert.equal(songCourse.primaryPracticeTemplateId, "practice-song-fragment-four-chord-hum");
   assert.ok(getMvpPracticeTemplate(songCourse.primaryPracticeTemplateId));
   assert.ok(getBeginnerSongById(songCourse.linkedSongId));
+  assert.deepEqual(songCourse.segments, ["读谱和和弦", "前 4 小节", "慢速跟弹", "提交评分"]);
+  assert.ok(requiredCourses.every((course) => course.segments.length === 4));
 });
 
 test("MVP shared content links songs fragments rhythms and templates", () => {

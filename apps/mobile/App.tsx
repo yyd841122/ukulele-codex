@@ -95,6 +95,7 @@ const practiceTemplates = practiceContent.practiceTemplates.length > 0
   ? practiceContent.practiceTemplates
   : mvpPracticeTemplates;
 const defaultPracticeTemplate = chordLoopPractice;
+type CourseCatalogItem = typeof practiceContent.courses[number];
 type PracticeTemplate = typeof practiceTemplates[number];
 type PracticeTarget = PracticeTemplate["targets"][number];
 type SongPracticeLine = {
@@ -142,6 +143,21 @@ function getSongForPracticeTemplate(template: PracticeTemplate) {
 
 function getSongPracticeLines(song: ReturnType<typeof getSongForPracticeTemplate>): SongPracticeLine[] {
   return Array.isArray(song?.practiceLines) ? song.practiceLines : [];
+}
+
+function getCourseSegments(course: CourseCatalogItem) {
+  return Array.isArray(course.segments) && course.segments.length > 0
+    ? course.segments
+    : ["预习", "练习", "复盘", "完成"];
+}
+
+function getCourseActionLabel(course: CourseCatalogItem) {
+  if (course.toolId === "tuner") return "打开调音器";
+  if (course.primaryPracticeTemplateId) {
+    return `开始${getPracticeTemplateShortLabel(getPracticeTemplateById(course.primaryPracticeTemplateId))}`;
+  }
+  if (course.linkedSongId) return "查看歌曲";
+  return "查看和弦库";
 }
 
 function getPracticeBeatNumbers(template: PracticeTemplate) {
@@ -996,6 +1012,19 @@ function HomeScreen({
   const pathPercent = pathItems.length === 0
     ? 0
     : Math.round(pathItems.reduce((sum, item) => sum + item.progress, 0) / pathItems.length);
+  const recommendedCourseId = pathItems.find((item) => item.status === "current")?.id ?? pathItems[0]?.id ?? null;
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(recommendedCourseId);
+  const activeCourseId = pathItems.some((item) => item.id === selectedCourseId)
+    ? selectedCourseId
+    : recommendedCourseId;
+  const selectedCourse = practiceContent.courses.find((course) => course.id === activeCourseId) ?? null;
+  const selectedPathItem = pathItems.find((item) => item.id === activeCourseId) ?? null;
+
+  useEffect(() => {
+    if (!selectedCourseId && recommendedCourseId) {
+      setSelectedCourseId(recommendedCourseId);
+    }
+  }, [recommendedCourseId, selectedCourseId]);
 
   return (
     <View style={styles.stack}>
@@ -1015,9 +1044,10 @@ function HomeScreen({
           <Pressable
             key={item.id}
             accessibilityRole="button"
-            accessibilityLabel={`打开课程${item.title}`}
-            onPress={() => onOpenCourse(item.id)}
-            style={styles.lessonPathNodeWrap}
+            accessibilityLabel={`查看课程${item.title}`}
+            accessibilityState={{ selected: item.id === activeCourseId }}
+            onPress={() => setSelectedCourseId(item.id)}
+            style={[styles.lessonPathNodeWrap, item.id === activeCourseId && styles.lessonPathNodeSelected]}
           >
             <View
               style={[
@@ -1045,6 +1075,13 @@ function HomeScreen({
           </Pressable>
         ))}
       </View>
+      {selectedCourse && selectedPathItem ? (
+        <CourseDetailPanel
+          course={selectedCourse}
+          pathItem={selectedPathItem}
+          onOpenCourse={() => onOpenCourse(selectedCourse.id)}
+        />
+      ) : null}
 
       <SectionTitle title="下次练习" detail={nextPracticeRecommendation.reason} />
       <View style={styles.recommendationPanel}>
@@ -2003,6 +2040,70 @@ function PracticeScreen({
   );
 }
 
+function CourseDetailPanel({
+  course,
+  pathItem,
+  onOpenCourse
+}: {
+  course: CourseCatalogItem;
+  pathItem: CoursePathItem;
+  onOpenCourse: () => void;
+}) {
+  const segments = getCourseSegments(course);
+  const completedSegmentCount = Math.min(segments.length, Math.floor(pathItem.progress / 25));
+  const activeSegmentIndex = Math.min(segments.length - 1, completedSegmentCount);
+
+  return (
+    <View style={styles.courseDetailPanel}>
+      <View style={styles.courseDetailHeader}>
+        <View style={styles.courseDetailCopy}>
+          <Text style={styles.courseDetailEyebrow}>第 {course.order} 课 · {course.estimatedMinutes} 分钟</Text>
+          <Text style={styles.courseDetailTitle}>{course.title}</Text>
+          <Text style={styles.courseDetailSubtitle}>{course.subtitle}</Text>
+        </View>
+        <View style={styles.courseProgressBadge}>
+          <Text style={styles.courseProgressBadgeText}>{pathItem.progress}%</Text>
+        </View>
+      </View>
+
+      <View style={styles.courseProgressTrack}>
+        <View style={[styles.courseProgressFill, { width: `${pathItem.progress}%` }]} />
+      </View>
+
+      <View style={styles.courseSegmentGrid}>
+        {segments.map((segment, index) => {
+          const done = index < completedSegmentCount;
+          const active = !done && index === activeSegmentIndex;
+          return (
+            <View
+              key={`${course.id}-${segment}`}
+              style={[
+                styles.courseSegmentItem,
+                done && styles.courseSegmentDone,
+                active && styles.courseSegmentActive
+              ]}
+            >
+              <Text
+                style={[
+                  styles.courseSegmentIndex,
+                  (done || active) && styles.courseSegmentIndexActive
+                ]}
+              >
+                {done ? "✓" : index + 1}
+              </Text>
+              <Text style={styles.courseSegmentText} numberOfLines={2}>{segment}</Text>
+            </View>
+          );
+        })}
+      </View>
+
+      <Pressable accessibilityRole="button" onPress={onOpenCourse} style={styles.courseActionButton}>
+        <Text style={styles.primaryButtonText}>{getCourseActionLabel(course)}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.metricCard}>
@@ -2258,7 +2359,12 @@ const styles = StyleSheet.create({
   lessonPathNodeWrap: {
     flex: 1,
     alignItems: "center",
-    gap: 5
+    gap: 5,
+    borderRadius: 8,
+    paddingVertical: 4
+  },
+  lessonPathNodeSelected: {
+    backgroundColor: "#F7EFE2"
   },
   lessonPathDot: {
     width: 30,
@@ -2315,6 +2421,114 @@ const styles = StyleSheet.create({
   },
   lessonPathStatusDone: {
     color: successGreen
+  },
+  courseDetailPanel: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    padding: 12,
+    gap: 10
+  },
+  courseDetailHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12
+  },
+  courseDetailCopy: {
+    flex: 1,
+    gap: 4
+  },
+  courseDetailEyebrow: {
+    color: "#8A8176",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  courseDetailTitle: {
+    color: colors.forest,
+    fontSize: 18,
+    fontWeight: "900",
+    lineHeight: 23
+  },
+  courseDetailSubtitle: {
+    color: "#756D64",
+    fontSize: 13,
+    lineHeight: 18
+  },
+  courseProgressBadge: {
+    minWidth: 54,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: "#E6F4EA",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8
+  },
+  courseProgressBadgeText: {
+    color: successGreen,
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  courseProgressTrack: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: "#EAE2D5",
+    overflow: "hidden"
+  },
+  courseProgressFill: {
+    height: "100%",
+    borderRadius: 999,
+    backgroundColor: successGreen
+  },
+  courseSegmentGrid: {
+    flexDirection: "row",
+    gap: 8
+  },
+  courseSegmentItem: {
+    flex: 1,
+    minHeight: 70,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#F8F3EA",
+    padding: 8,
+    gap: 6
+  },
+  courseSegmentDone: {
+    borderColor: successGreen,
+    backgroundColor: "#ECFDF3"
+  },
+  courseSegmentActive: {
+    borderColor: colors.amber,
+    backgroundColor: "#FFF4D6"
+  },
+  courseSegmentIndex: {
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    backgroundColor: "#E6DED0",
+    color: colors.forest,
+    fontSize: 12,
+    fontWeight: "900",
+    textAlign: "center",
+    lineHeight: 24
+  },
+  courseSegmentIndexActive: {
+    backgroundColor: colors.forest,
+    color: "#FFF8EC"
+  },
+  courseSegmentText: {
+    color: colors.forest,
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 16
+  },
+  courseActionButton: {
+    minHeight: 48,
+    borderRadius: 8,
+    backgroundColor: colors.coral,
+    alignItems: "center",
+    justifyContent: "center"
   },
   reviewReportPanel: {
     borderRadius: 8,

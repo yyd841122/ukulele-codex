@@ -444,6 +444,7 @@ export const mvpCourseCatalog = [
     access: "free",
     defaultProgress: 100,
     skillPathId: "tuning",
+    segments: ["认识四根弦", "正确持琴", "第一次拨弦", "完成课后小测"],
     tags: ["orientation", "beginner"]
   },
   {
@@ -457,6 +458,7 @@ export const mvpCourseCatalog = [
     defaultProgress: 100,
     skillPathId: "tuning",
     toolId: "tuner",
+    segments: ["打开调音器", "识别 G-C-E-A", "调准四根弦", "完成调音记录"],
     tags: ["tuning", "beginner"]
   },
   {
@@ -470,6 +472,7 @@ export const mvpCourseCatalog = [
     defaultProgress: 60,
     skillPathId: "rhythm",
     primaryPracticeTemplateId: "practice-rhythm-down-four",
+    segments: ["听 60 BPM", "下扫四拍", "连续 2 轮", "节奏分达到 70"],
     tags: ["rhythm", "beginner"]
   },
   {
@@ -484,6 +487,7 @@ export const mvpCourseCatalog = [
     skillPathId: "transition",
     primaryPracticeTemplateId: "practice-transition-c-am",
     followupPracticeTemplateId: "practice-c-am-f-g7-loop",
+    segments: ["C 到 Am", "Am 到 F", "F 到 G7", "四和弦循环"],
     tags: ["transition", "chord-loop", "beginner"]
   },
   {
@@ -498,6 +502,7 @@ export const mvpCourseCatalog = [
     skillPathId: "song-fragment",
     primaryPracticeTemplateId: "practice-song-fragment-four-chord-hum",
     linkedSongId: "song-four-chord-hum",
+    segments: ["读谱和和弦", "前 4 小节", "慢速跟弹", "提交评分"],
     tags: ["song-fragment", "follow-practice", "beginner"]
   },
   {
@@ -510,6 +515,7 @@ export const mvpCourseCatalog = [
     access: "free",
     defaultProgress: 0,
     primaryRhythmPatternId: "rhythm-down-down-up-up",
+    segments: ["节奏方向", "空拍练习", "切分扫弦", "应用到歌曲"],
     tags: ["optional", "rhythm"]
   },
   {
@@ -522,6 +528,7 @@ export const mvpCourseCatalog = [
     access: "pro",
     defaultProgress: 0,
     linkedSongId: "song-riptide-style-progression",
+    segments: ["歌曲结构", "主歌跟弹", "副歌跟弹", "完整录制"],
     tags: ["pro", "song-practice"]
   }
 ];
