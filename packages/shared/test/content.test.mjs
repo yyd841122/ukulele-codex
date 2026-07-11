@@ -105,11 +105,12 @@ test("MVP practice targets reference beginner chord ids", () => {
 test("MVP content modules cover the current app tabs", () => {
   assert.deepEqual(
     mvpContentModules.map((module) => module.tab),
-    ["home", "learn", "practice", "songs", "me"]
+    ["home", "tuner", "practice", "songs", "me"]
   );
+  assert.equal(getContentModuleById("tuner").toolId, "tuner");
   assert.equal(getContentModuleById("practice").practiceTemplateIds.length, mvpPracticeTemplates.length);
   assert.equal(getContentModuleById("songs").songIds.length, mvpPracticeContent.songs.length);
-  assert.equal(getContentModuleById("learn").courseIds.length, mvpPracticeContent.courses.length);
+  assert.deepEqual(getContentModuleById("tuner").courseIds, ["course-uke-intro", "course-tune-gcea"]);
 });
 
 test("MVP course catalog models the beginner learning path", () => {

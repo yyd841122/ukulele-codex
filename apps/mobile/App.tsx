@@ -39,14 +39,14 @@ import { useMicrophoneRecorderMonitor } from "./src/audio/useMicrophoneRecorderM
 import { useRealtimeTunerStream } from "./src/audio/useRealtimeTunerStream";
 import { clearPracticeHistory, loadPracticeHistory, savePracticeHistory } from "./src/storage/practiceHistoryStore";
 
-type Tab = "home" | "tuner" | "metronome" | "chords" | "practice";
+type Tab = "home" | "tuner" | "practice" | "songs" | "me";
 
 const tabs: Array<{ id: Tab; label: string }> = [
   { id: "home", label: "今日" },
-  { id: "tuner", label: "调音" },
-  { id: "metronome", label: "节拍" },
-  { id: "chords", label: "和弦" },
-  { id: "practice", label: "跟练" }
+  { id: "tuner", label: "调音器" },
+  { id: "practice", label: "练琴" },
+  { id: "songs", label: "曲谱" },
+  { id: "me", label: "我的" }
 ];
 
 const IN_TUNE_CENTS = 8;
@@ -868,6 +868,17 @@ export default function App() {
     setActiveTab("practice");
   }
 
+  function startPracticeTemplate(templateId: string) {
+    const template = getPracticeTemplateById(templateId);
+    startPractice({
+      templateId: template.id,
+      bpm: template.bpm,
+      tempoId: tempoIdFromBpm(template.bpm),
+      loopMode: "auto",
+      focusChord: template.targets?.[0]?.chord ?? null
+    });
+  }
+
   function openCourse(courseId: string) {
     const course = practiceContent.courses.find((item) => item.id === courseId);
     if (!course) return;
@@ -878,18 +889,11 @@ export default function App() {
     }
 
     if (course.primaryPracticeTemplateId) {
-      const template = getPracticeTemplateById(course.primaryPracticeTemplateId);
-      startPractice({
-        templateId: template.id,
-        bpm: template.bpm,
-        tempoId: tempoIdFromBpm(template.bpm),
-        loopMode: "auto",
-        focusChord: template.targets?.[0]?.chord ?? null
-      });
+      startPracticeTemplate(course.primaryPracticeTemplateId);
       return;
     }
 
-    setActiveTab("chords");
+    setActiveTab("songs");
   }
 
   function markPracticeMilestonePassed() {
@@ -952,10 +956,17 @@ export default function App() {
           />
         )}
         {activeTab === "tuner" && <TunerScreen />}
-        {activeTab === "metronome" && <MetronomeScreen />}
-        {activeTab === "chords" && <ChordScreen />}
         {activeTab === "practice" && (
           <PracticeScreen launchConfig={practiceLaunchConfig} onPracticeRecord={appendPracticeRecord} />
+        )}
+        {activeTab === "songs" && <SongsScreen onStartSongPractice={startPracticeTemplate} />}
+        {activeTab === "me" && (
+          <ProfileScreen
+            latestPracticeSummary={latestPracticeSummary}
+            onClearHistory={clearPracticeRecords}
+            practiceHistorySummary={practiceHistorySummary}
+            recentPracticeSummaries={recentPracticeSummaries}
+          />
         )}
       </ScrollView>
 
@@ -1522,6 +1533,155 @@ function ChordScreen() {
           </View>
         </View>
       ))}
+    </View>
+  );
+}
+
+function SongsScreen({
+  onStartSongPractice
+}: {
+  onStartSongPractice: (templateId: string) => void;
+}) {
+  const songs = practiceContent.songs;
+  const freeSongs = songs.filter((song) => song.access === "free");
+  const lockedSongs = songs.filter((song) => song.access !== "free");
+
+  return (
+    <View style={styles.stack}>
+      <SectionTitle title="曲谱库" detail={`${songs.length} 首 · 从歌曲片段进入弹唱`} />
+      {freeSongs.map((song) => {
+        const templateId = song.practiceTemplateIds?.[0] ?? "practice-c-am-f-g7-loop";
+        return (
+          <View key={song.id} style={styles.songDetailCard}>
+            <View style={styles.songDetailHeader}>
+              <View style={styles.songAvatar}>
+                <Text style={styles.songAvatarText}>♪</Text>
+              </View>
+              <View style={styles.songTitleBlock}>
+                <Text style={styles.songTitle}>{song.title}</Text>
+                <Text style={styles.songMeta}>{song.artist} · {song.key} 调 · {song.bpm} BPM</Text>
+                <Text style={styles.songChordLine}>{song.chordNames?.join(" · ") ?? "C · Am · F · G7"}</Text>
+              </View>
+            </View>
+            <View style={styles.songLineList}>
+              {getSongPracticeLines(song).map((line) => (
+                <View key={`${song.id}-${line.bar}`} style={styles.songPreviewLine}>
+                  <Text style={styles.songPreviewChord}>{line.chord}</Text>
+                  <Text style={styles.songPreviewText}>{line.text}</Text>
+                </View>
+              ))}
+            </View>
+            <Pressable accessibilityRole="button" onPress={() => onStartSongPractice(templateId)} style={styles.songPracticeButton}>
+              <Text style={styles.primaryButtonText}>开始歌曲片段跟弹</Text>
+            </Pressable>
+          </View>
+        );
+      })}
+
+      <SectionTitle title="和弦大全" detail={`${beginnerChords.length} 个入门和弦`} />
+      <View style={styles.chordLibraryGrid}>
+        {beginnerChords.map((chord) => (
+          <View key={chord.id} style={styles.chordLibraryCard}>
+            <ChordDiagram chord={chord} compact />
+            <Text style={styles.chordLibraryName}>{chord.name}</Text>
+            <Text style={styles.chordLibraryMeta}>指法 {chord.fingering.join("-")}</Text>
+          </View>
+        ))}
+      </View>
+
+      {lockedSongs.length > 0 ? (
+        <>
+          <SectionTitle title="Pro 曲谱" detail="后续会员模块解锁" />
+          {lockedSongs.map((song) => (
+            <View key={song.id} style={styles.lockedSongRow}>
+              <Text style={styles.lockedSongTitle}>{song.title}</Text>
+              <Text style={styles.lockedSongMeta}>{song.artist} · {song.key} 调 · {song.chordNames?.join(" ")}</Text>
+            </View>
+          ))}
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+function ProfileScreen({
+  latestPracticeSummary,
+  onClearHistory,
+  practiceHistorySummary,
+  recentPracticeSummaries
+}: {
+  latestPracticeSummary?: PracticeRecordSummary;
+  onClearHistory: () => void;
+  practiceHistorySummary: PracticeHistorySummary;
+  recentPracticeSummaries: PracticeRecordSummary[];
+}) {
+  const badges = [
+    { label: "连续练习", value: `${practiceHistorySummary.currentStreakDays} 天`, active: practiceHistorySummary.currentStreakDays > 0 },
+    { label: "节奏记录", value: latestPracticeSummary?.rhythmLabel ?? "--", active: Boolean(latestPracticeSummary) },
+    { label: "首段跟弹", value: practiceHistorySummary.totalSessions > 0 ? "已记录" : "未开始", active: practiceHistorySummary.totalSessions > 0 },
+    { label: "歌曲库", value: `${practiceContent.songs.length} 首`, active: true }
+  ];
+
+  return (
+    <View style={styles.stack}>
+      <SectionTitle title="我的练习" detail="本地档案 · MVP" />
+      <View style={styles.profileHero}>
+        <Text style={styles.profileHeroTitle}>P0 入门阶段</Text>
+        <Text style={styles.profileHeroCopy}>
+          当前重点是调准音、稳定节奏、完成四和弦循环，再进入歌曲片段。
+        </Text>
+        <View style={styles.reportGrid}>
+          <ScoreBox label="练习" value={`${practiceHistorySummary.totalSessions}`} />
+          <ScoreBox label="时长" value={formatPracticeDuration(practiceHistorySummary.totalDurationSec)} />
+          <ScoreBox label="天数" value={`${practiceHistorySummary.practiceDays}`} />
+          <ScoreBox label="连续" value={`${practiceHistorySummary.currentStreakDays}`} />
+        </View>
+      </View>
+
+      <SectionTitle title="成就" detail="本地模拟徽章" />
+      <View style={styles.badgeGrid}>
+        {badges.map((badge) => (
+          <View key={badge.label} style={[styles.badgeCard, !badge.active && styles.badgeCardLocked]}>
+            <Text style={styles.badgeMark}>{badge.active ? "✓" : "·"}</Text>
+            <Text style={styles.badgeLabel}>{badge.label}</Text>
+            <Text style={styles.badgeValue}>{badge.value}</Text>
+          </View>
+        ))}
+      </View>
+
+      <SectionTitle title="最近练习" detail={latestPracticeSummary ? latestPracticeSummary.title : "还没有记录"} />
+      <View style={styles.practiceSession}>
+        <View style={styles.practiceHistoryHeader}>
+          <Text style={styles.historyTitle}>本地记录</Text>
+          <Pressable
+            accessibilityRole="button"
+            disabled={recentPracticeSummaries.length === 0}
+            onPress={onClearHistory}
+            style={[styles.clearHistoryButton, recentPracticeSummaries.length === 0 && styles.clearHistoryButtonDisabled]}
+          >
+            <Text style={[styles.clearHistoryText, recentPracticeSummaries.length === 0 && styles.clearHistoryTextDisabled]}>清空</Text>
+          </Pressable>
+        </View>
+        {recentPracticeSummaries.length === 0 ? (
+          <Text style={styles.historyEmpty}>完成一次练琴后，这里会出现最近记录。</Text>
+        ) : (
+          <View style={styles.historyList}>
+            {recentPracticeSummaries.map((summary, index) => (
+              <View key={`${summary.title}-${index}`} style={styles.historyRow}>
+                <View style={styles.historyIndex}>
+                  <Text style={styles.historyIndexText}>{index + 1}</Text>
+                </View>
+                <View style={styles.historyCopy}>
+                  <Text style={styles.historyRowTitle}>{summary.title}</Text>
+                  <Text style={styles.historyRowMeta}>
+                    {summary.completedStepsLabel} · {summary.durationLabel} · {summary.bpmLabel} · 节奏 {summary.rhythmLabel}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
     </View>
   );
 }
@@ -2593,6 +2753,181 @@ const styles = StyleSheet.create({
     backgroundColor: colors.coral,
     alignItems: "center",
     justifyContent: "center"
+  },
+  songDetailCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    padding: 12,
+    gap: 12
+  },
+  songDetailHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12
+  },
+  songAvatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 8,
+    backgroundColor: "#FFE4D6",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  songAvatarText: {
+    color: colors.coral,
+    fontSize: 28,
+    fontWeight: "900"
+  },
+  songTitleBlock: {
+    flex: 1,
+    gap: 3
+  },
+  songTitle: {
+    color: colors.forest,
+    fontSize: 18,
+    fontWeight: "900"
+  },
+  songMeta: {
+    color: "#756D64",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  songChordLine: {
+    color: colors.forest,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  songLineList: {
+    gap: 6
+  },
+  songPreviewLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderRadius: 8,
+    backgroundColor: "#F8F3EA",
+    paddingHorizontal: 10,
+    paddingVertical: 8
+  },
+  songPreviewChord: {
+    width: 34,
+    color: colors.coral,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  songPreviewText: {
+    flex: 1,
+    color: "#756D64",
+    fontSize: 12,
+    lineHeight: 17
+  },
+  songPracticeButton: {
+    minHeight: 46,
+    borderRadius: 8,
+    backgroundColor: colors.coral,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  chordLibraryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10
+  },
+  chordLibraryCard: {
+    width: "48%",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 10,
+    alignItems: "center",
+    gap: 6
+  },
+  chordLibraryName: {
+    color: colors.forest,
+    fontSize: 18,
+    fontWeight: "900"
+  },
+  chordLibraryMeta: {
+    color: "#756D64",
+    fontSize: 11,
+    fontWeight: "700"
+  },
+  lockedSongRow: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#F8F3EA",
+    padding: 12,
+    gap: 4
+  },
+  lockedSongTitle: {
+    color: colors.forest,
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  lockedSongMeta: {
+    color: "#756D64",
+    fontSize: 12,
+    lineHeight: 17
+  },
+  profileHero: {
+    borderRadius: 8,
+    backgroundColor: colors.forest,
+    padding: 16,
+    gap: 12
+  },
+  profileHeroTitle: {
+    color: "#FFF8EC",
+    fontSize: 20,
+    fontWeight: "900"
+  },
+  profileHeroCopy: {
+    color: "#D9E4DB",
+    fontSize: 13,
+    lineHeight: 20
+  },
+  badgeGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10
+  },
+  badgeCard: {
+    width: "48%",
+    minHeight: 92,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: successGreen,
+    backgroundColor: "#ECFDF3",
+    padding: 12,
+    gap: 6
+  },
+  badgeCardLocked: {
+    borderColor: colors.line,
+    backgroundColor: "#F8F3EA"
+  },
+  badgeMark: {
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    overflow: "hidden",
+    backgroundColor: colors.forest,
+    color: "#FFF8EC",
+    textAlign: "center",
+    lineHeight: 28,
+    fontWeight: "900"
+  },
+  badgeLabel: {
+    color: colors.forest,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  badgeValue: {
+    color: "#756D64",
+    fontSize: 12,
+    fontWeight: "700"
   },
   reviewReportPanel: {
     borderRadius: 8,

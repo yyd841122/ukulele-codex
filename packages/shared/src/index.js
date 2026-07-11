@@ -543,12 +543,14 @@ export const mvpContentModules = [
     linkedSongId: "song-four-chord-hum"
   },
   {
-    id: "learn",
-    tab: "learn",
-    title: "学习路径",
-    purpose: "展示必修、选修和 Pro 课程。",
-    skillPathIds: mvpSkillPath.map((step) => step.id),
-    courseIds: mvpCourseCatalog.map((course) => course.id)
+    id: "tuner",
+    tab: "tuner",
+    title: "调音器",
+    purpose: "进入智能调音和拾音状态检查。",
+    toolId: "tuner",
+    courseIds: mvpCourseCatalog
+      .filter((course) => course.skillPathId === "tuning")
+      .map((course) => course.id)
   },
   {
     id: "practice",
