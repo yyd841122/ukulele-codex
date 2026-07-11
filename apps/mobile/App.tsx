@@ -12,6 +12,7 @@ import {
 import * as sharedPractice from "@ukulele/shared";
 import {
   beginnerChords,
+  buildMvpCourseProgressPath,
   chordLoopPractice,
   designPrinciples,
   designTokens,
@@ -653,65 +654,8 @@ function evaluateLocalLessonPathProgress(
   };
 }
 
-function estimateCourseProgress(
-  course: typeof practiceContent.courses[number],
-  history: PracticeSessionRecord[]
-) {
-  const baseline = Math.max(0, Math.min(100, course.defaultProgress ?? 0));
-  const practiceIds = [
-    course.primaryPracticeTemplateId,
-    course.followupPracticeTemplateId
-  ].filter(Boolean) as string[];
-  if (practiceIds.length === 0) return baseline;
-
-  const matchingRecords = history.filter((record) =>
-    practiceIds.includes(record.exerciseId) || practiceIds.includes(record.template?.id)
-  );
-  if (matchingRecords.length === 0) return baseline;
-
-  const bestRecordProgress = matchingRecords.reduce((best, record) => {
-    const completedRatio = record.totalSteps > 0 ? (record.completedCount ?? 0) / record.totalSteps : 0;
-    const rhythmScore = record.rhythmSummary?.averageRhythmScore ?? 0;
-    const passed = (record as PracticeSessionRecord & { status?: string }).status === "passed";
-    const completedAll = completedRatio >= 1;
-    const recordProgress = passed || (completedAll && rhythmScore >= 70)
-      ? 100
-      : completedAll
-        ? 80
-        : Math.max(25, Math.round(completedRatio * 80), Math.min(90, rhythmScore));
-
-    return Math.max(best, recordProgress);
-  }, 0);
-
-  return Math.max(baseline, bestRecordProgress);
-}
-
 function buildRequiredCoursePath(history: PracticeSessionRecord[]): CoursePathItem[] {
-  const items = practiceContent.courses
-    .filter((course) => course.type === "required")
-    .sort((a, b) => a.order - b.order)
-    .map((course) => {
-      const progress = estimateCourseProgress(course, history);
-      const status: LessonPathStatus = progress >= 100 ? "done" : progress > 0 ? "current" : "locked";
-      const minutes = course.estimatedMinutes ? `${course.estimatedMinutes} 分钟` : "MVP";
-      const accessLabel = course.access === "pro" ? "Pro" : "免费";
-
-      return {
-        id: course.id,
-        title: course.title,
-        subtitle: course.subtitle,
-        status,
-        detail: `${minutes} · ${accessLabel}`,
-        progress
-      };
-    });
-
-  return items.map((item, index) => {
-    const previousDone = index === 0 || items[index - 1].status === "done";
-    return item.status === "locked" && previousDone
-      ? { ...item, status: "current" }
-      : item;
-  });
+  return buildMvpCourseProgressPath(history, { type: "required" }) as CoursePathItem[];
 }
 
 function localizeLessonPathProgress(progress: LessonPathProgress): LessonPathProgress {

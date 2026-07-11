@@ -1293,6 +1293,81 @@ export const evaluateMvpLessonProgress = (history = [], options = {}) => {
   };
 };
 
+const coursePracticeTemplateIds = (course = {}) =>
+  [course.primaryPracticeTemplateId, course.followupPracticeTemplateId].filter(
+    (id) => typeof id === "string" && id.length > 0
+  );
+
+const practiceRecordMatchesTemplateId = (record, templateId) =>
+  record?.exerciseId === templateId ||
+  record?.templateId === templateId ||
+  record?.template?.id === templateId;
+
+/**
+ * @param {object} course
+ * @param {Array<object>} history
+ */
+export const estimateMvpCourseProgress = (course = {}, history = []) => {
+  const baseline = Math.max(0, Math.min(100, numberOrNull(course.defaultProgress) ?? 0));
+  const practiceIds = coursePracticeTemplateIds(course);
+  if (practiceIds.length === 0) return baseline;
+
+  const records = Array.isArray(history) ? history.filter((record) => record && typeof record === "object") : [];
+  const bestRecordProgress = records.reduce((best, record) => {
+    const templateId = practiceIds.find((id) => practiceRecordMatchesTemplateId(record, id));
+    if (!templateId) return best;
+
+    const template = getMvpPracticeTemplate(templateId);
+    const targetCount = Math.max(1, practiceRecordTargetCount(record, template));
+    const completedRatio = Math.max(0, Math.min(1, practiceRecordCompletedCount(record) / targetCount));
+    const rhythmScore = practiceRecordRhythmScore(record) ?? 0;
+    const completedAll = completedRatio >= 1;
+    const passed = practiceRecordHasPassedStatus(record);
+    const recordProgress = passed || (completedAll && rhythmScore >= (template?.passingScore ?? 70))
+      ? 100
+      : completedAll
+        ? 80
+        : Math.max(25, Math.round(completedRatio * 80), Math.min(90, rhythmScore));
+
+    return Math.max(best, recordProgress);
+  }, 0);
+
+  return Math.max(baseline, bestRecordProgress);
+};
+
+/**
+ * @param {Array<object>} history
+ * @param {{ type?: string }} [options]
+ */
+export const buildMvpCourseProgressPath = (history = [], options = {}) => {
+  const type = options.type ?? "required";
+  const items = mvpCourseCatalog
+    .filter((course) => !type || course.type === type)
+    .sort((a, b) => a.order - b.order)
+    .map((course) => {
+      const progress = estimateMvpCourseProgress(course, history);
+      const status = progress >= 100 ? "done" : progress > 0 ? "current" : "locked";
+      const minutes = course.estimatedMinutes ? `${course.estimatedMinutes} 分钟` : "MVP";
+      const accessLabel = course.access === "pro" ? "Pro" : "免费";
+
+      return {
+        id: course.id,
+        title: course.title,
+        subtitle: course.subtitle,
+        status,
+        detail: `${minutes} · ${accessLabel}`,
+        progress
+      };
+    });
+
+  return items.map((item, index) => {
+    const previousDone = index === 0 || items[index - 1].status === "done";
+    return item.status === "locked" && previousDone
+      ? { ...item, status: "current" }
+      : item;
+  });
+};
+
 export const designPrinciples = [
   "练习入口优先，不做营销式首页",
   "调音和跟练反馈必须大、清楚、低干扰",

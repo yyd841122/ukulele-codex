@@ -4,12 +4,14 @@ import {
   agentRoles,
   appendPracticeRecord,
   beginnerChords,
+  buildMvpCourseProgressPath,
   chordLoopPractice,
   createNextPracticeRecommendation,
   createPracticeSessionRecord,
   designTokens,
   evaluateMvpLessonProgress,
   evaluatePracticeMilestone,
+  estimateMvpCourseProgress,
   filterBeginnerSongs,
   formatPracticeDayKey,
   getBeginnerSongById,
@@ -175,6 +177,35 @@ test("song catalog can be filtered for library views", () => {
     filterBeginnerSongs({ query: "Am G7" }).map((song) => song.id),
     ["song-four-chord-hum", "song-island-strum-demo", "song-riptide-style-progression"]
   );
+});
+
+test("MVP course progress can be inferred from practice history", () => {
+  const rhythmCourse = getMvpCourseById("course-rhythm-down-four");
+  const transitionCourse = getMvpCourseById("course-c-am-transition");
+  const rhythmTemplate = getMvpPracticeTemplate("practice-rhythm-down-four");
+  assert.ok(rhythmCourse);
+  assert.ok(transitionCourse);
+  assert.ok(rhythmTemplate);
+
+  assert.equal(estimateMvpCourseProgress(rhythmCourse, []), 60);
+
+  const lowScoreRecord = {
+    exerciseId: rhythmTemplate.id,
+    totalSteps: rhythmTemplate.targets.length,
+    completedCount: rhythmTemplate.targets.length,
+    rhythmSummary: { averageRhythmScore: 62 }
+  };
+  assert.equal(estimateMvpCourseProgress(rhythmCourse, [lowScoreRecord]), 80);
+
+  const passingRecord = {
+    ...lowScoreRecord,
+    rhythmSummary: { averageRhythmScore: 76 }
+  };
+  assert.equal(estimateMvpCourseProgress(rhythmCourse, [passingRecord]), 100);
+
+  const coursePath = buildMvpCourseProgressPath([passingRecord]);
+  assert.equal(coursePath.find((course) => course.id === rhythmCourse.id).status, "done");
+  assert.equal(coursePath.find((course) => course.id === transitionCourse.id).status, "current");
 });
 
 test("M0 agent backlog has pending microphone integration", () => {
