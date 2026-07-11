@@ -96,6 +96,11 @@ const practiceTemplates = practiceContent.practiceTemplates.length > 0
 const defaultPracticeTemplate = chordLoopPractice;
 type PracticeTemplate = typeof practiceTemplates[number];
 type PracticeTarget = PracticeTemplate["targets"][number];
+type SongPracticeLine = {
+  bar?: number;
+  chord?: string;
+  text?: string;
+};
 
 function getPracticeTemplateById(templateId?: string | null): PracticeTemplate {
   return practiceTemplates.find((template) => template.id === templateId) ?? defaultPracticeTemplate;
@@ -126,6 +131,16 @@ function getPracticeTargetBar(target?: PracticeTarget, fallbackIndex = 0) {
 
 function getPracticeTargetCue(target?: PracticeTarget) {
   return target && "cue" in target && typeof target.cue === "string" ? target.cue : undefined;
+}
+
+function getSongForPracticeTemplate(template: PracticeTemplate) {
+  return practiceContent.songs.find((song) =>
+    Array.isArray(song.practiceTemplateIds) && song.practiceTemplateIds.includes(template.id)
+  ) ?? null;
+}
+
+function getSongPracticeLines(song: ReturnType<typeof getSongForPracticeTemplate>): SongPracticeLine[] {
+  return Array.isArray(song?.practiceLines) ? song.practiceLines : [];
 }
 
 function getPracticeBeatNumbers(template: PracticeTemplate) {
@@ -1364,6 +1379,8 @@ function PracticeScreen({
   const practiceTargets = activeTemplate.targets ?? chordLoopPractice.targets;
   const activeBeatNumbers = useMemo(() => getPracticeBeatNumbers(activeTemplate), [activeTemplate]);
   const activeTemplateIndex = Math.max(0, practiceTemplates.findIndex((template) => template.id === activeTemplate.id));
+  const activeSong = useMemo(() => getSongForPracticeTemplate(activeTemplate), [activeTemplate]);
+  const songPracticeLines = useMemo(() => getSongPracticeLines(activeSong), [activeSong]);
   const [completedSteps, setCompletedSteps] = useState<boolean[]>(() =>
     initialTemplate.targets.map(() => false)
   );
@@ -1390,6 +1407,9 @@ function PracticeScreen({
   }, [activeTemplate, practiceTargets]);
   const activeTarget = practiceTargets[currentStep] ?? practiceTargets[0];
   const activeReport = stepReports[currentStep];
+  const activeSongLineIndex = songPracticeLines.findIndex((line, index) =>
+    (line.bar ?? index + 1) === getPracticeTargetBar(activeTarget, currentStep)
+  );
   const completedCount = completedSteps.filter(Boolean).length;
   const progressPercent = Math.round((completedCount / practiceTargets.length) * 100);
   const barsPracticed = practiceEvents.filter((event) => event.type === "bar").length;
@@ -1797,6 +1817,23 @@ function PracticeScreen({
             </Pressable>
           </View>
         </View>
+        {activeTemplate.type === "song_fragment" && songPracticeLines.length > 0 ? (
+          <View style={styles.songFragmentPanel}>
+            <View style={styles.songFragmentHeader}>
+              <Text style={styles.songFragmentTitle}>{activeSong?.title ?? "歌曲片段"}</Text>
+              <Text style={styles.songFragmentMeta}>{practiceBpm} BPM · {activeTemplate.timeSignature}</Text>
+            </View>
+            {songPracticeLines.map((line, index) => {
+              const active = index === (activeSongLineIndex >= 0 ? activeSongLineIndex : currentStep);
+              return (
+                <View key={`${line.bar ?? index}-${line.chord ?? "line"}`} style={[styles.songLineRow, active && styles.songLineRowActive]}>
+                  <Text style={[styles.songLineChord, active && styles.songLineChordActive]}>{line.chord ?? getPracticeTargetChord(practiceTargets[index])}</Text>
+                  <Text style={[styles.songLineText, active && styles.songLineTextActive]}>{line.text ?? "跟着节拍扫弦"}</Text>
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
       </View>
       <View style={styles.practiceTimeline}>
         {practiceTargets.map((target, index) => {
@@ -2935,6 +2972,68 @@ const styles = StyleSheet.create({
     color: "#756D64",
     fontSize: 10,
     lineHeight: 13
+  },
+  songFragmentPanel: {
+    marginTop: 2,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#DED6CA",
+    backgroundColor: "#FFFDF8",
+    gap: 6
+  },
+  songFragmentHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10
+  },
+  songFragmentTitle: {
+    color: colors.forest,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  songFragmentMeta: {
+    color: "#756D64",
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  songLineRow: {
+    minHeight: 30,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 8,
+    backgroundColor: "#F7F1E7"
+  },
+  songLineRowActive: {
+    backgroundColor: "#FFF3E0"
+  },
+  songLineChord: {
+    minWidth: 34,
+    borderRadius: 6,
+    overflow: "hidden",
+    color: "#FFF8EC",
+    backgroundColor: colors.amber,
+    textAlign: "center",
+    fontSize: 11,
+    lineHeight: 20,
+    fontWeight: "900"
+  },
+  songLineChordActive: {
+    backgroundColor: colors.forest
+  },
+  songLineText: {
+    flex: 1,
+    color: "#756D64",
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "700"
+  },
+  songLineTextActive: {
+    color: colors.ink,
+    fontWeight: "900"
   },
   practiceMicPanel: {
     minHeight: 58,
