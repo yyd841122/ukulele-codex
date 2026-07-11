@@ -1537,15 +1537,22 @@ function coursePracticeSheet(order) {
 function coursePracticeTemplate(course) {
   return practiceTemplates.find(item => item.id === course?.primaryPracticeTemplateId) || null;
 }
+function courseFollowupPracticeTemplate(course) {
+  return practiceTemplates.find(item => item.id === course?.followupPracticeTemplateId) || null;
+}
 function courseSong(course) {
   return songs.find(item => item.templateId === course?.primaryPracticeTemplateId) || null;
 }
 function renderCourseResources(course) {
   const template = coursePracticeTemplate(course);
+  const followupTemplate = courseFollowupPracticeTemplate(course);
   const song = courseSong(course);
   const rows = [];
   if (template) {
     rows.push(`<div class="course-resource-row"><b>练习</b><span>${template.title} · ${template.bpm} BPM · ${template.targets.join(" ")}</span></div>`);
+  }
+  if (followupTemplate) {
+    rows.push(`<div class="course-resource-row"><b>跟进</b><span>${followupTemplate.title} · ${followupTemplate.bpm} BPM · ${followupTemplate.targets.join(" ")}</span></div>`);
   }
   if (song) {
     rows.push(`<div class="course-resource-row"><b>歌曲</b><span>${song.title} · ${song.key} 调 · ${song.chords.join(" ")}</span></div>`);

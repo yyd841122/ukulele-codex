@@ -216,6 +216,12 @@ function getCoursePracticeTemplate(course: CourseCatalogItem) {
     : null;
 }
 
+function getCourseFollowupPracticeTemplate(course: CourseCatalogItem) {
+  return course.followupPracticeTemplateId
+    ? practiceTemplates.find((template) => template.id === course.followupPracticeTemplateId) ?? null
+    : null;
+}
+
 function getCourseSong(course: CourseCatalogItem) {
   return course.linkedSongId
     ? practiceContent.songs.find((song) => song.id === course.linkedSongId) ?? null
@@ -2425,6 +2431,7 @@ function CourseDetailPanel({
 }) {
   const segments = getCourseSegments(course);
   const template = getCoursePracticeTemplate(course);
+  const followupTemplate = getCourseFollowupPracticeTemplate(course);
   const song = getCourseSong(course);
   const completedSegmentCount = Math.min(segments.length, Math.floor(pathItem.progress / 25));
   const activeSegmentIndex = Math.min(segments.length - 1, completedSegmentCount);
@@ -2476,13 +2483,21 @@ function CourseDetailPanel({
         })}
       </View>
 
-      {template || song ? (
+      {template || followupTemplate || song ? (
         <View style={styles.courseResourcePanel}>
           {template ? (
             <View style={styles.courseResourceRow}>
               <Text style={styles.courseResourceLabel}>练习</Text>
               <Text style={styles.courseResourceValue} numberOfLines={2}>
                 {getPracticeTemplateTitle(template)} · {template.bpm} BPM · {templateChordNames}
+              </Text>
+            </View>
+          ) : null}
+          {followupTemplate ? (
+            <View style={styles.courseResourceRow}>
+              <Text style={styles.courseResourceLabel}>跟进</Text>
+              <Text style={styles.courseResourceValue} numberOfLines={2}>
+                {getPracticeTemplateTitle(followupTemplate)} · {followupTemplate.bpm} BPM
               </Text>
             </View>
           ) : null}
