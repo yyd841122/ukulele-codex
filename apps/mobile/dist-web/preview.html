@@ -660,6 +660,30 @@
     font-weight: 900;
     background: var(--grad);
   }
+  .course-resource-panel {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #FFFDF8;
+  }
+  .course-resource-row {
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    gap: 10px;
+    color: var(--text-1);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .course-resource-row b {
+    color: var(--text-3);
+    font-size: 12px;
+  }
+  .course-resource-row span {
+    font-weight: 800;
+  }
   .paywall-card {
     margin: 16px;
     padding: 18px;
@@ -1481,6 +1505,24 @@ function coursePracticeSheet(order) {
   const template = practiceTemplates.find(item => item.id === course?.primaryPracticeTemplateId);
   return template?.sheet || null;
 }
+function coursePracticeTemplate(course) {
+  return practiceTemplates.find(item => item.id === course?.primaryPracticeTemplateId) || null;
+}
+function courseSong(course) {
+  return songs.find(item => item.templateId === course?.primaryPracticeTemplateId) || null;
+}
+function renderCourseResources(course) {
+  const template = coursePracticeTemplate(course);
+  const song = courseSong(course);
+  const rows = [];
+  if (template) {
+    rows.push(`<div class="course-resource-row"><b>练习</b><span>${template.title} · ${template.bpm} BPM · ${template.targets.join(" ")}</span></div>`);
+  }
+  if (song) {
+    rows.push(`<div class="course-resource-row"><b>歌曲</b><span>${song.title} · ${song.key} 调 · ${song.chords.join(" ")}</span></div>`);
+  }
+  $("#courseResources").innerHTML = rows.join("") || `<div class="course-resource-row"><b>步骤</b><span>先完成本课步骤，再进入下一节课。</span></div>`;
+}
 function templateProgress(template) {
   return appState.courseProgress[template.courseOrder] ?? 0;
 }
@@ -1578,6 +1620,7 @@ function setupExtraSheets() {
           <div class="module-row"><b>学习进度</b><span id="courseProgressText">0%</span></div>
           <div class="mini-progress" style="width:100%;margin-top:10px"><i id="courseProgressBar" style="width:0%"></i></div>
           <div class="segment-list" id="courseSegments"></div>
+          <div class="course-resource-panel" id="courseResources"></div>
           <button class="primary" id="courseNext" style="width:100%;margin-top:14px">完成下一步</button>
           <button class="ghost" id="coursePractice" style="width:100%;margin-top:10px">进入本课练习</button>
         </div>
@@ -1821,6 +1864,7 @@ function renderCourseDetail() {
   $("#courseProgressBar").style.width = `${progress}%`;
   const completeCount = Math.floor(progress / 25);
   $("#courseSegments").innerHTML = courseSegments(course).map((label, index) => `<div class="segment-item ${index < completeCount ? "active" : ""}"><span class="segment-index">${index + 1}</span><b>${label}</b><small>${index < completeCount ? "已完成" : index === completeCount ? "当前步骤" : "未开始"}</small></div>`).join("");
+  renderCourseResources(course);
   $("#courseNext").textContent = progress >= 100 ? "本课已完成" : "完成下一步";
   $("#coursePractice").textContent = practiceSheet ? "进入本课练习" : "查看课程步骤";
 }
