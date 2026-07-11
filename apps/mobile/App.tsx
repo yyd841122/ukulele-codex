@@ -218,6 +218,7 @@ type PracticeSessionRecord = PracticeSessionInput & {
 
 type PracticeRecordSummary = {
   title: string;
+  contentLabel: string;
   durationLabel: string;
   completedStepsLabel: string;
   bpmLabel: string;
@@ -406,6 +407,16 @@ function summarizePracticeRecord(record: PracticeSessionRecord): PracticeRecordS
   const mode = record.mode ?? record.loopMode ?? "auto";
   const modeLabel = mode === "auto" ? "自动循环" : "只练当前";
   const templateLabel = getPracticeTemplateTitle(record.template ?? getPracticeTemplateById(record.templateId ?? record.exerciseId));
+  const course = record.courseId
+    ? practiceContent.courses.find((item) => item.id === record.courseId)
+    : getMvpCourseForPracticeTemplate(record.templateId ?? record.exerciseId);
+  const song = record.songId
+    ? practiceContent.songs.find((item) => item.id === record.songId)
+    : null;
+  const contentLabel = [
+    course ? `第 ${course.order} 课` : null,
+    song ? song.title : null
+  ].filter(Boolean).join(" · ") || "本地练习";
   const durationLabel = formatPracticeDuration(sharedSummary.durationSec ?? record.durationSec ?? 0);
   const endedAt = record.endedAt ?? new Date().toISOString();
   const bpm = record.bpm ?? chordLoopPractice.bpm;
@@ -424,6 +435,7 @@ function summarizePracticeRecord(record: PracticeSessionRecord): PracticeRecordS
 
   return {
     title: `${templateLabel} · ${modeLabel} · ${new Date(endedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`,
+    contentLabel,
     durationLabel,
     completedStepsLabel: `${completedTargetCount}/${totalSteps}`,
     bpmLabel: `${bpm} BPM`,
@@ -1163,7 +1175,7 @@ function HomeScreen({
                 <View style={styles.historyCopy}>
                   <Text style={styles.historyRowTitle}>{summary.title}</Text>
                   <Text style={styles.historyRowMeta}>
-                    {summary.completedStepsLabel} · {summary.durationLabel} · {summary.bpmLabel} · 节奏 {summary.rhythmLabel}
+                    {summary.contentLabel} · {summary.completedStepsLabel} · {summary.durationLabel} · {summary.bpmLabel} · 节奏 {summary.rhythmLabel}
                   </Text>
                 </View>
               </View>
@@ -1683,7 +1695,7 @@ function ProfileScreen({
                 <View style={styles.historyCopy}>
                   <Text style={styles.historyRowTitle}>{summary.title}</Text>
                   <Text style={styles.historyRowMeta}>
-                    {summary.completedStepsLabel} · {summary.durationLabel} · {summary.bpmLabel} · 节奏 {summary.rhythmLabel}
+                    {summary.contentLabel} · {summary.completedStepsLabel} · {summary.durationLabel} · {summary.bpmLabel} · 节奏 {summary.rhythmLabel}
                   </Text>
                 </View>
               </View>
