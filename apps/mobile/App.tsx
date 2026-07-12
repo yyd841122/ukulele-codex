@@ -1204,6 +1204,10 @@ function HomeScreen({
     : recommendedCourseId;
   const selectedCourse = practiceContent.courses.find((course) => course.id === activeCourseId) ?? null;
   const selectedPathItem = pathItems.find((item) => item.id === activeCourseId) ?? null;
+  const selectedPathIndex = pathItems.findIndex((item) => item.id === activeCourseId);
+  const nextSelectablePathItem = selectedPathIndex >= 0
+    ? pathItems.slice(selectedPathIndex + 1).find((item) => item.status !== "done") ?? null
+    : null;
 
   useEffect(() => {
     if (recommendedCourseId && !pathItems.some((item) => item.id === selectedCourseId)) {
@@ -1286,7 +1290,13 @@ function HomeScreen({
         <CourseDetailPanel
           course={selectedCourse}
           pathItem={selectedPathItem}
+          nextPathItem={nextSelectablePathItem}
           onOpenCourse={() => onOpenCourse(selectedCourse.id)}
+          onOpenNextCourse={() => {
+            if (nextSelectablePathItem) {
+              setSelectedCourseId(nextSelectablePathItem.id);
+            }
+          }}
           onStartPracticeTemplate={onStartPracticeTemplate}
         />
       ) : null}
@@ -2533,12 +2543,16 @@ function PracticeScreen({
 function CourseDetailPanel({
   course,
   pathItem,
+  nextPathItem,
   onOpenCourse,
+  onOpenNextCourse,
   onStartPracticeTemplate
 }: {
   course: CourseCatalogItem;
   pathItem: CoursePathItem;
+  nextPathItem?: CoursePathItem | null;
   onOpenCourse: () => void;
+  onOpenNextCourse?: () => void;
   onStartPracticeTemplate: (templateId: string) => void;
 }) {
   const segments = getCourseSegments(course);
@@ -2551,6 +2565,19 @@ function CourseDetailPanel({
   const followupChordNames = getPracticeTemplateChordNames(followupTemplate);
   const pathStatusText = getCoursePathStatusText(pathItem.status);
   const actionHint = getCourseActionHint(course);
+  const shouldOpenNextCourse = pathItem.status === "done" && Boolean(nextPathItem);
+  const primaryActionLabel = shouldOpenNextCourse
+    ? `进入下一课 · ${nextPathItem?.title}`
+    : pathItem.status === "done"
+      ? `复练本课 · ${getCourseActionLabel(course)}`
+      : getCourseActionLabel(course);
+  const handlePrimaryCourseAction = () => {
+    if (shouldOpenNextCourse && onOpenNextCourse) {
+      onOpenNextCourse();
+      return;
+    }
+    onOpenCourse();
+  };
 
   return (
     <View style={styles.courseDetailPanel}>
@@ -2647,8 +2674,12 @@ function CourseDetailPanel({
         </View>
       ) : null}
 
-      <Pressable accessibilityRole="button" onPress={onOpenCourse} style={styles.courseActionButton}>
-        <Text style={styles.primaryButtonText}>{getCourseActionLabel(course)}</Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={handlePrimaryCourseAction}
+        style={styles.courseActionButton}
+      >
+        <Text style={styles.primaryButtonText}>{primaryActionLabel}</Text>
       </Pressable>
       {followupTemplate && course.followupPracticeTemplateId ? (
         <Pressable
