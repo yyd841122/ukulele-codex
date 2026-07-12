@@ -77,6 +77,10 @@
     overflow: hidden;
     padding-bottom: 0;
   }
+  #page-practice {
+    overflow: hidden;
+    padding-bottom: 0;
+  }
   .tabbar {
     position: absolute;
     left: 0;
@@ -569,6 +573,139 @@
   .practice-hero { padding: 14px 16px 60px; color: #fff; background: var(--grad); }
   .practice-hero h1 { font-size: 20px; }
   .practice-hero p { margin-top: 4px; font-size: 13px; opacity: .9; }
+  .practice-hub-shell {
+    height: 100%;
+    padding: 48px 14px 78px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #F3FBFA 0%, #F8FAFC 52%, #FFF7ED 100%);
+  }
+  .practice-hub-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .practice-hub-kicker {
+    color: #0F766E;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .04em;
+  }
+  .practice-hub-title {
+    margin-top: 2px;
+    color: #173B36;
+    font-size: 23px;
+    line-height: 1.12;
+    font-weight: 900;
+  }
+  .practice-hub-subtitle {
+    margin-top: 4px;
+    color: #64748B;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+  .practice-hub-pill {
+    min-width: 64px;
+    padding: 7px 8px;
+    border-radius: 14px;
+    color: #173B36;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 900;
+    background: #FFFFFF;
+    box-shadow: var(--shadow);
+  }
+  .practice-hub-section {
+    margin-top: 10px;
+  }
+  .practice-hub-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 7px;
+  }
+  .practice-hub-head b {
+    color: #173B36;
+    font-size: 14px;
+  }
+  .practice-hub-head small {
+    color: #64748B;
+    font-size: 10px;
+    font-weight: 800;
+  }
+  .practice-tool-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .practice-tool-card {
+    min-height: 64px;
+    padding: 9px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    border: 1px solid rgba(15, 118, 110, .10);
+    background: rgba(255,255,255,.92);
+  }
+  .practice-tool-card.feature {
+    grid-column: span 2;
+    min-height: 72px;
+    color: #FFFFFF;
+    background: linear-gradient(135deg, #173B36, #0F766E);
+  }
+  .practice-tool-icon {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    background: #E0F2F1;
+  }
+  .practice-tool-card.feature .practice-tool-icon {
+    background: rgba(255,255,255,.18);
+  }
+  .practice-tool-card b {
+    display: block;
+    color: #173B36;
+    font-size: 14px;
+  }
+  .practice-tool-card.feature b {
+    color: #FFFFFF;
+  }
+  .practice-tool-card small {
+    display: block;
+    margin-top: 2px;
+    color: #64748B;
+    font-size: 10px;
+    line-height: 1.25;
+  }
+  .practice-tool-card.feature small {
+    color: rgba(255,255,255,.78);
+  }
+  .practice-plan.compact {
+    margin: 10px 0 0;
+    padding: 10px;
+    border: 1px solid rgba(15, 118, 110, .10);
+    background: rgba(255,255,255,.9);
+  }
+  .practice-plan.compact .plan-row {
+    padding: 7px 0;
+  }
+  .practice-plan.compact .step-dot {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+  .practice-plan.compact b {
+    font-size: 14px;
+  }
+  .practice-plan.compact small {
+    font-size: 10px;
+    color: #64748B;
+  }
   .tool-grid {
     margin: -48px 16px 0;
     display: grid;
@@ -1429,20 +1566,54 @@
       </section>
 
       <section class="page" id="page-practice">
-        <div class="practice-hero"><h1>🎸 练琴工具</h1><p>调好琴、找好拍、按真实弹唱路径练。</p></div>
-        <div class="tool-grid">
-          <button class="tool-card feature card clickable" data-open="tuner"><div class="big">🎛️</div><div><b>智能调音器</b><p>麦克风实时听音 · 标准 G-C-E-A</p></div></button>
-          <button class="tool-card card clickable" data-open="metronome"><div class="emoji">⏱️</div><div><b>节拍器</b><p>40-240 BPM · 重音/轻拍</p></div></button>
-          <button class="tool-card card clickable" data-open="chords"><div class="emoji">🎼</div><div><b>和弦库</b><p>指法图 · C/Am/F/G7</p></div></button>
-          <button class="tool-card card clickable" data-open="rhythm"><div class="emoji">🥁</div><div><b>节奏练习</b><p>下扫四拍 · 下下上上</p></div></button>
-          <button class="tool-card card clickable" data-open="transition"><div class="emoji">🔁</div><div><b>和弦转换</b><p>C-Am · Am-F · F-G7</p></div></button>
-          <button class="tool-card card clickable" data-open="follow"><div class="emoji">🎤</div><div><b>跟弹评分</b><p>节奏 · 和弦 · 完成度</p></div></button>
-        </div>
-        <div class="practice-plan card" id="practicePlan">
-          <b>今日建议路径</b>
-          <div class="plan-row"><span class="step-dot">1</span><div class="row-copy"><b>调准四根弦</b><small>G-C-E-A 全部进绿色区</small></div></div>
-          <div class="plan-row"><span class="step-dot">2</span><div class="row-copy"><b>节奏型练习</b><small>60 BPM 下扫四拍，稳定 2 轮</small></div></div>
-          <div class="plan-row"><span class="step-dot">3</span><div class="row-copy"><b>歌曲片段跟弹</b><small>《童年》前 4 小节 C-Am-F-G7</small></div></div>
+        <div class="practice-hub-shell">
+          <header class="practice-hub-top">
+            <div>
+              <div class="practice-hub-kicker">PRACTICE TOOLS</div>
+              <h1 class="practice-hub-title">练琴</h1>
+              <p class="practice-hub-subtitle">调好琴、找好拍、看好指法再开始。</p>
+            </div>
+            <div class="practice-hub-pill">15 分钟</div>
+          </header>
+
+          <section class="practice-hub-section">
+            <div class="practice-hub-head"><b>工具</b><small>练前准备</small></div>
+            <div class="practice-tool-grid">
+              <button class="practice-tool-card feature card clickable" data-open="tuner">
+                <span class="practice-tool-icon">🎛️</span>
+                <span><b>智能调音器</b><small>标准 GCEA · 拨弦检测</small></span>
+              </button>
+              <button class="practice-tool-card card clickable" data-open="metronome">
+                <span class="practice-tool-icon">⏱️</span>
+                <span><b>节拍器</b><small>BPM · 重音 · 声音</small></span>
+              </button>
+              <button class="practice-tool-card card clickable" data-open="chords">
+                <span class="practice-tool-icon">🎼</span>
+                <span><b>和弦库</b><small>指法图 · 试听</small></span>
+              </button>
+            </div>
+          </section>
+
+          <section class="practice-hub-section">
+            <div class="practice-hub-head"><b>专项练习</b><small>按节拍推进</small></div>
+            <div class="practice-tool-grid">
+              <button class="practice-tool-card card clickable" data-open="rhythm">
+                <span class="practice-tool-icon">🥁</span>
+                <span><b>节奏练习</b><small>下扫四拍 · 下下上上</small></span>
+              </button>
+              <button class="practice-tool-card card clickable" data-open="transition">
+                <span class="practice-tool-icon">🔁</span>
+                <span><b>和弦转换</b><small>C-Am · Am-F · F-G7</small></span>
+              </button>
+            </div>
+          </section>
+
+          <div class="practice-plan compact card" id="practicePlan">
+            <div class="practice-hub-head"><b>今日建议路径</b><small>新手顺序</small></div>
+            <div class="plan-row"><span class="step-dot">1</span><div class="row-copy"><b>调准四根弦</b><small>G-C-E-A 全部进绿色区</small></div></div>
+            <div class="plan-row"><span class="step-dot">2</span><div class="row-copy"><b>节奏型练习</b><small>60 BPM 下扫四拍，稳定 2 轮</small></div></div>
+            <div class="plan-row"><span class="step-dot">3</span><div class="row-copy"><b>C-Am 转换</b><small>先练两个和弦，再进四和弦</small></div></div>
+          </div>
         </div>
       </section>
 
@@ -2211,20 +2382,10 @@ function renderPracticePlan() {
   const plan = $("#practicePlan");
   if (!plan) return;
   plan.innerHTML = `
-    <div class="practice-plan-head"><b>今日建议路径</b><small>按弹唱顺序练</small></div>
-    ${practiceTemplates.map((template, index) => {
-      const progress = templateProgress(template);
-      const state = progress >= 100 ? "done" : progress > 0 ? "current" : "";
-      const stateText = progress >= 100 ? "已完成" : progress > 0 ? "进行中" : "未开始";
-      return `<button class="plan-row clickable ${state}" data-practice-template="${template.id}">
-        <span class="step-dot">${progress >= 100 ? "✓" : index + 1}</span>
-        <div class="row-copy">
-          <b>${template.type} · ${template.title}</b>
-          <small>${template.bpm} BPM · ${stateText} · ${template.detail}</small>
-          <span class="mini-progress" style="width:100%;margin-top:7px"><i style="width:${progress}%"></i></span>
-        </div>
-      </button>`;
-    }).join("")}
+    <div class="practice-hub-head"><b>今日建议路径</b><small>新手顺序</small></div>
+    <button class="plan-row clickable" data-open="tuner"><span class="step-dot">1</span><div class="row-copy"><b>调准四根弦</b><small>G-C-E-A 全部进绿色区</small></div></button>
+    <button class="plan-row clickable" data-open="rhythm"><span class="step-dot">2</span><div class="row-copy"><b>节奏型练习</b><small>60 BPM 下扫四拍，稳定 2 轮</small></div></button>
+    <button class="plan-row clickable" data-open="transition"><span class="step-dot">3</span><div class="row-copy"><b>C-Am 转换</b><small>先练两个和弦，再进四和弦</small></div></button>
   `;
 }
 function openPracticeTemplate(templateId) {

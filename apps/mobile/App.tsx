@@ -43,10 +43,10 @@ import { useMicrophoneRecorderMonitor } from "./src/audio/useMicrophoneRecorderM
 import { useRealtimeTunerStream } from "./src/audio/useRealtimeTunerStream";
 import { clearPracticeHistory, loadPracticeHistory, savePracticeHistory } from "./src/storage/practiceHistoryStore";
 
-type Tab = "home" | "practice" | "songs" | "learn" | "me" | "tuner" | "chords";
+type Tab = "home" | "practice" | "songs" | "learn" | "me" | "tuner" | "chords" | "metronome" | "practiceRunner";
 type CourseFilter = "required" | "optional" | "pro";
 
-const tabs: Array<{ id: Exclude<Tab, "tuner" | "chords">; label: string }> = [
+const tabs: Array<{ id: Exclude<Tab, "tuner" | "chords" | "metronome" | "practiceRunner">; label: string }> = [
   { id: "home", label: "首页" },
   { id: "practice", label: "练琴" },
   { id: "songs", label: "曲谱" },
@@ -990,6 +990,7 @@ export default function App() {
     () => evaluateLocalLessonPathProgress(practiceHistory, practiceMilestone),
     [practiceHistory, practiceMilestone]
   );
+  const fixedScreen = activeTab === "home" || activeTab === "practice";
 
   useEffect(() => {
     let mounted = true;
@@ -1037,7 +1038,7 @@ export default function App() {
     if (config) {
       setPracticeLaunchConfig({ ...config, token: Date.now() });
     }
-    setActiveTab("practice");
+    setActiveTab("practiceRunner");
   }
 
   function startPracticeTemplate(templateId: string) {
@@ -1112,9 +1113,9 @@ export default function App() {
       </View>
 
       <ScrollView
-        bounces={activeTab !== "home"}
-        contentContainerStyle={[styles.content, activeTab === "home" && styles.homeContent]}
-        scrollEnabled={activeTab !== "home"}
+        bounces={!fixedScreen}
+        contentContainerStyle={[styles.content, fixedScreen && styles.homeContent]}
+        scrollEnabled={!fixedScreen}
       >
         {activeTab === "home" && (
           <HomeScreen
@@ -1131,7 +1132,17 @@ export default function App() {
         )}
         {activeTab === "tuner" && <TunerScreen />}
         {activeTab === "chords" && <ChordScreen />}
+        {activeTab === "metronome" && <MetronomeScreen />}
         {activeTab === "practice" && (
+          <PracticeHubScreen
+            onOpenChords={() => setActiveTab("chords")}
+            onOpenMetronome={() => setActiveTab("metronome")}
+            onOpenRhythm={() => startPracticeTemplate("practice-rhythm-down-four")}
+            onOpenTransition={() => startPracticeTemplate("practice-transition-c-am")}
+            onOpenTuner={() => setActiveTab("tuner")}
+          />
+        )}
+        {activeTab === "practiceRunner" && (
           <PracticeScreen launchConfig={practiceLaunchConfig} onPracticeRecord={handlePracticeRecord} />
         )}
         {activeTab === "songs" && <SongsScreen onStartSongPractice={startPracticeTemplate} />}
@@ -1314,6 +1325,116 @@ function HomeScreen({
       {latestPracticeSummary ? (
         <Text style={styles.homeRecentHint}>最近练习：{latestPracticeSummary.title} · {latestPracticeSummary.completedStepsLabel}</Text>
       ) : null}
+    </View>
+  );
+}
+
+function PracticeHubScreen({
+  onOpenChords,
+  onOpenMetronome,
+  onOpenRhythm,
+  onOpenTransition,
+  onOpenTuner
+}: {
+  onOpenChords: () => void;
+  onOpenMetronome: () => void;
+  onOpenRhythm: () => void;
+  onOpenTransition: () => void;
+  onOpenTuner: () => void;
+}) {
+  const tools = [
+    { id: "metronome", icon: "⏱️", title: "节拍器", detail: "BPM · 重音 · 声音", action: onOpenMetronome },
+    { id: "chords", icon: "🎼", title: "和弦库", detail: "指法图 · 试听", action: onOpenChords }
+  ];
+  const drills = [
+    { id: "rhythm", icon: "🥁", title: "节奏练习", detail: "下扫四拍 · 下下上上", action: onOpenRhythm },
+    { id: "transition", icon: "🔁", title: "和弦转换", detail: "C-Am · Am-F · F-G7", action: onOpenTransition }
+  ];
+  const plan = [
+    { title: "调准四根弦", detail: "G-C-E-A 全部进绿色区" },
+    { title: "节奏型练习", detail: "60 BPM 下扫四拍，稳定 2 轮" },
+    { title: "C-Am 转换", detail: "先练两个和弦，再进四和弦" }
+  ];
+
+  return (
+    <View style={styles.practiceHubStack}>
+      <View style={styles.practiceHubHeader}>
+        <View style={styles.homeHeroCopyBlock}>
+          <Text style={styles.homeEyebrow}>PRACTICE TOOLS</Text>
+          <Text style={styles.practiceHubTitle}>练琴</Text>
+          <Text style={styles.practiceHubSubtitle}>调好琴、找好拍、看好指法再开始。</Text>
+        </View>
+        <View style={styles.practiceHubBadge}>
+          <Text style={styles.practiceHubBadgeText}>15 分钟</Text>
+        </View>
+      </View>
+
+      <View>
+        <View style={styles.practiceHubSectionHead}>
+          <Text style={styles.practiceHubSectionTitle}>工具</Text>
+          <Text style={styles.practiceHubSectionMeta}>练前准备</Text>
+        </View>
+        <Pressable accessibilityRole="button" onPress={onOpenTuner} style={styles.practiceHubFeatureCard}>
+          <View style={styles.practiceHubIcon}>
+            <Text style={styles.practiceHubIconText}>🎛️</Text>
+          </View>
+          <View style={styles.practiceHubCardCopy}>
+            <Text style={styles.practiceHubFeatureTitle}>智能调音器</Text>
+            <Text style={styles.practiceHubFeatureDetail}>标准 GCEA · 拨弦检测</Text>
+          </View>
+        </Pressable>
+        <View style={styles.practiceHubGrid}>
+          {tools.map((tool) => (
+            <Pressable accessibilityRole="button" key={tool.id} onPress={tool.action} style={styles.practiceHubCard}>
+              <View style={styles.practiceHubIcon}>
+                <Text style={styles.practiceHubIconText}>{tool.icon}</Text>
+              </View>
+              <View style={styles.practiceHubCardCopy}>
+                <Text style={styles.practiceHubCardTitle}>{tool.title}</Text>
+                <Text style={styles.practiceHubCardDetail}>{tool.detail}</Text>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      <View>
+        <View style={styles.practiceHubSectionHead}>
+          <Text style={styles.practiceHubSectionTitle}>专项练习</Text>
+          <Text style={styles.practiceHubSectionMeta}>按节拍推进</Text>
+        </View>
+        <View style={styles.practiceHubGrid}>
+          {drills.map((drill) => (
+            <Pressable accessibilityRole="button" key={drill.id} onPress={drill.action} style={styles.practiceHubCard}>
+              <View style={styles.practiceHubIcon}>
+                <Text style={styles.practiceHubIconText}>{drill.icon}</Text>
+              </View>
+              <View style={styles.practiceHubCardCopy}>
+                <Text style={styles.practiceHubCardTitle}>{drill.title}</Text>
+                <Text style={styles.practiceHubCardDetail}>{drill.detail}</Text>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.practiceHubPlan}>
+        <View style={styles.practiceHubSectionHead}>
+          <Text style={styles.practiceHubSectionTitle}>今日建议路径</Text>
+          <Text style={styles.practiceHubSectionMeta}>新手顺序</Text>
+        </View>
+        {plan.map((item, index) => (
+          <View key={item.title} style={styles.practiceHubPlanRow}>
+            <View style={styles.practiceHubStepDot}>
+              <Text style={styles.practiceHubStepText}>{index + 1}</Text>
+            </View>
+            <View style={styles.practiceHubCardCopy}>
+              <Text style={styles.practiceHubPlanTitle}>{item.title}</Text>
+              <Text style={styles.practiceHubPlanDetail}>{item.detail}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -3197,6 +3318,164 @@ const styles = StyleSheet.create({
     color: "#64748B",
     fontSize: 12,
     lineHeight: 17
+  },
+  practiceHubStack: {
+    gap: 10
+  },
+  practiceHubHeader: {
+    borderRadius: 15,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 10,
+    backgroundColor: "#E6F7F4",
+    borderWidth: 1,
+    borderColor: "#C7ECE7"
+  },
+  practiceHubTitle: {
+    marginTop: 2,
+    color: colors.forest,
+    fontSize: 23,
+    lineHeight: 26,
+    fontWeight: "900"
+  },
+  practiceHubSubtitle: {
+    marginTop: 4,
+    color: "#64748B",
+    fontSize: 11,
+    lineHeight: 16
+  },
+  practiceHubBadge: {
+    minWidth: 66,
+    borderRadius: 14,
+    paddingVertical: 7,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    backgroundColor: "#FFFFFF"
+  },
+  practiceHubBadgeText: {
+    color: colors.forest,
+    fontSize: 11,
+    fontWeight: "900"
+  },
+  practiceHubSectionHead: {
+    minHeight: 26,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10
+  },
+  practiceHubSectionTitle: {
+    color: colors.forest,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  practiceHubSectionMeta: {
+    color: "#64748B",
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  practiceHubFeatureCard: {
+    minHeight: 70,
+    borderRadius: 14,
+    padding: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    backgroundColor: colors.forest
+  },
+  practiceHubGrid: {
+    marginTop: 8,
+    flexDirection: "row",
+    gap: 8
+  },
+  practiceHubCard: {
+    flex: 1,
+    minHeight: 64,
+    borderRadius: 12,
+    padding: 9,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#FFFDF8",
+    borderWidth: 1,
+    borderColor: colors.line
+  },
+  practiceHubIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#E0F2F1"
+  },
+  practiceHubIconText: {
+    fontSize: 18
+  },
+  practiceHubCardCopy: {
+    flex: 1
+  },
+  practiceHubFeatureTitle: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  practiceHubFeatureDetail: {
+    marginTop: 2,
+    color: "#D9E4DB",
+    fontSize: 11,
+    lineHeight: 15
+  },
+  practiceHubCardTitle: {
+    color: colors.forest,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  practiceHubCardDetail: {
+    marginTop: 2,
+    color: "#64748B",
+    fontSize: 10,
+    lineHeight: 13
+  },
+  practiceHubPlan: {
+    borderRadius: 13,
+    padding: 10,
+    backgroundColor: "#FFFDF8",
+    borderWidth: 1,
+    borderColor: colors.line
+  },
+  practiceHubPlanRow: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    borderTopWidth: 1,
+    borderTopColor: colors.line
+  },
+  practiceHubStepDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#0F766E"
+  },
+  practiceHubStepText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "900"
+  },
+  practiceHubPlanTitle: {
+    color: colors.forest,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  practiceHubPlanDetail: {
+    marginTop: 1,
+    color: "#64748B",
+    fontSize: 10,
+    lineHeight: 13
   },
   heroBand: {
     backgroundColor: colors.forest,
