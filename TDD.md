@@ -1,521 +1,488 @@
-﻿# AI Ukulele Academy TDD
+# AI 尤克里里弹唱 TDD
 
-版本：v0.1  
-日期：2026-07-01  
+版本：v0.2
+日期：2026-07-12
 文档类型：Technical Design Document
-
-## 0. 本次整合结论
-
-本版 TDD 采用“本地实时 DSP + 可选离线/云端 ML + 可配置课程内容 + 多 Agent 工程协作”的技术路线。当前项目文档中更完整的 PitchEngine、PracticeEngine、算法评测体系继续作为主线；外部文档中更明确的 Expo development builds、monorepo 结构、API 草案、Audio ML 服务和内容后台能力已合并进来。
-
-关键技术决策：
-
-- 移动端推荐 React Native + Expo development builds + TypeScript。
-- 低延迟拾音不依赖普通 JS 录音 API，必须通过自定义 Native Module/JSI/TurboModule 承载。
-- MVP 默认实现 MPM + YIN/YINFFT 类轻量 DSP，后续评估 CREPE tiny/small、Basic Pitch、SPICE、SwiftF0、RT-SWIPE。
-- 和弦/弹唱识别拆成 onset、F0、chroma/CQT、时间轴匹配，不把 F0 当成万能解法。
-- 工程上采用 monorepo，保证移动端、API、算法评测、共享类型和 Agent 平台可协作演进。
 
 ## 1. 技术目标
 
-本项目的技术目标是建立一个可长期扩展的 AI 音乐教学 App 技术底座，先支持尤克里里弹唱练习，后续扩展到更多乐器和课程形态。
+本阶段技术目标不是重写全部代码，而是在现有 monorepo、音频算法和静态预览基础上，按新的产品信息架构重组页面、数据模型和练习运行时。
 
-核心挑战有三个：
+核心原则：
 
-1. 低延迟、稳定、准确的拾音和音高/节奏检测。
-2. 可配置的课程、曲谱、练习和评分系统。
-3. 可把大任务拆分、并行开发、自动验收的多智能体协作平台。
+- 现有 `audio-core` 继续作为音频算法底座。
+- 现有静态预览页继续作为快速验证入口。
+- App 与 preview 尽量消费同一套结构化内容。
+- 页面不再硬编码单一 C-Am-F-G7 流程，而是加载可扩展练习模板。
+- 所有和弦相关场景必须能拿到指法图数据。
 
-### 1.1 方向校准后的技术主线
+## 2. 当前技术资产
 
-后续技术开发必须从“工具能力堆叠”转向“真实弹唱练习内容体系”。调音、节拍、麦克风、评分、复盘都是底座；核心域模型应优先表达用户真正要练的内容。
+已存在并继续保留：
 
-必须优先结构化支持三类练习：
+- `apps/mobile`：Expo / React Native App。
+- `apps/mobile/dist-web/preview.html`：自包含静态预览页。
+- `MVP_PREVIEW.html`：根预览入口。
+- `packages/audio-core`：音名、频率、MIDI、cents、MPM/YIN、调音匹配、评分。
+- `packages/shared`：标准调弦、基础和弦、课程模板、设计 token、Agent backlog。
 
-1. `rhythm_pattern`：节奏型练习，描述拍号、BPM、每拍/细分拍的扫弦方向、重音、静音和通过条件。
-2. `chord_transition`：和弦转换练习，描述起始和弦、目标和弦、切换小节、预备提示、完成条件。
-3. `song_fragment`：歌曲片段练习，描述小节、歌词、和弦、节奏型、循环片段和弹唱同步目标。
+音频能力现状：
 
-技术原则：
+- 浏览器 preview 已有麦克风 PoC，可做权限、电平、噪声门限、拨弦触发检测。
+- Expo App 当前真实麦克风主要是权限和录音电平，真实 PCM 后续接 Native/JSI。
+- 调音判定逻辑已经稳定，不重写算法，只重做页面消费方式。
 
-- PracticeEngine 不应只服务固定 C-Am-F-G7 循环，而应加载任意结构化 practice template。
-- 节奏评分优先基于 onset/扫弦触发与 beat clock 的偏移；和弦正确性在 MVP 阶段可先依赖目标时间轴和用户确认，后续再接 chroma/CQT 或模型。
-- 歌曲片段练习必须绑定 `bar -> beat -> chord -> lyric -> rhythmPattern`，后续才能做曲谱滚动、错误定位和 AI 推荐。
-- 推荐系统的输入不应只有总分，还应包含节奏型、和弦转换对、歌曲片段、BPM、完成轮次、提前/滞后统计。
-- 页面开发优先消费共享内容模型，不再为每个练习在 UI 中硬编码独立数据。
-
-### 1.2 当前技术执行顺序
-
-1. `packages/shared` 先定义内容目录：课程路径、练习模板、曲谱条目、页面模块元数据和查询 helper。
-2. `apps/mobile/dist-web/preview.html` 继续保留自包含预览，但逐步对齐 shared 字段，作为交互验证场。
-3. 调音器不重写算法：复用 `audio-core` 的 MPM/YIN、调音匹配、`createTunerFrameFromFrequency`、`medianCents` 和 App 侧 `TunerFrame` 管线。
-4. 调音页面按当前设计重做，UI 只消费权限、电平、PitchFrame、弦状态和调音建议，不直接耦合具体算法。
-5. `apps/mobile/App.tsx` 改为消费 shared 内容模型，减少页面内硬编码。
-6. `PracticeEngine` 和本地 `practiceHistory` 只处理结构化 practice template 与 practice session record。
-7. 真实拾音接入延后到内容路径稳定之后，再把麦克风 onset/PitchFrame 作为 practice event 输入。
-
-## 2. 推荐技术栈
-
-### 2.1 客户端
-
-推荐：React Native + TypeScript + 原生音频/DSP 模块。
-
-原因：
-
-- 跨 iOS/Android，业务 UI 迭代快。
-- React Native 新架构支持 TurboModule/JSI，适合把性能敏感音频处理放到 C++/Swift/Kotlin 原生层。
-- 课程、曲谱、练习页面可快速组件化。
-
-推荐落地方式：
-
-- Expo development builds，而不是仅依赖 Expo Go。
-- 使用 config plugin 管理麦克风权限、后台音频能力、原生模块配置。
-- Expo/JS 层录音 API 可用于录音文件和回放，不作为低延迟拾音核心。
-- 导航使用 Expo Router 或 React Navigation。
-- 轻状态使用 Zustand/Jotai，服务端状态使用 TanStack Query。
-
-备选：
-
-- Flutter：音频实时处理也可行，但后续接入 JS/AI Agent 工具链不如 TypeScript 生态顺手。
-- 原生 iOS/Android：性能最佳，但开发成本高。
-
-### 2.2 音频与 DSP
-
-- 音频采集：原生 AudioRecord/AVAudioEngine。
-- 实时处理：C++ DSP core，暴露给 React Native。
-- 缓冲策略：ring buffer + worker thread。
-- 可视化：UI 层只消费低频率特征结果，不直接处理 PCM。
-
-### 2.3 后端
-
-一期可不依赖后端，优先本地化。
-
-二期推荐：
-
-- API：Node.js/NestJS 或 FastAPI。
-- 数据库：PostgreSQL。
-- 对象存储：录音、课程媒体、曲谱资源。
-- 队列：音频离线分析、内容生成、Agent 长任务。
-
-### 2.4 工程结构
-
-推荐 monorepo：
+## 3. 总体架构
 
 ```text
-apps/
-  mobile/        React Native App
-  api/           BFF/API 服务
-  admin/         内容后台与 Agent 控制台
-services/
-  audio-ml/      离线音频分析、模型评测、数据集构建
-packages/
-  audio-core/    可复用 DSP/算法接口与测试工具
-  shared/        类型、schema、工具函数
-  design-tokens/ 设计 token 与主题
+apps/mobile
+  ├─ App UI
+  ├─ Static Preview
+  ├─ Practice Runtime
+  ├─ Local Practice Store
+  └─ Audio Adapter
+
+packages/shared
+  ├─ Navigation Content
+  ├─ Chord Library
+  ├─ Rhythm Patterns
+  ├─ Chord Transition Exercises
+  ├─ Song Catalog
+  ├─ Learning Articles
+  └─ Practice Templates
+
+packages/audio-core
+  ├─ Pitch Detection
+  ├─ Tuner Matching
+  ├─ Signal Helpers
+  ├─ Practice Scoring
+  └─ Feature Frame Utilities
 ```
 
-CI 至少包含：
+## 4. 核心数据模型
 
-- lint。
-- typecheck。
-- unit test。
-- audio regression test。
-- mobile build smoke test。
-- schema compatibility test。
-
-### 2.5 多智能体平台
-
-- Agent Orchestrator：负责任务拆分、依赖管理、状态机。
-- Agent Runtime：执行具体任务。
-- Artifact Store：保存文档、代码、评测报告、验收结果。
-- Review Gate：自动检查和人工确认。
-
-## 3. 拾音算法研究结论
-
-### 3.1 场景拆分
-
-拾音不是一个单一问题，必须按场景拆：
-
-| 场景 | 输入 | 技术目标 | 推荐策略 |
-| --- | --- | --- | --- |
-| 调音器 | 单根弦、持续拨弦 | 频率稳定、低延迟 | MPM/YIN 双实现评测后择优 |
-| 单音练习 | 单音旋律 | 音名、音准、持续时间 | YIN/MPM + 平滑 |
-| 人声音准 | 单声部歌唱 | F0 连续跟踪 | pYIN/CREPE/SPICE 候选 |
-| 扫弦节奏 | 复音瞬态 | onset、节拍偏差 | onset detection + 能量包络 |
-| 和弦识别 | 多根弦同时发声 | 和弦类别 | chroma/CQT + 模板/ML |
-| 弹唱混合 | 尤克里里 + 人声 | 分离、同步、评分 | 先做准实时评分，后期引入 ML |
-
-### 3.2 候选算法
-
-| 算法 | 类型 | 优点 | 风险 | 产品建议 |
-| --- | --- | --- | --- | --- |
-| YIN | 经典自相关改进 | 成熟、可解释、低延迟 | 噪声和倍频/半频误判需处理 | 一期必须实现 |
-| MPM | McLeod Pitch Method | 面向音乐场景，实时，带 clarity | 参数和峰值选择影响稳定性 | 一期必须实现，调音器首选候选 |
-| pYIN | 概率 YIN + HMM | 跟踪更平滑，候选概率更可靠 | 实时复杂度更高 | 二期用于歌唱/旋律跟踪 |
-| YINFFT/aubio | 成熟音频库/FFT 变体 | 工程成熟，含 onset、tempo、pitch 等能力 | 跨端封装和许可证需确认 | 作为 PoC/基线参考 |
-| SWIPE/RT-SWIPE | 谱域/实时变体 | 对音乐音高估计有价值 | 实现复杂，实时变体较新 | 作为实验候选 |
-| CREPE | CNN 单音 pitch tracker | 鲁棒性强，深度学习方案成熟 | 端侧算力、延迟、模型体积 | 作为高精度候选，不做一期默认 |
-| SPICE | 自监督 pitch model | 可处理混合/噪声线索 | 部署和实时性需实测 | 用于离线/准实时评分候选 |
-| Basic Pitch | 自动音乐转录 | 支持复音、音频转 MIDI | 更偏离线转录，不适合低延迟调音 | 用于曲谱生成/离线分析 |
-| SwiftF0 | 2025 轻量单音模型 | 论文声称快且准 | 新方案生态成熟度待验证 | 进入实验池，不做一期默认 |
-
-### 3.3 一期算法决策
-
-一期默认路线：
-
-1. 实现 MPM 和 YIN 两个本地实时算法。
-2. 用同一批样本做自动基准测试。
-3. 调音器默认选择样本表现更稳定者，另一个作为 fallback。
-4. 对输出结果增加中值滤波、置信度门限、静音检测和连续帧确认。
-5. 深度学习算法先不阻塞 MVP，只进入实验开关。
-
-初始判断：
-
-- 对尤克里里调音器，MPM 很适合作为首选候选，因为它面向音乐音高检测，实时运行，并提供 clarity 这类稳定度信号。
-- YIN 更成熟、资料多、实现简单，适合作为并行基线。
-- pYIN/CREPE/SPICE 更适合解决后续“连续旋律/人声/噪声”问题。
-- 和弦识别不能靠 MPM/YIN 直接完成，需要独立的 chroma/CQT 或模型方案。
-
-### 3.4 音频处理管线
-
-```text
-Microphone
-  -> Audio Session / Permission
-  -> PCM Ring Buffer
-  -> Noise Gate / DC Removal
-  -> Windowing
-  -> Pitch Detector Strategy
-  -> Confidence + Smoothing
-  -> Note Mapper
-  -> Practice Evaluator
-  -> UI Feedback / Record
-```
-
-建议参数：
-
-- sampleRate：44100 Hz 或 48000 Hz，按设备原生优先。
-- internalRate：必要时重采样到 16000 Hz 或 22050 Hz 做部分特征提取。
-- frameSize：2048 或 4096 samples，按延迟/精度评测选择。
-- hopSize：256/512 samples。
-- pitch range：尤克里里常用 100-1000 Hz，一期可扩大到 70-1200 Hz。
-- silence gate：基于 RMS + 自适应环境噪声。
-- stable frames：连续 3-5 帧达标后再确认。
-- tuner threshold：±5 cents 优秀，±15 cents 可接受。
-- practice threshold：音准可放宽到 ±35 cents，节奏 ±60 ms 优秀、±120 ms 可接受，并按 BPM 动态缩放。
-
-## 4. 核心模块设计
-
-### 4.1 PitchEngine
-
-职责：
-
-- 管理实时 PCM 输入。
-- 执行 pitch detection。
-- 输出 frequency、note、cents、confidence、clarity、timestamp。
-
-接口草案：
+### 4.1 导航与首页
 
 ```ts
-export type PitchFrame = {
-  timestampMs: number;
-  frequencyHz: number | null;
-  noteName: string | null;
-  midi: number | null;
-  cents: number | null;
-  confidence: number;
-  algorithm: "mpm" | "yin" | "crepe" | "spice" | "swiftf0";
+type AppTab = "home" | "practice" | "songs" | "learn" | "profile";
+
+type HomeModule = {
+  id: "tuner" | "chords" | "songs" | "practice";
+  title: string;
+  subtitle: string;
+  targetTab: AppTab;
+  targetRoute?: string;
 };
 
-export interface PitchEngine {
-  start(config: PitchConfig): Promise<void>;
-  stop(): Promise<void>;
-  setAlgorithm(name: PitchAlgorithmName): void;
-  onFrame(callback: (frame: PitchFrame) => void): () => void;
-}
-```
-
-### 4.2 Tuner
-
-- 使用 PitchEngine。
-- 根据乐器调弦配置生成目标音。
-- 自动选弦逻辑：选择距离当前频率最近且 confidence 足够的弦。
-- 稳定状态机：idle -> detecting -> close -> inTune -> confirmed。
-
-### 4.3 Metronome
-
-- 使用高精度原生 timer 或音频时钟。
-- 与练习时间轴共享 beat clock。
-- 输出 beat index、bar index、accent。
-
-### 4.4 PracticeEngine
-
-职责：
-
-- 加载练习脚本。
-- 订阅 PitchEngine 和 Metronome。
-- 计算用户输入与目标时间轴的偏差。
-- 输出实时提示和练后报告。
-
-练习脚本示例：
-
-```json
-{
-  "id": "uke_basic_c_am_f_g",
-  "type": "chord_switch",
-  "instrument": "ukulele",
-  "bpm": 70,
-  "timeSignature": "4/4",
-  "targets": [
-    { "bar": 1, "beat": 1, "chord": "C" },
-    { "bar": 2, "beat": 1, "chord": "Am" },
-    { "bar": 3, "beat": 1, "chord": "F" },
-    { "bar": 4, "beat": 1, "chord": "G" }
-  ]
-}
-```
-
-### 4.5 ChordRecognizer
-
-一期不要承诺完整实时复音识别。建议分阶段：
-
-1. v0.2：通过用户选择目标和弦，结合扫弦 onset 和练习时间点判断是否跟上节奏。
-2. v0.3：加入 chroma/CQT 特征，做基础和弦模板匹配。
-3. v0.4：积累样本后训练轻量模型。
-
-### 4.6 ScoringEngine
-
-评分维度：
-
-- pitchAccuracy：音准。
-- rhythmAccuracy：节奏。
-- continuity：连续性。
-- targetCompletion：目标完成度。
-- stability：稳定度。
-
-评分原则：
-
-- 评分要可解释。
-- 每个低分项必须给出原因。
-- 分数只作为反馈，不替代具体建议。
-
-### 4.7 Backend API
-
-一期可先本地化，但接口契约要提前设计，方便后续云同步和内容后台接入。
-
-初始 API 草案：
-
-```text
-GET  /courses?instrument=ukulele
-GET  /lessons/:id
-GET  /practice-templates/:id
-POST /practice-sessions
-POST /practice-sessions/:id/events
-POST /practice-sessions/:id/finish
-GET  /practice-sessions/:id/report
-POST /audio-analysis/jobs
-GET  /audio-analysis/jobs/:id
-POST /agent/tasks
-GET  /agent/tasks/:id
-```
-
-实时识别事件示例：
-
-```json
-{
-  "sessionId": "ps_123",
-  "timestampMs": 12420,
-  "eventType": "note",
-  "target": "C4",
-  "detectedHz": 262.1,
-  "detectedNote": "C4",
-  "cents": 3.2,
-  "confidence": 0.91,
-  "timingOffsetMs": -42,
-  "result": "hit"
-}
-```
-
-### 4.8 Audio ML Service
-
-职责：
-
-- Offline Transcription：用 Basic Pitch 生成 note events/MIDI。
-- Pitch Analysis：用 CREPE/pYIN/SPICE 对录音做复核。
-- Dataset Builder：整理用户授权样本、设备信息、噪声条件、标签。
-- Model Eval：按机型、噪声、BPM、和弦类型生成指标。
-
-约束：
-
-- 不参与 MVP 实时反馈链路。
-- 只处理用户授权录音。
-- 输出结构化分析结果，不把原始音频暴露给业务层。
-
-### 4.9 UI 技术规范
-
-移动端：
-
-- 使用共享 design tokens 映射到 React Native 样式。
-- 优先构建稳定组件：TunerDial、BeatGrid、ChordDiagram、PracticeTimeline、ScorePanel。
-- 动效用于表达状态变化，不用于干扰音准/节奏判断。
-- 所有 icon-only 控件要有 accessibilityLabel。
-
-Web 管理后台/Agent 控制台：
-
-- 可采用 shadcn/ui + Tailwind CSS。
-- 使用三层 token：primitive -> semantic -> component。
-- 表单、弹窗、菜单、命令面板优先使用可访问组件。
-- 支持键盘导航、焦点可见、ARIA 标签、深色模式。
-
-## 5. 数据模型
-
-### 5.1 Instrument
-
-```ts
-type Instrument = {
-  id: string;
-  name: string;
-  tunings: Tuning[];
-  pitchRangeHz: [number, number];
+type CheckInDay = {
+  date: string;
+  minutes: number;
+  completed: boolean;
 };
 ```
 
-### 5.2 Tuning
+### 4.2 和弦库
 
 ```ts
-type Tuning = {
+type ChordCategory = "all" | "major" | "minor" | "dominant7" | "suspended" | "favorite";
+
+type ChordShape = {
   id: string;
   name: string;
-  strings: Array<{
-    index: number;
-    name: string;
-    note: string;
-    frequencyHz: number;
-    midi: number;
-  }>;
-};
-```
-
-### 5.3 Chord
-
-```ts
-type Chord = {
-  id: string;
-  instrumentId: string;
-  name: string;
-  fingering: number[];
-  fingers?: number[];
+  category: Exclude<ChordCategory, "all" | "favorite">;
   difficulty: 1 | 2 | 3 | 4 | 5;
-  tags: string[];
+  tuning: "GCEA";
+  frets: [number, number, number, number];
+  fingers: [number, number, number, number];
+  muted?: boolean[];
+  favorite?: boolean;
+  audioPreview?: {
+    type: "synth" | "sample";
+    assetId?: string;
+  };
 };
 ```
 
-### 5.4 PracticeSession
+约定：
+
+- 弦顺序统一为 G、C、E、A。
+- `frets` 中 `0` 表示空弦，`-1` 表示不弹。
+- `fingers` 中 `0` 表示不按，1/2/3/4 表示手指编号。
+
+### 4.3 节奏型
 
 ```ts
-type PracticeSession = {
+type StrumAction = "down" | "up" | "rest" | "mute";
+
+type RhythmStep = {
+  beat: number;
+  subdivision: number;
+  action: StrumAction;
+  accent?: boolean;
+  label?: string;
+};
+
+type RhythmPattern = {
   id: string;
-  userId?: string;
-  startedAt: string;
-  endedAt: string;
-  lessonId?: string;
-  exerciseId: string;
-  durationSec: number;
-  score: PracticeScore;
-  events: PracticeEvent[];
+  title: string;
+  timeSignature: "4/4" | "3/4" | "6/8";
+  defaultBpm: number;
+  difficulty: 1 | 2 | 3 | 4 | 5;
+  steps: RhythmStep[];
+  passRule: {
+    minScore: number;
+    minLoops: number;
+  };
 };
 ```
 
-### 5.5 服务端数据表草案
+### 4.4 和弦转换练习
 
-- `users`：用户基础信息。
-- `devices`：设备、系统、音频能力。
-- `instruments`：乐器类型、调弦、音域。
-- `courses`：课程、品类、难度、权益。
-- `lessons`：章节、视频、讲义、练习列表。
-- `practice_templates`：目标音符、节奏、和弦、评分规则。
-- `songs`：歌曲元信息、版权状态、难度。
-- `practice_sessions`：练习会话、得分、报告摘要。
-- `practice_events`：识别事件与时间轴结果。
-- `audio_samples`：授权音频样本、设备、噪声、标签。
-- `memberships`：会员权益。
-- `agent_tasks`：多智能体任务、状态、依赖、产物。
+```ts
+type ChordTransitionExercise = {
+  id: string;
+  title: string;
+  chordIds: string[];
+  defaultBpm: number;
+  barsPerChord: number;
+  loop: boolean;
+  rhythmPatternId: string;
+  passRule: {
+    minScore: number;
+    minCompletedSwitches: number;
+  };
+};
+```
 
-## 6. 算法评测设计
+### 4.5 曲谱与歌曲练习
 
-### 6.1 样本集
+```ts
+type Song = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  source: "original" | "public_domain" | "licensed" | "exercise";
+  difficulty: 1 | 2 | 3 | 4 | 5;
+  bpm: number;
+  key: string;
+  chordIds: string[];
+  estimatedMinutes: number;
+  modes: SongPracticeMode[];
+};
 
-需要建立本地样本集：
+type SongPracticeMode = "melody" | "chords";
 
-- 单根弦标准音。
-- 偏高/偏低不同 cents。
-- 不同力度拨弦。
-- 不同手机距离。
-- 室内噪声。
-- 扫弦、切音、人声干扰。
+type MelodyNoteEvent = {
+  bar: number;
+  beat: number;
+  stringName: "G" | "C" | "E" | "A";
+  fret: number;
+  durationBeats: number;
+};
 
-### 6.2 指标
+type ChordEvent = {
+  bar: number;
+  beat: number;
+  chordId: string;
+  durationBeats: number;
+};
+```
 
-- note accuracy。
-- cents median absolute error。
-- octave error rate。
-- voiced/unvoiced accuracy。
-- latency。
-- jitter。
-- CPU usage。
-- battery impact。
+### 4.6 练习记录
 
-### 6.3 验收门槛
+```ts
+type PracticeKind = "tuner" | "metronome" | "rhythm" | "chord_transition" | "melody_song" | "chord_song";
 
-- 调音器 note accuracy >= 98%。
-- cents median absolute error <= 5 cents。
-- octave error rate <= 1%。
-- P95 latency <= 150 ms。
-- 练习页面无明显 UI 卡顿。
+type PracticeSessionRecord = {
+  id: string;
+  kind: PracticeKind;
+  targetId: string;
+  startedAt: string;
+  endedAt?: string;
+  bpm?: number;
+  loops?: number;
+  score?: number;
+  rhythmScore?: number;
+  pitchScore?: number;
+  completed: boolean;
+  summary: string;
+};
+```
 
-## 7. 测试策略
+## 5. 页面技术设计
 
-### 7.1 单元测试
+### 5.1 首页
 
-- note/frequency/midi/cents 转换。
-- 调弦匹配。
-- 评分规则。
-- lesson script parser。
+数据来源：
 
-### 7.2 算法测试
+- `homeModules`
+- `checkInDays`
+- `popularSongs`
+- `recentPractice`
 
-- 固定 WAV 样本跑所有算法。
-- 输出 CSV/JSON 报告。
-- 每次算法参数调整必须对比基线。
+实现要求：
 
-### 7.3 集成测试
+- 静态预览先用本地常量。
+- App 后续从 shared 导入同源数据。
+- 首页模块点击只负责导航，不承载复杂业务逻辑。
 
-- 麦克风权限。
-- 启停音频流。
-- 后台/前台切换。
-- 练习中断恢复。
+### 5.2 练琴页
 
-### 7.4 体验测试
+练琴页是入口聚合页。
 
-- iOS/Android 真机。
-- 安静房间、普通房间、轻微噪声。
-- 新手和有基础用户各至少 3 人试用。
+路由目标：
 
-## 8. 开发原则
+- `practice/tuner`
+- `practice/metronome`
+- `practice/chords`
+- `practice/rhythm`
+- `practice/chord-transition`
 
-- 算法先基准，后优化。
-- 调音器和练习模块共享 PitchEngine，不重复实现。
-- UI 不直接依赖具体算法，只依赖统一特征输出。
-- 所有课程内容结构化，避免把课程写死在页面里。
-- 所有 AI/Agent 输出必须经过验收清单。
+每个入口页内部再加载对应数据模型。
 
-## 9. 参考来源
+### 5.3 调音器
 
-- React Native 新架构文档：https://reactnative.dev/docs/the-new-architecture/landing-page
-- YIN：https://pubmed.ncbi.nlm.nih.gov/12002874/
-- MPM：https://www.cs.otago.ac.nz/graphics/Geoff/tartini/papers/A_Smarter_Way_to_Find_Pitch.pdf
-- pYIN：https://webspace.eecs.qmul.ac.uk/s.e.dixon/pub/2014/MauchDixon-PYIN-ICASSP2014.pdf
-- CREPE：https://github.com/marl/crepe
-- SPICE：https://blog.tensorflow.org/2020/06/estimating-pitch-with-spice-and-tensorflow-hub.html
-- Basic Pitch：https://github.com/spotify/basic-pitch
-- SwiftF0：https://arxiv.org/html/2508.18440v1
-- RT-SWIPE：https://www.audiolabs-erlangen.de/content/05_fau/professor/00_mueller/03_publications/2025_MeierSSMB_RealTimeSWIPE_CMMR_ePrint.pdf
+输入：
+
+```ts
+type TunerUiState = {
+  permission: "unknown" | "granted" | "denied" | "mock";
+  levelState: "idle" | "metering" | "plucked";
+  frameState: "mock" | "browser_poc" | "native";
+  targetString: "G" | "C" | "E" | "A";
+  frame?: TunerFrame;
+  noiseFloor: number;
+  inputLevel: number;
+};
+```
+
+处理流程：
+
+1. 用户启动调音。
+2. 校准或读取环境噪声。
+3. 输入电平超过动态门限，并满足拨弦触发条件。
+4. 生成 PitchFrame/TunerFrame。
+5. 使用 `audio-core` 匹配目标弦与 cents。
+6. 稳定达到通过条件后，自动切到下一根弦。
+
+自动切弦规则：
+
+- 连续若干帧目标弦一致。
+- cents 在 ±8 内。
+- 输入电平超过噪声门限且随后衰减。
+- 冷却时间内不重复跳转。
+
+### 5.4 节拍器
+
+核心状态：
+
+```ts
+type MetronomeState = {
+  bpm: number;
+  timeSignature: "4/4" | "3/4" | "6/8";
+  beatIndex: number;
+  running: boolean;
+  soundEnabled: boolean;
+  accentEnabled: boolean;
+};
+```
+
+Web preview：
+
+- 使用 Web Audio API 生成重音和轻音。
+- 第一拍使用更高音高或更强包络。
+
+Expo App：
+
+- MVP 可使用短音频资源。
+- 后续可使用原生音频调度降低延迟。
+
+### 5.5 和弦库
+
+组件拆分：
+
+- `ChordSearch`
+- `ChordCategoryTabs`
+- `ChordGrid`
+- `ChordDiagram`
+- `ChordAudioButton`
+- `FavoriteChordSection`
+
+试听实现：
+
+- MVP：使用每根弦频率合成并同时发声。
+- P1：增加真实尤克里里采样包。
+- 所有试听必须按和弦多音处理。
+
+### 5.6 节奏练习
+
+运行时输入：
+
+- `RhythmPattern`
+- BPM。
+- 循环次数。
+- 声音开关。
+
+事件：
+
+- beat tick。
+- expected strum step。
+- user onset event。
+- manual tap fallback。
+
+评分：
+
+- 计算 onset 与目标节拍点的偏移。
+- 漏拍扣分。
+- 连续命中奖励。
+- 输出提前/滞后趋势。
+
+MVP 没有真实麦克风时：
+
+- 使用手动点击或模拟事件完成流程。
+- 页面和数据结构保持与真实音频一致。
+
+### 5.7 和弦转换
+
+运行时输入：
+
+- `ChordTransitionExercise`
+- `ChordShape[]`
+- `RhythmPattern`
+
+页面必须能同时得到：
+
+- 当前和弦指法图。
+- 下一和弦指法图。
+- 整体序列。
+- 当前 beat/bar。
+
+切换逻辑：
+
+- 根据 `barsPerChord` 和 beat clock 自动推进当前和弦。
+- 支持循环。
+- 支持手动重置与暂停。
+
+评分：
+
+- MVP：根据完成轮次、节拍命中、手动确认记录。
+- P1：加入麦克风 onset。
+- P2：加入和弦识别。
+
+### 5.8 曲谱库与跟弹
+
+歌曲详情：
+
+- 展示歌曲基本信息。
+- 展示和弦列表，每个和弦用小指法图。
+- 提供“单音跟弹”和“和弦跟弹”入口。
+
+单音跟弹：
+
+- 加载 `MelodyNoteEvent[]`。
+- 根据 beat clock 推进当前音。
+- 显示 string/fret 和接下来几个音。
+
+和弦跟弹：
+
+- 加载 `ChordEvent[]`。
+- 根据 beat clock 推进当前和弦。
+- 当前和弦展示大指法图，后续和弦展示小卡。
+
+## 6. 音频与评分接入顺序
+
+阶段 1：无麦克风也可练。
+
+- 节拍器发声。
+- 页面按时间轴推进。
+- 手动完成或点击模拟练习事件。
+
+阶段 2：接 onset。
+
+- 用输入电平和短时能量检测扫弦触发。
+- 用于节奏练习和和弦转换的节奏评分。
+
+阶段 3：接 pitch。
+
+- 单音跟弹可判断音高。
+- 调音器继续使用现有 PitchFrame。
+
+阶段 4：接和弦识别。
+
+- 使用 chroma/CQT 或轻量模型判断和弦大类。
+- 和弦转换和歌曲和弦跟弹进入真实评分。
+
+## 7. 静态预览策略
+
+`apps/mobile/dist-web/preview.html` 继续承担快速体验验证：
+
+- 保持自包含。
+- 不依赖 React bundle。
+- 新页面先在 preview 中完成视觉和交互闭环。
+- 关键数据结构要接近 shared，后续迁移到 App 时减少重写。
+
+Preview 必须覆盖：
+
+- 五 Tab 导航。
+- 首页。
+- 练琴入口页。
+- 调音器。
+- 节拍器。
+- 和弦库。
+- 节奏练习。
+- 和弦转换。
+- 曲谱库。
+- 单音/和弦跟弹的基本流程。
+
+## 8. 测试策略
+
+单元测试：
+
+- `audio-core` 音高、cents、调音匹配、评分函数。
+- `shared` 内容模型 helper。
+- 节奏型时间轴计算。
+- 和弦转换推进逻辑。
+
+类型检查：
+
+- `npx.cmd tsc -p apps/mobile --noEmit`
+
+Preview 检查：
+
+- HTML 脚本语法检查。
+- 本地服务返回 200。
+- 浏览器手测核心流程。
+
+人工验收：
+
+- 首页核心内容一屏可读。
+- 和弦相关页面均有指法图。
+- 节拍器有声且重音明显。
+- 调音器保留权限、电平、PitchFrame 状态。
+- 节奏练习与和弦转换可按节拍循环。
+
+## 9. 风险与处理
+
+| 风险 | 处理 |
+| --- | --- |
+| 页面重做导致已有算法废弃 | 算法层保持不动，只替换 UI 消费结构 |
+| Preview 与 App 分叉 | 先统一 shared 数据字段，再迁移页面 |
+| 真实麦克风评分不稳定 | MVP 先保证时间轴练习可用，音频评分分阶段接入 |
+| 歌曲版权风险 | 只使用自有、无版权、授权或练习型原创内容 |
+| 页面再次变长 | 练习页采用一屏优先，报告进入折叠或结果页 |
+
+## 10. 开发顺序
+
+1. 文档确认：PRD/TDD/SDD。
+2. shared 内容模型补齐。
+3. Preview 五 Tab 新骨架。
+4. 首页与练琴入口重做。
+5. 和弦库新样式与试听。
+6. 调音器新样式接回已有调音状态。
+7. 节拍器独立页。
+8. 节奏练习独立页。
+9. 和弦转换独立页。
+10. 曲谱库与歌曲详情。
+11. 单音跟弹与和弦跟弹。
+12. App.tsx 与 preview 对齐。
+13. 真实音频评分增强。
