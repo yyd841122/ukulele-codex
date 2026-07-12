@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>尤克里里 AI 学园 · MVP 预览</title>
+<title>AI 尤克里里弹唱 · 预览</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   :root {
@@ -55,7 +55,7 @@
     padding: 0 22px;
     font-size: 14px;
     font-weight: 700;
-    color: #fff;
+    color: #173B36;
     position: relative;
     z-index: 5;
   }
@@ -98,8 +98,236 @@
     font-weight: 700;
   }
   .tab .icon { font-size: 22px; line-height: 1; }
-  .tab.active { color: var(--orange); }
+  .tab.active { color: #0F766E; }
   .tab.active .icon { transform: translateY(-1px); }
+  .home-shell {
+    min-height: 100%;
+    padding: 54px 16px 92px;
+    background:
+      radial-gradient(circle at 18% 0%, rgba(45, 212, 191, .20), transparent 30%),
+      linear-gradient(180deg, #F3FBFA 0%, #F8FAFC 44%, #FFF7ED 100%);
+  }
+  .home-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .home-kicker {
+    color: #0F766E;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .04em;
+  }
+  .home-title {
+    margin-top: 3px;
+    color: #173B36;
+    font-size: 24px;
+    line-height: 1.2;
+    font-weight: 900;
+  }
+  .home-subtitle {
+    margin-top: 6px;
+    color: #64748B;
+    font-size: 12px;
+    line-height: 1.55;
+  }
+  .home-streak-badge {
+    min-width: 66px;
+    padding: 8px 10px;
+    border-radius: 18px;
+    color: #173B36;
+    text-align: center;
+    background: rgba(255,255,255,.82);
+    box-shadow: var(--shadow);
+  }
+  .home-streak-badge b {
+    display: block;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .home-streak-badge span {
+    display: block;
+    margin-top: 4px;
+    color: #64748B;
+    font-size: 10px;
+    font-weight: 900;
+  }
+  .home-checkin-card {
+    margin-top: 14px;
+    padding: 12px;
+    border: 1px solid rgba(15, 118, 110, .12);
+    background: rgba(255,255,255,.88);
+  }
+  .home-card-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+  }
+  .home-card-head b {
+    color: #173B36;
+    font-size: 15px;
+  }
+  .home-card-head small {
+    color: #64748B;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .checkin-grid {
+    display: grid;
+    grid-template-columns: repeat(14, 1fr);
+    gap: 4px;
+    margin-top: 10px;
+  }
+  .checkin-dot {
+    height: 15px;
+    border-radius: 5px;
+    background: #E2E8F0;
+  }
+  .checkin-dot.lv1 { background: #BFEDE7; }
+  .checkin-dot.lv2 { background: #5ED5C8; }
+  .checkin-dot.lv3 { background: #0F766E; }
+  .home-module-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .home-module {
+    min-height: 82px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    border: 1px solid rgba(15, 118, 110, .10);
+    background: rgba(255,255,255,.92);
+  }
+  .home-module .module-icon {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    font-size: 21px;
+    background: #E0F2F1;
+  }
+  .home-module b {
+    display: block;
+    color: #173B36;
+    font-size: 15px;
+  }
+  .home-module small {
+    display: block;
+    margin-top: 4px;
+    color: #64748B;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+  .home-recommend {
+    margin-top: 12px;
+    padding: 14px;
+    color: #173B36;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #173B36, #0F766E);
+    box-shadow: var(--shadow);
+  }
+  .home-recommend .home-card-head b,
+  .home-recommend .home-card-head small {
+    color: #FFFFFF;
+  }
+  .home-recommend p {
+    margin-top: 8px;
+    color: rgba(255,255,255,.84);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .home-meta-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .home-meta {
+    padding: 7px 4px;
+    border-radius: 10px;
+    text-align: center;
+    background: rgba(255,255,255,.12);
+  }
+  .home-meta span {
+    display: block;
+    color: rgba(255,255,255,.68);
+    font-size: 9px;
+    font-weight: 800;
+  }
+  .home-meta b {
+    display: block;
+    margin-top: 2px;
+    color: #FFFFFF;
+    font-size: 13px;
+  }
+  .home-start {
+    width: 100%;
+    min-height: 44px;
+    margin-top: 12px;
+    border-radius: 14px;
+    color: #173B36;
+    font-weight: 900;
+    background: #FBBF24;
+  }
+  .home-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+  }
+  .home-section-title h2 {
+    color: #173B36;
+    font-size: 17px;
+  }
+  .home-section-title button {
+    color: #0F766E;
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .home-song-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .home-song-row {
+    min-height: 62px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    border: 1px solid rgba(15, 118, 110, .10);
+    background: rgba(255,255,255,.88);
+  }
+  .home-song-mark {
+    width: 38px;
+    height: 38px;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    color: #173B36;
+    font-weight: 900;
+    background: #FEF3C7;
+  }
+  .home-song-row b {
+    display: block;
+    color: #173B36;
+    font-size: 14px;
+  }
+  .home-song-row small {
+    display: block;
+    margin-top: 3px;
+    color: #64748B;
+    font-size: 11px;
+  }
   .hero {
     padding: 8px 16px 26px;
     color: #fff;
@@ -1127,30 +1355,49 @@
     <div class="statusbar" id="statusbar"><span>9:41</span><span class="right">5G ▰▰▰ 100%</span></div>
     <main class="pages">
       <section class="page active" id="page-home">
-        <div class="hero">
-          <div class="eyebrow">☀️ 早上好</div>
-          <h1>练琴时间到啦 🎸</h1>
-          <p>今天也要开心弹琴，先完成 15 分钟小目标。</p>
+        <div class="home-shell">
+          <header class="home-top">
+            <div>
+              <div class="home-kicker">TODAY PRACTICE</div>
+              <h1 class="home-title">AI 尤克里里弹唱</h1>
+              <p class="home-subtitle">先调准，再跟节拍练和弦，最后进入歌曲片段。</p>
+            </div>
+            <div class="home-streak-badge"><b>7</b><span>连续天</span></div>
+          </header>
+
+          <section class="home-checkin-card card">
+            <div class="home-card-head">
+              <b>连续打卡</b>
+              <small>本周 84 分钟</small>
+            </div>
+            <div class="checkin-grid" id="homeCheckinGrid"></div>
+          </section>
+
+          <section class="home-module-grid" id="homeModules"></section>
+
+          <section class="home-recommend">
+            <div class="home-card-head">
+              <b>今日推荐 · 稳住 C</b>
+              <small>8 分钟</small>
+            </div>
+            <p>用 60 BPM 只练 C，先把按指和完成时机练稳，再进入和弦转换。</p>
+            <div class="home-meta-row">
+              <div class="home-meta"><span>BPM</span><b>60</b></div>
+              <div class="home-meta"><span>模式</span><b>单练</b></div>
+              <div class="home-meta"><span>目标</span><b>C</b></div>
+              <div class="home-meta"><span>来源</span><b>本地</b></div>
+            </div>
+            <button class="home-start clickable" data-tab-go="practice">按建议开始</button>
+          </section>
+
+          <section>
+            <div class="home-section-title">
+              <h2>热门弹唱</h2>
+              <button class="clickable" data-tab-go="songs">更多</button>
+            </div>
+            <div class="home-song-list" id="homeHotSongs"></div>
+          </section>
         </div>
-        <div class="checkin card">
-          <div><b>连续打卡 <span style="color:var(--orange-dark)">7</span> 天 🔥</b><small>今日已练 12 分钟 · 目标 15 分钟</small></div>
-          <div class="streak"><span class="day done">一</span><span class="day done">二</span><span class="day done">三</span><span class="day done">四</span><span class="day done">五</span><span class="day done">六</span><span class="day now">日</span></div>
-        </div>
-        <div class="tool-shortcuts">
-          <button class="shortcut card clickable" data-open="tuner"><div class="emoji">🎛️</div><div class="label">调音器</div></button>
-          <button class="shortcut card clickable" data-open="metronome"><div class="emoji">⏱️</div><div class="label">节拍器</div></button>
-          <button class="shortcut card clickable" data-open="chords"><div class="emoji">🎼</div><div class="label">和弦库</div></button>
-          <button class="shortcut card clickable" data-tab-go="practice"><div class="emoji">🎯</div><div class="label">练一组</div></button>
-        </div>
-        <button class="continue clickable" data-open-song="童年">
-          <div class="cover">🎶</div>
-          <div class="copy"><b>继续学习：第一首弹唱《童年》</b><p>C-Am-F-G7 · 还差 2 小节进入跟弹</p><div class="progress"><i></i></div></div>
-          <div class="play-round">▶</div>
-        </button>
-        <div class="section-title"><h2>🔥 热门弹唱</h2><span>更多</span></div>
-        <div class="scroll-x" id="hotSongs"></div>
-        <div class="section-title"><h2>🏆 本周榜单</h2><span>练过人数</span></div>
-        <div id="rankList"></div>
       </section>
 
       <section class="page" id="page-learn">
@@ -1194,9 +1441,9 @@
 
     <nav class="tabbar">
       <button class="tab active" data-tab="home"><span class="icon">🏠</span>首页</button>
-      <button class="tab" data-tab="learn"><span class="icon">🎓</span>学习</button>
       <button class="tab" data-tab="practice"><span class="icon">🎸</span>练琴</button>
       <button class="tab" data-tab="songs"><span class="icon">🎵</span>曲谱</button>
+      <button class="tab" data-tab="learn"><span class="icon">🎓</span>学习</button>
       <button class="tab" data-tab="me"><span class="icon">👤</span>我的</button>
     </nav>
 
@@ -1402,9 +1649,35 @@ function go(tab) {
 function openSheet(id) { $(`#${id}`).classList.add("show"); }
 function closeSheet(id) { $(`#${id}`).classList.remove("show"); }
 function starText(n) { return "⭐".repeat(n) + "☆".repeat(3 - n); }
+const homeCheckinDays = [8, 12, 0, 15, 10, 18, 21, 0, 6, 12, 14, 0, 20, 16];
+const homeModules = [
+  { icon: "🎛️", title: "调音器", subtitle: "开始前校准 GCEA", open: "tuner" },
+  { icon: "🎼", title: "和弦", subtitle: "看指法图和试听", open: "chords" },
+  { icon: "🎵", title: "曲谱库", subtitle: "找一首歌练", tab: "songs" },
+  { icon: "🎸", title: "练习", subtitle: "节奏与和弦转换", tab: "practice" }
+];
+const homeHotSongs = [
+  { title: "四和弦海风", diff: "入门", bpm: 70, chords: "C Am F G7", minutes: 8 },
+  { title: "晚安分解练习", diff: "入门", bpm: 60, chords: "C G Am F", minutes: 6 },
+  { title: "小岛下扫歌", diff: "进阶", bpm: 85, chords: "F G7 C", minutes: 10 }
+];
 function renderHome() {
-  $("#hotSongs").innerHTML = songs.map(song => `<button class="song-card clickable" data-open-song="${song.title}"><div class="cover" style="background:linear-gradient(135deg,${song.color},${song.light})">${song.emoji}</div><b>${song.title}</b><small>${song.artist}</small><div class="stars">${starText(song.stars)}</div></button>`).join("");
-  $("#rankList").innerHTML = songs.slice(0,4).map((song, index) => `<button class="rank-row clickable" data-open-song="${song.title}"><div class="no">${index + 1}</div><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light})">${song.emoji}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · ${12 - index * 2}.3 万人练过</small></div><div class="difficulty">练 ▶</div></button>`).join("");
+  $("#homeCheckinGrid").innerHTML = homeCheckinDays.map(minutes => {
+    const level = minutes >= 16 ? "lv3" : minutes >= 10 ? "lv2" : minutes > 0 ? "lv1" : "";
+    return `<span class="checkin-dot ${level}" title="${minutes} 分钟"></span>`;
+  }).join("");
+  $("#homeModules").innerHTML = homeModules.map(module => {
+    const nav = module.open ? `data-open="${module.open}"` : `data-tab-go="${module.tab}"`;
+    return `<button class="home-module card clickable" ${nav}>
+      <span class="module-icon">${module.icon}</span>
+      <span><b>${module.title}</b><small>${module.subtitle}</small></span>
+    </button>`;
+  }).join("");
+  $("#homeHotSongs").innerHTML = homeHotSongs.map((song, index) => `<button class="home-song-row card clickable" data-tab-go="songs">
+    <span class="home-song-mark">${index + 1}</span>
+    <span class="row-copy"><b>${song.title}</b><small>${song.diff} · ${song.bpm} BPM · ${song.chords} · ${song.minutes} 分钟</small></span>
+    <span class="difficulty">去练</span>
+  </button>`).join("");
 }
 function renderCourses() {
   $("#courseList").innerHTML = courses.map(course => `<button class="course-card card clickable" data-course="${course.order}"><div class="thumb" style="background:linear-gradient(135deg,#FFE4D6,#fff)">${course.emoji}</div><div class="body"><div><span class="tag">必修 · 第 ${course.order} 课</span>${course.access === "free" ? "" : "<span class='member-tag'>会员</span>"}</div><h3>${course.title}</h3><p>${course.subtitle}</p><div class="course-meta"><span class="mini-progress"><i style="width:${course.defaultProgress}%"></i></span><span>${course.estimatedMinutes} 分钟</span></div></div></button>`).join("");

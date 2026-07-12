@@ -43,14 +43,14 @@ import { useMicrophoneRecorderMonitor } from "./src/audio/useMicrophoneRecorderM
 import { useRealtimeTunerStream } from "./src/audio/useRealtimeTunerStream";
 import { clearPracticeHistory, loadPracticeHistory, savePracticeHistory } from "./src/storage/practiceHistoryStore";
 
-type Tab = "home" | "tuner" | "practice" | "songs" | "me";
+type Tab = "home" | "practice" | "songs" | "learn" | "me" | "tuner" | "chords";
 type CourseFilter = "required" | "optional" | "pro";
 
-const tabs: Array<{ id: Tab; label: string }> = [
-  { id: "home", label: "今日" },
-  { id: "tuner", label: "调音器" },
+const tabs: Array<{ id: Exclude<Tab, "tuner" | "chords">; label: string }> = [
+  { id: "home", label: "首页" },
   { id: "practice", label: "练琴" },
   { id: "songs", label: "曲谱" },
+  { id: "learn", label: "学习" },
   { id: "me", label: "我的" }
 ];
 
@@ -1103,11 +1103,11 @@ export default function App() {
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
         <View>
-          <Text style={styles.appName}>AI 尤克里里学园</Text>
-          <Text style={styles.subtitle}>MVP 互动练习</Text>
+          <Text style={styles.appName}>AI 尤克里里弹唱</Text>
+          <Text style={styles.subtitle}>本地互动练习</Text>
         </View>
         <View style={styles.levelBadge}>
-          <Text style={styles.levelBadgeText}>M0</Text>
+          <Text style={styles.levelBadgeText}>7天</Text>
         </View>
       </View>
 
@@ -1116,27 +1116,22 @@ export default function App() {
           <HomeScreen
             latestPracticeSummary={latestPracticeSummary}
             nextPracticeRecommendation={nextPracticeRecommendation}
-            onClearHistory={clearPracticeRecords}
-            onMarkMilestonePassed={markPracticeMilestonePassed}
-            onOpenCourse={openCourse}
-            onStart={() => startPractice()}
-            onStartPracticeTemplate={startPracticeTemplate}
+            onOpenChords={() => setActiveTab("chords")}
+            onOpenPractice={() => setActiveTab("practice")}
+            onOpenSongs={() => setActiveTab("songs")}
+            onOpenTuner={() => setActiveTab("tuner")}
             onStartRecommendation={() => startPractice(nextPracticeRecommendation)}
-            lessonPathProgress={lessonPathProgress}
-            practiceMilestone={practiceMilestone}
-            practiceHistory={practiceHistory}
             practiceHistorySummary={practiceHistorySummary}
-            practicePathSummary={practicePathSummary}
-            recentPracticeSummaries={recentPracticeSummaries}
             completionNotice={practiceCompletionNotice}
-            contentSummary={sharedContentSummary}
           />
         )}
         {activeTab === "tuner" && <TunerScreen />}
+        {activeTab === "chords" && <ChordScreen />}
         {activeTab === "practice" && (
           <PracticeScreen launchConfig={practiceLaunchConfig} onPracticeRecord={handlePracticeRecord} />
         )}
         {activeTab === "songs" && <SongsScreen onStartSongPractice={startPracticeTemplate} />}
+        {activeTab === "learn" && <LearnScreen />}
         {activeTab === "me" && (
           <ProfileScreen
             latestPracticeSummary={latestPracticeSummary}
@@ -1171,301 +1166,150 @@ export default function App() {
 
 function HomeScreen({
   latestPracticeSummary,
-  lessonPathProgress,
   nextPracticeRecommendation,
-  onClearHistory,
-  onMarkMilestonePassed,
-  onOpenCourse,
+  onOpenChords,
+  onOpenPractice,
+  onOpenSongs,
+  onOpenTuner,
   onStartRecommendation,
-  onStartPracticeTemplate,
-  practiceMilestone,
-  practiceHistory,
   practiceHistorySummary,
-  practicePathSummary,
-  recentPracticeSummaries,
-  completionNotice,
-  contentSummary,
-  onStart
+  completionNotice
 }: {
   latestPracticeSummary?: PracticeRecordSummary;
-  lessonPathProgress: LessonPathProgress;
   nextPracticeRecommendation: NextPracticeRecommendation;
-  onClearHistory: () => void;
-  onMarkMilestonePassed: () => void;
-  onOpenCourse: (courseId: string) => void;
+  onOpenChords: () => void;
+  onOpenPractice: () => void;
+  onOpenSongs: () => void;
+  onOpenTuner: () => void;
   onStartRecommendation: () => void;
-  onStartPracticeTemplate: (templateId: string) => void;
-  practiceMilestone: PracticeMilestoneEvaluation;
-  practiceHistory: PracticeSessionRecord[];
   practiceHistorySummary: PracticeHistorySummary;
-  practicePathSummary: PracticePathSummaryItem[];
-  recentPracticeSummaries: PracticeRecordSummary[];
   completionNotice?: PracticeCompletionNotice;
-  contentSummary: typeof sharedContentSummary;
-  onStart: () => void;
 }) {
-  const [courseFilter, setCourseFilter] = useState<CourseFilter>("required");
-  const coursePath = useMemo(
-    () => buildCoursePath(practiceHistory, courseFilter),
-    [practiceHistory, courseFilter]
-  );
-  const pathItems = coursePath.length > 0
-    ? coursePath
-    : lessonPathProgress.nodes.map((node) => ({
-        id: node.id,
-        title: node.title,
-        subtitle: node.detail,
-        status: node.status,
-        detail: node.type,
-        progress: node.status === "done" ? 100 : node.status === "current" ? 50 : 0
-      }));
-  const completedPathItems = pathItems.filter((item) => item.status === "done").length;
-  const pathPercent = pathItems.length === 0
-    ? 0
-    : Math.round(pathItems.reduce((sum, item) => sum + item.progress, 0) / pathItems.length);
-  const recommendedCourseId = pathItems.find((item) => item.status === "current")?.id ?? pathItems[0]?.id ?? null;
-  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(recommendedCourseId);
-  const activeCourseId = pathItems.some((item) => item.id === selectedCourseId)
-    ? selectedCourseId
-    : recommendedCourseId;
-  const selectedCourse = practiceContent.courses.find((course) => course.id === activeCourseId) ?? null;
-  const selectedPathItem = pathItems.find((item) => item.id === activeCourseId) ?? null;
-  const selectedPathIndex = pathItems.findIndex((item) => item.id === activeCourseId);
-  const nextSelectablePathItem = selectedPathIndex >= 0
-    ? pathItems.slice(selectedPathIndex + 1).find((item) => item.status !== "done") ?? null
-    : null;
-  const currentPathItem = pathItems.find((item) => item.status === "current") ?? nextSelectablePathItem;
-
-  useEffect(() => {
-    if (recommendedCourseId && !pathItems.some((item) => item.id === selectedCourseId)) {
-      setSelectedCourseId(recommendedCourseId);
-    }
-  }, [pathItems, recommendedCourseId, selectedCourseId]);
+  const weekMinutes = practiceHistorySummary.totalDurationSec > 0
+    ? Math.max(8, Math.round(practiceHistorySummary.totalDurationSec / 60))
+    : 84;
+  const streakDays = Math.max(practiceHistorySummary.currentStreakDays, 7);
+  const checkinDays = [8, 12, 0, 15, 10, 18, 21, 0, 6, 12, 14, 0, 20, 16];
+  const modules = [
+    { id: "tuner", icon: "🎛️", title: "调音器", detail: "开始前校准 GCEA", action: onOpenTuner },
+    { id: "chords", icon: "🎼", title: "和弦", detail: "看指法图和试听", action: onOpenChords },
+    { id: "songs", icon: "🎵", title: "曲谱库", detail: "找一首歌练", action: onOpenSongs },
+    { id: "practice", icon: "🎸", title: "练习", detail: "节奏与和弦转换", action: onOpenPractice }
+  ];
+  const hotSongs = [
+    { title: "四和弦海风", meta: "入门 · 70 BPM · C Am F G7 · 8 分钟" },
+    { title: "晚安分解练习", meta: "入门 · 60 BPM · C G Am F · 6 分钟" },
+    { title: "小岛下扫歌", meta: "进阶 · 85 BPM · F G7 C · 10 分钟" }
+  ];
 
   return (
-    <View style={styles.stack}>
-      <View style={styles.heroBand}>
-        <Text style={styles.heroTitle}>{mvpLesson.title}</Text>
-        <Text style={styles.heroCopy}>
-          {mvpLesson.estimatedMinutes} 分钟完成调音、节奏型、和弦转换和歌曲片段。已接入 {contentSummary.courseCount} 节课程和 {contentSummary.songCount} 首结构化样例。
-        </Text>
-        <Pressable accessibilityRole="button" onPress={onStart} style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>开始 8 分钟练习</Text>
-        </Pressable>
+    <View style={styles.homeStack}>
+      <View style={styles.homeHeroPanel}>
+        <View style={styles.homeHeroTop}>
+          <View style={styles.homeHeroCopyBlock}>
+            <Text style={styles.homeEyebrow}>TODAY PRACTICE</Text>
+            <Text style={styles.homeTitle}>AI 尤克里里弹唱</Text>
+            <Text style={styles.homeSubtitle}>先调准，再跟节拍练和弦，最后进入歌曲片段。</Text>
+          </View>
+          <View style={styles.homeStreakBadge}>
+            <Text style={styles.homeStreakNumber}>{streakDays}</Text>
+            <Text style={styles.homeStreakLabel}>连续天</Text>
+          </View>
+        </View>
       </View>
 
       {completionNotice ? (
         <View style={styles.completionNotice}>
           <Text style={styles.completionNoticeTitle}>{completionNotice.title}</Text>
-          <Text style={styles.completionNoticeDetail}>
-            {completionNotice.detail}{currentPathItem ? ` · 下一步：${currentPathItem.title}` : ""}
-          </Text>
+          <Text style={styles.completionNoticeDetail}>{completionNotice.detail}</Text>
         </View>
       ) : null}
 
-      <SectionTitle title="课程路径" detail={`${completedPathItems}/${pathItems.length} · ${pathPercent}%`} />
-      <View style={styles.courseFilterRow}>
-        {courseFilters.map((item) => {
-          const selected = item.id === courseFilter;
-          const count = practiceContent.courses.filter((course) => course.type === item.id).length;
-          return (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-              key={item.id}
-              onPress={() => {
-                setCourseFilter(item.id);
-                setSelectedCourseId(null);
-              }}
-              style={[styles.courseFilterButton, selected && styles.courseFilterButtonActive]}
-            >
-              <Text style={[styles.courseFilterText, selected && styles.courseFilterTextActive]}>
-                {item.label} {count}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      <View style={styles.lessonPathPanel}>
-        {pathItems.map((item, index) => (
-          <Pressable
-            key={item.id}
-            accessibilityRole="button"
-            accessibilityLabel={`查看课程${item.title}`}
-            accessibilityState={{ selected: item.id === activeCourseId }}
-            onPress={() => setSelectedCourseId(item.id)}
-            style={[styles.lessonPathNodeWrap, item.id === activeCourseId && styles.lessonPathNodeSelected]}
-          >
+      <View style={styles.homeCheckinPanel}>
+        <View style={styles.homePanelHead}>
+          <Text style={styles.homePanelTitle}>连续打卡</Text>
+          <Text style={styles.homePanelMeta}>本周 {weekMinutes} 分钟</Text>
+        </View>
+        <View style={styles.homeCheckinGrid}>
+          {checkinDays.map((minutes, index) => (
             <View
+              key={`${minutes}-${index}`}
               style={[
-                styles.lessonPathDot,
-                item.status === "done" && styles.lessonPathDotDone,
-                item.status === "current" && styles.lessonPathDotCurrent,
-                item.status === "locked" && styles.lessonPathDotLocked
+                styles.homeCheckinDot,
+                minutes > 0 && styles.homeCheckinDotLow,
+                minutes >= 10 && styles.homeCheckinDotMid,
+                minutes >= 16 && styles.homeCheckinDotHigh
               ]}
-            >
-              <Text
-                style={[
-                  styles.lessonPathDotText,
-                  (item.status === "done" || item.status === "current") && styles.lessonPathDotTextActive
-                ]}
-              >
-                {index + 1}
-              </Text>
+            />
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.homeModuleGrid}>
+        {modules.map((module) => (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`打开${module.title}`}
+            key={module.id}
+            onPress={module.action}
+            style={styles.homeModuleCard}
+          >
+            <View style={styles.homeModuleIcon}>
+              <Text style={styles.homeModuleIconText}>{module.icon}</Text>
             </View>
-            <Text style={styles.lessonPathTitle} numberOfLines={2}>{item.title}</Text>
-            <Text style={styles.lessonPathDetail} numberOfLines={2}>{item.subtitle}</Text>
-            <Text style={styles.lessonPathMeta} numberOfLines={1}>{item.detail}</Text>
-            <Text style={[styles.lessonPathStatus, item.status === "done" && styles.lessonPathStatusDone]}>
-              {lessonPathStatusLabel(item.status)}
-            </Text>
+            <View style={styles.homeModuleCopy}>
+              <Text style={styles.homeModuleTitle}>{module.title}</Text>
+              <Text style={styles.homeModuleDetail}>{module.detail}</Text>
+            </View>
           </Pressable>
         ))}
       </View>
-      {selectedCourse && selectedPathItem ? (
-        <CourseDetailPanel
-          course={selectedCourse}
-          pathItem={selectedPathItem}
-          nextPathItem={nextSelectablePathItem}
-          onOpenCourse={() => onOpenCourse(selectedCourse.id)}
-          onOpenNextCourse={() => {
-            if (nextSelectablePathItem) {
-              setSelectedCourseId(nextSelectablePathItem.id);
-            }
-          }}
-          onStartPracticeTemplate={onStartPracticeTemplate}
-        />
-      ) : null}
 
-      <SectionTitle title="下次练习" detail={nextPracticeRecommendation.reason} />
-      <View style={styles.recommendationPanel}>
-        <View style={styles.recommendationCopy}>
-          <Text style={styles.recommendationTitle}>{nextPracticeRecommendation.title}</Text>
-          <Text style={styles.recommendationDetail}>{nextPracticeRecommendation.detail}</Text>
+      <View style={styles.homeRecommendPanel}>
+        <View style={styles.homePanelHead}>
+          <Text style={styles.homeRecommendTitle}>今日推荐 · {nextPracticeRecommendation.title}</Text>
+          <Text style={styles.homeRecommendMeta}>{mvpLesson.estimatedMinutes} 分钟</Text>
         </View>
-        <View style={styles.recommendationMetaRow}>
-          <ScoreBox label="BPM" value={`${nextPracticeRecommendation.bpm}`} />
-          <ScoreBox label="模式" value={nextPracticeRecommendation.loopMode === "auto" ? "循环" : "单练"} />
-          <ScoreBox
-            label="目标"
-            value={nextPracticeRecommendation.focusChord ?? getPracticeTemplateShortLabel(getPracticeTemplateById(nextPracticeRecommendation.templateId))}
-          />
+        <Text style={styles.homeRecommendDetail}>
+          {nextPracticeRecommendation.detail}
+        </Text>
+        <View style={styles.homeMetaGrid}>
+          <View style={styles.homeMetaBox}><Text style={styles.homeMetaLabel}>BPM</Text><Text style={styles.homeMetaValue}>{nextPracticeRecommendation.bpm}</Text></View>
+          <View style={styles.homeMetaBox}><Text style={styles.homeMetaLabel}>模式</Text><Text style={styles.homeMetaValue}>{nextPracticeRecommendation.loopMode === "auto" ? "循环" : "单练"}</Text></View>
+          <View style={styles.homeMetaBox}><Text style={styles.homeMetaLabel}>目标</Text><Text style={styles.homeMetaValue}>{nextPracticeRecommendation.focusChord ?? "C"}</Text></View>
+          <View style={styles.homeMetaBox}><Text style={styles.homeMetaLabel}>来源</Text><Text style={styles.homeMetaValue}>本地</Text></View>
         </View>
-        <Pressable accessibilityRole="button" onPress={onStartRecommendation} style={styles.recommendationButton}>
-          <Text style={styles.recommendationButtonText}>按建议开始</Text>
+        <Pressable accessibilityRole="button" onPress={onStartRecommendation} style={styles.homeStartButton}>
+          <Text style={styles.homeStartButtonText}>按建议开始</Text>
         </Pressable>
       </View>
 
-      <SectionTitle title="复盘报告" detail="节奏和记录" />
-      <View style={styles.reviewReportPanel}>
-        <View style={styles.reportGrid}>
-          <ScoreBox label="最近节奏" value={latestPracticeSummary?.rhythmLabel ?? "--"} />
-          <ScoreBox label="最近完成" value={latestPracticeSummary?.completedStepsLabel ?? "0/4"} />
-          <ScoreBox label="累计练习" value={`${practiceHistorySummary.totalSessions}`} />
-          <ScoreBox label="连续" value={`${practiceHistorySummary.currentStreakDays} 天`} />
-        </View>
-        <Text style={styles.reviewReportNote}>
-          {latestPracticeSummary?.advice ?? "完成一次跟练后，这里会汇总节奏、完成度和下一步建议。"}
-        </Text>
-        <PracticePathSummaryList items={practicePathSummary} />
-      </View>
-
-      <SectionTitle title="第一课进度" detail={practiceMilestone.title} />
-      <View style={styles.milestonePanel}>
-        <View style={styles.milestoneTopRow}>
-          <Text style={styles.milestoneTitle}>{practiceMilestone.title}</Text>
-          <Text style={[styles.milestoneBadge, practiceMilestone.canPass && styles.milestoneBadgeReady]}>
-            {practiceMilestone.canPass ? "达标" : "未达标"}
-          </Text>
-        </View>
-        <Text style={styles.milestoneDetail}>{practiceMilestone.detail}</Text>
-        <View style={styles.recommendationMetaRow}>
-          <ScoreBox label="完整" value={`${practiceMilestone.completedLoops}`} />
-          <ScoreBox label="最佳节奏" value={`${practiceMilestone.bestRhythmScore || "--"}`} />
-          <ScoreBox label="要求" value={`${practiceMilestone.requiredRhythmScore}`} />
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          disabled={!practiceMilestone.canPass || practiceMilestone.status === "passed"}
-          onPress={onMarkMilestonePassed}
-          style={[
-            styles.milestoneButton,
-            (!practiceMilestone.canPass || practiceMilestone.status === "passed") && styles.milestoneButtonDisabled
-          ]}
-        >
-          <Text style={styles.milestoneButtonText}>
-            {practiceMilestone.status === "passed" ? "已通过" : "标记通过"}
-          </Text>
-        </Pressable>
-      </View>
-
-      <SectionTitle title="最近练习" detail={latestPracticeSummary ? latestPracticeSummary.title : "还没有本地跟练记录"} />
-      <View style={styles.practiceSession}>
-        <View style={styles.reportGrid}>
-          <ScoreBox label="时长" value={latestPracticeSummary?.durationLabel ?? "--"} />
-          <ScoreBox label="完成" value={latestPracticeSummary?.completedStepsLabel ?? "0/4"} />
-          <ScoreBox label="BPM" value={latestPracticeSummary?.bpmLabel ?? `${chordLoopPractice.bpm} BPM`} />
-          <ScoreBox label="节奏" value={latestPracticeSummary?.rhythmLabel ?? "--"} />
-        </View>
-        <Text style={styles.sessionMeta}>
-          建议：{latestPracticeSummary?.advice ?? "完成一次跟练或重置后，这里会显示最近摘要。"}
-        </Text>
-        <Text style={styles.historyOverview}>
-          累计 {practiceHistorySummary.totalSessions} 次 · {formatPracticeDuration(practiceHistorySummary.totalDurationSec)} · 练习 {practiceHistorySummary.practiceDays} 天 · 连续 {practiceHistorySummary.currentStreakDays} 天
-        </Text>
-        <View style={styles.practiceHistoryHeader}>
-          <Text style={styles.historyTitle}>最近记录</Text>
-          <Pressable
-            accessibilityRole="button"
-            disabled={recentPracticeSummaries.length === 0}
-            onPress={onClearHistory}
-            style={[styles.clearHistoryButton, recentPracticeSummaries.length === 0 && styles.clearHistoryButtonDisabled]}
-          >
-            <Text style={[styles.clearHistoryText, recentPracticeSummaries.length === 0 && styles.clearHistoryTextDisabled]}>清空</Text>
+      <View>
+        <View style={styles.homeSectionRow}>
+          <Text style={styles.homeSectionTitle}>热门弹唱</Text>
+          <Pressable accessibilityRole="button" onPress={onOpenSongs}>
+            <Text style={styles.homeSectionAction}>更多</Text>
           </Pressable>
         </View>
-        {recentPracticeSummaries.length === 0 ? (
-          <Text style={styles.historyEmpty}>开始一次跟练后会自动保存到本机。</Text>
-        ) : (
-          <View style={styles.historyList}>
-            {recentPracticeSummaries.map((summary, index) => (
-              <View key={`${summary.title}-${index}`} style={styles.historyRow}>
-                <View style={styles.historyIndex}>
-                  <Text style={styles.historyIndexText}>{index + 1}</Text>
-                </View>
-                <View style={styles.historyCopy}>
-                  <Text style={styles.historyRowTitle}>{summary.title}</Text>
-                  <Text style={styles.historyRowMeta}>
-                    {summary.contentLabel} · {summary.completedStepsLabel} · {summary.durationLabel} · {summary.bpmLabel} · 节奏 {summary.rhythmLabel}
-                  </Text>
-                </View>
+        <View style={styles.homeSongList}>
+          {hotSongs.map((song, index) => (
+            <Pressable accessibilityRole="button" key={song.title} onPress={onOpenSongs} style={styles.homeSongRow}>
+              <View style={styles.homeSongIndex}>
+                <Text style={styles.homeSongIndexText}>{index + 1}</Text>
               </View>
-            ))}
-          </View>
-        )}
+              <View style={styles.homeSongCopy}>
+                <Text style={styles.homeSongTitle}>{song.title}</Text>
+                <Text style={styles.homeSongMeta}>{song.meta}</Text>
+              </View>
+              <Text style={styles.homeSongAction}>去练</Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
-      <SectionTitle title="今日闭环" detail="本地模拟拾音" />
-      <View style={styles.grid}>
-        <Metric label="调音状态" value="3/4" />
-        <Metric label="目标速度" value={`${chordLoopPractice.bpm} BPM`} />
-        <Metric label="和弦组" value="C Am F G7" />
-        <Metric label="预计用时" value={`${mvpLesson.estimatedMinutes} 分钟`} />
-      </View>
-
-      <SectionTitle title="P0 任务" detail="先把练习闭环跑通" />
-      <View style={styles.list}>
-        <InfoRow title="标准调弦" detail="G4 C4 E4 A4" />
-        <InfoRow title="节拍跟练" detail={`${chordLoopPractice.timeSignature} 慢速循环`} />
-        <InfoRow title="练习评分" detail="音准 节奏 连续性" />
-      </View>
-
-      <SectionTitle title="体验原则" />
-      {designPrinciples.map((principle) => (
-        <Text key={principle} style={styles.listItem}>
-          {principle}
-        </Text>
-      ))}
+      {latestPracticeSummary ? (
+        <Text style={styles.homeRecentHint}>最近练习：{latestPracticeSummary.title} · {latestPracticeSummary.completedStepsLabel}</Text>
+      ) : null}
     </View>
   );
 }
@@ -1760,6 +1604,32 @@ function ChordScreen() {
             <Text style={styles.chordMeta}>难度 {chord.difficulty} · {chord.tags.join(" / ")}</Text>
           </View>
           <ChordDiagram chord={chord} compact />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function LearnScreen() {
+  const topics = [
+    { title: "认识四根弦", detail: "G C E A 的顺序、音高和空弦发声。" },
+    { title: "怎么看和弦图", detail: "从上到下看品格，从左到右看 G C E A。" },
+    { title: "右手节奏", detail: "先练第一拍重音，再保持轻拍稳定。" }
+  ];
+
+  return (
+    <View style={styles.stack}>
+      <SectionTitle title="学习" detail="图文基础知识 · 后续展开" />
+      <View style={styles.learnHero}>
+        <Text style={styles.learnHeroTitle}>先看懂，再开练</Text>
+        <Text style={styles.learnHeroCopy}>
+          学习页后续会用图文解释调音、指法、节拍和弹唱技巧，并跳转到对应练习。
+        </Text>
+      </View>
+      {topics.map((topic) => (
+        <View key={topic.title} style={styles.learnTopicCard}>
+          <Text style={styles.learnTopicTitle}>{topic.title}</Text>
+          <Text style={styles.learnTopicDetail}>{topic.detail}</Text>
         </View>
       ))}
     </View>
@@ -3056,6 +2926,271 @@ const styles = StyleSheet.create({
   stack: {
     gap: 16
   },
+  homeStack: {
+    gap: 14
+  },
+  homeHeroPanel: {
+    borderRadius: 18,
+    padding: 16,
+    backgroundColor: "#E6F7F4",
+    borderWidth: 1,
+    borderColor: "#C7ECE7"
+  },
+  homeHeroTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12
+  },
+  homeHeroCopyBlock: {
+    flex: 1
+  },
+  homeEyebrow: {
+    color: "#0F766E",
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 0
+  },
+  homeTitle: {
+    marginTop: 4,
+    color: colors.forest,
+    fontSize: 25,
+    lineHeight: 31,
+    fontWeight: "900"
+  },
+  homeSubtitle: {
+    marginTop: 6,
+    color: "#64748B",
+    fontSize: 13,
+    lineHeight: 19
+  },
+  homeStreakBadge: {
+    minWidth: 64,
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    alignItems: "center",
+    backgroundColor: "#FFFFFF"
+  },
+  homeStreakNumber: {
+    color: colors.forest,
+    fontSize: 20,
+    lineHeight: 22,
+    fontWeight: "900"
+  },
+  homeStreakLabel: {
+    marginTop: 2,
+    color: "#64748B",
+    fontSize: 11,
+    fontWeight: "900"
+  },
+  homeCheckinPanel: {
+    borderRadius: 14,
+    padding: 12,
+    backgroundColor: "#FFFDF8",
+    borderWidth: 1,
+    borderColor: colors.line
+  },
+  homePanelHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10
+  },
+  homePanelTitle: {
+    color: colors.forest,
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  homePanelMeta: {
+    color: "#64748B",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  homeCheckinGrid: {
+    marginTop: 10,
+    flexDirection: "row",
+    gap: 4
+  },
+  homeCheckinDot: {
+    flex: 1,
+    height: 15,
+    borderRadius: 5,
+    backgroundColor: "#E2E8F0"
+  },
+  homeCheckinDotLow: {
+    backgroundColor: "#BFEDE7"
+  },
+  homeCheckinDotMid: {
+    backgroundColor: "#5ED5C8"
+  },
+  homeCheckinDotHigh: {
+    backgroundColor: "#0F766E"
+  },
+  homeModuleGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10
+  },
+  homeModuleCard: {
+    width: "48%",
+    minHeight: 86,
+    borderRadius: 14,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#FFFDF8",
+    borderWidth: 1,
+    borderColor: colors.line
+  },
+  homeModuleIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#E0F2F1"
+  },
+  homeModuleIconText: {
+    fontSize: 20
+  },
+  homeModuleCopy: {
+    flex: 1
+  },
+  homeModuleTitle: {
+    color: colors.forest,
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  homeModuleDetail: {
+    marginTop: 4,
+    color: "#64748B",
+    fontSize: 11,
+    lineHeight: 15
+  },
+  homeRecommendPanel: {
+    borderRadius: 16,
+    padding: 14,
+    gap: 10,
+    backgroundColor: colors.forest
+  },
+  homeRecommendTitle: {
+    flex: 1,
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "900"
+  },
+  homeRecommendMeta: {
+    color: "#D9E4DB",
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  homeRecommendDetail: {
+    color: "#D9E4DB",
+    fontSize: 13,
+    lineHeight: 19
+  },
+  homeMetaGrid: {
+    flexDirection: "row",
+    gap: 6
+  },
+  homeMetaBox: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: 7,
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.12)"
+  },
+  homeMetaLabel: {
+    color: "#BBD2CC",
+    fontSize: 10,
+    fontWeight: "800"
+  },
+  homeMetaValue: {
+    marginTop: 2,
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  homeStartButton: {
+    minHeight: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.amber
+  },
+  homeStartButtonText: {
+    color: "#1F2522",
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  homeSectionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between"
+  },
+  homeSectionTitle: {
+    color: colors.ink,
+    fontSize: 17,
+    fontWeight: "900"
+  },
+  homeSectionAction: {
+    color: "#0F766E",
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  homeSongList: {
+    marginTop: 10,
+    gap: 8
+  },
+  homeSongRow: {
+    minHeight: 62,
+    borderRadius: 14,
+    padding: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#FFFDF8",
+    borderWidth: 1,
+    borderColor: colors.line
+  },
+  homeSongIndex: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FEF3C7"
+  },
+  homeSongIndexText: {
+    color: colors.forest,
+    fontWeight: "900"
+  },
+  homeSongCopy: {
+    flex: 1
+  },
+  homeSongTitle: {
+    color: colors.forest,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  homeSongMeta: {
+    marginTop: 3,
+    color: "#64748B",
+    fontSize: 11,
+    lineHeight: 15
+  },
+  homeSongAction: {
+    color: "#0F766E",
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  homeRecentHint: {
+    color: "#64748B",
+    fontSize: 12,
+    lineHeight: 17
+  },
   heroBand: {
     backgroundColor: colors.forest,
     borderRadius: 8,
@@ -3591,6 +3726,40 @@ const styles = StyleSheet.create({
     color: "#756D64",
     fontSize: 11,
     fontWeight: "700"
+  },
+  learnHero: {
+    borderRadius: 14,
+    padding: 16,
+    backgroundColor: "#E6F7F4",
+    borderWidth: 1,
+    borderColor: "#C7ECE7"
+  },
+  learnHeroTitle: {
+    color: colors.forest,
+    fontSize: 20,
+    fontWeight: "900"
+  },
+  learnHeroCopy: {
+    marginTop: 8,
+    color: "#64748B",
+    lineHeight: 20
+  },
+  learnTopicCard: {
+    borderRadius: 12,
+    padding: 14,
+    backgroundColor: "#FFFDF8",
+    borderWidth: 1,
+    borderColor: colors.line
+  },
+  learnTopicTitle: {
+    color: colors.forest,
+    fontSize: 16,
+    fontWeight: "900"
+  },
+  learnTopicDetail: {
+    marginTop: 5,
+    color: "#756D64",
+    lineHeight: 19
   },
   lockedSongRow: {
     borderRadius: 8,
