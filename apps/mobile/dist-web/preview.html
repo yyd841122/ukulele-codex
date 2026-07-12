@@ -853,8 +853,9 @@
   .follow-lyrics .lyric-line.now { color: var(--text-1); font-weight: 850; }
   .sticky-actions { position: sticky; bottom: 0; display: flex; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--line); background: #fff; }
   .sticky-actions .primary { flex: 1; }
-  .tuner-page { color: var(--text-1); background: linear-gradient(180deg, #FFFDF8 0%, #F5F0E6 100%); }
-  .tuner-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px 8px; }
+  .tuner-page { overflow: hidden; color: var(--text-1); background: linear-gradient(180deg, #FFFDF8 0%, #F5F0E6 100%); }
+  .tuner-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px 6px; }
+  .tuner-head .back { margin-bottom: 0; color: var(--text-1); }
   .tuner-head b { font-size: 20px; }
   .mode-chip {
     padding: 7px 12px;
@@ -865,16 +866,16 @@
     background: #fff;
     box-shadow: var(--shadow);
   }
-  .tuner-body { padding: 0 16px 24px; }
+  .tuner-body { padding: 0 16px 16px; }
   .tuner-status-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
-    margin: 8px 0 12px;
+    margin: 8px 0 10px;
   }
   .tuner-status-card {
-    min-height: 64px;
-    padding: 10px 8px;
+    min-height: 58px;
+    padding: 9px 8px;
     border: 1px solid rgba(16,185,129,.42);
     border-radius: 12px;
     text-align: center;
@@ -883,14 +884,14 @@
   .tuner-status-card b { display: block; color: #059669; font-size: 12px; }
   .tuner-status-card span { display: block; margin-top: 4px; color: var(--text-2); font-size: 11px; font-weight: 800; }
   .tuner-main-card {
-    padding: 16px;
+    padding: 12px;
     display: grid;
     place-items: center;
     text-align: center;
   }
   .tuner-gauge {
-    width: 244px;
-    height: 244px;
+    width: 220px;
+    height: 220px;
     position: relative;
     display: grid;
     place-items: center;
@@ -903,7 +904,7 @@
   .tuner-gauge::after {
     content: "";
     position: absolute;
-    inset: 28px;
+    inset: 25px;
     border-radius: 50%;
     background: #FFFDF8;
     box-shadow: inset 0 0 0 1px var(--line);
@@ -911,24 +912,24 @@
   .tuner-gauge-center {
     position: relative;
     z-index: 3;
-    width: 146px;
-    height: 146px;
+    width: 136px;
+    height: 136px;
     border-radius: 50%;
     display: grid;
     place-items: center;
     align-content: center;
     background: #FFFDF8;
   }
-  .tuner-note { font-size: 58px; line-height: 1; color: var(--teal); font-weight: 950; }
+  .tuner-note { font-size: 56px; line-height: 1; color: var(--teal); font-weight: 950; }
   .tuner-state { margin-top: 6px; color: #16A34A; font-size: 15px; font-weight: 950; }
   .tuner-hz { margin-top: 5px; color: var(--text-2); font-size: 11px; font-weight: 800; }
   .needle {
     position: absolute;
     z-index: 2;
     left: 50%;
-    top: 32px;
+    top: 28px;
     width: 4px;
-    height: 88px;
+    height: 82px;
     border-radius: 999px;
     transform-origin: bottom center;
     transform: translateX(-50%) rotate(0deg);
@@ -936,7 +937,7 @@
     transition: transform .24s ease, background .2s;
   }
   .needle.ok { background: #16A34A; }
-  .tuner-input-card { margin-top: 12px; padding: 14px; }
+  .tuner-input-card { margin-top: 10px; padding: 12px; }
   .tuner-input-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .tuner-input-row b { font-size: 15px; }
   .tuner-input-row span { color: var(--teal); font-size: 22px; font-weight: 950; }
@@ -948,14 +949,16 @@
     background: #EEE7DA;
   }
   .level-track i { display: block; width: 0%; height: 100%; border-radius: 999px; background: var(--grad); transition: .35s; }
+  .tuner-noise-row { display: flex; justify-content: space-between; gap: 10px; margin-top: 7px; color: var(--text-3); font-size: 11px; font-weight: 800; }
+  .tuner-noise-row b { color: var(--text-1); font-size: 12px; }
   .strings {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
-    margin: 12px 0;
+    margin: 10px 0;
   }
   .string {
-    min-height: 72px;
+    min-height: 64px;
     border: 1px solid var(--line);
     border-radius: 14px;
     color: var(--text-2);
@@ -966,7 +969,8 @@
   .string span { font-size: 11px; font-weight: 800; }
   .string.on { border-color: #FBBF24; background: #FFFBEB; }
   .string.ok { border-color: #16A34A; background: #ECFDF5; }
-  .tuner-actions { display: grid; gap: 10px; margin-top: 10px; }
+  .tuner-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .tuner-actions .primary { grid-column: 1 / -1; }
   .tool-screen { padding: 16px; }
   .tool-screen h3 { font-size: 18px; margin-bottom: 8px; }
   .tool-panel { padding: 16px; margin-bottom: 12px; }
@@ -1970,59 +1974,86 @@ function openSong(title) {
 }
 let tuning = false;
 let tuneTimer = null;
-let tuneIndex = 0;
-const tuneFrames = [
-  { note: "G", hz: "392.0 Hz", cents: -18, state: "偏低 · 请拧紧" },
-  { note: "C", hz: "261.6 Hz", cents: 9, state: "接近 · 再确认" },
-  { note: "E", hz: "329.6 Hz", cents: 2, state: "已准 · 不用调" },
-  { note: "A", hz: "440.0 Hz", cents: 0, state: "已准 · 不用调" }
+let selectedTuneIndex = 3;
+let tuneStep = 0;
+const tunedStringIndexes = new Set();
+const tuneFrameSets = [
+  [
+    { note: "G", hz: 391.1, cents: -18 },
+    { note: "G", hz: 391.5, cents: -10 },
+    { note: "G", hz: 391.9, cents: -4 }
+  ],
+  [
+    { note: "C", hz: 262.3, cents: 11 },
+    { note: "C", hz: 262.0, cents: 6 },
+    { note: "C", hz: 261.7, cents: 1 }
+  ],
+  [
+    { note: "E", hz: 329.9, cents: 5 },
+    { note: "E", hz: 329.7, cents: 2 },
+    { note: "E", hz: 329.6, cents: 0 }
+  ],
+  [
+    { note: "A", hz: 441.2, cents: 5 },
+    { note: "A", hz: 440.5, cents: 2 },
+    { note: "A", hz: 440.0, cents: 0 }
+  ]
 ];
-function renderStrings(activeIndex = tuneIndex) {
-  const tunedCount = tuning ? Math.min(activeIndex, 4) : 0;
+function renderStrings(activeIndex = selectedTuneIndex) {
   $("#strings").innerHTML = ["G","C","E","A"].map((note, index) => {
-    const state = index < tunedCount ? "ok" : index === activeIndex ? "on" : "";
-    const label = index < tunedCount ? "已准" : index === activeIndex ? "检测中" : `${4 - index} 弦`;
+    const state = tunedStringIndexes.has(index) && index !== activeIndex ? "ok" : index === activeIndex ? "on" : "";
+    const label = tunedStringIndexes.has(index) ? "已准" : index === activeIndex ? "检测中" : `${4 - index} 弦`;
     return `<button class="string ${state}" data-string="${index}"><b>${note}</b><span>${label}</span></button>`;
   }).join("");
 }
 function tunerAdvice(cents) {
-  if (Math.abs(cents) <= 8) return `已准 ${Math.abs(cents).toFixed(1)} cents · 不用调`;
-  return cents > 0 ? `偏高 ${cents.toFixed(1)} cents · 请松弦` : `偏低 ${Math.abs(cents).toFixed(1)} cents · 请拧紧`;
+  const abs = Math.abs(cents);
+  if (abs <= 8) return `已准 ${abs.toFixed(1)} cents · 不用调`;
+  if (abs <= 12) return `接近 ${abs.toFixed(1)} cents · 再确认`;
+  return cents > 0 ? `偏高 ${cents.toFixed(1)} cents · 请松弦` : `偏低 ${abs.toFixed(1)} cents · 请拧紧`;
 }
-function applyTuneFrame() {
-  const activeIndex = tuneIndex % tuneFrames.length;
-  const frame = tuneFrames[activeIndex];
-  const level = Math.max(8, Math.min(92, 34 + activeIndex * 14 + Math.abs(frame.cents)));
+function applyTuneFrame({ advance = false } = {}) {
+  const activeIndex = selectedTuneIndex;
+  const sequence = tuneFrameSets[activeIndex];
+  const frame = sequence[tuneStep % sequence.length];
+  const level = Math.max(8, Math.min(92, 34 + activeIndex * 12 + Math.abs(frame.cents)));
+  const inTune = Math.abs(frame.cents) <= 8;
+  if (inTune) tunedStringIndexes.add(activeIndex);
   $("#tNote").textContent = frame.note;
-  $("#tHz").textContent = `${frame.hz} · PitchFrame 模拟`;
+  $("#tHz").textContent = `${frame.hz.toFixed(1)} Hz · PitchFrame 模拟`;
   $("#tState").textContent = tunerAdvice(frame.cents);
+  $("#tState").style.color = inTune ? "#16A34A" : frame.cents > 12 ? "#DC2626" : frame.cents < -12 ? "#2563EB" : "#0F766E";
   $("#tFrameState").textContent = `${frame.note} · ${frame.cents.toFixed(1)}c`;
   $("#tLevelState").textContent = "拨弦触发";
   $("#tLevel").textContent = `${Math.round(level)}%`;
   $("#tLevelBar").style.width = `${level}%`;
-  $("#tHint").textContent = Math.abs(frame.cents) <= 8 ? "绿色范围内已经足够准，可以进入节奏练习。" : "先把当前弦调进绿色区，再切到下一根弦。";
+  $("#tNoise").textContent = tuning ? "门限 3.2x" : "门限 2.6x";
+  $("#tHint").textContent = inTune ? "绿色范围内已经足够准，可以进入节奏练习。" : "先把当前弦调进绿色区，再切到下一根弦。";
   const angle = Math.max(-58, Math.min(58, frame.cents * 2.6));
   $("#needle").style.transform = `translateX(-50%) rotate(${angle}deg)`;
-  $("#needle").classList.toggle("ok", Math.abs(frame.cents) <= 8);
+  $("#needle").classList.toggle("ok", inTune);
   renderStrings(activeIndex);
-  tuneIndex = (tuneIndex + 1) % tuneFrames.length;
+  if (advance) tuneStep += 1;
 }
 function toggleTuner() {
   tuning = !tuning;
-  $("#tunerBtn").textContent = tuning ? "停止真实麦克风" : "🎙️ 开始调音";
+  $("#tunerBtn").textContent = tuning ? "停止调音" : "开始调音";
   $("#tPerm").textContent = tuning ? "已授权" : "预览模拟";
   $("#tLevelState").textContent = tuning ? "读取中" : "待输入";
   clearInterval(tuneTimer);
   if (tuning) {
-    applyTuneFrame();
-    tuneTimer = setInterval(applyTuneFrame, 1200);
+    tuneStep = 0;
+    applyTuneFrame({ advance: true });
+    tuneTimer = setInterval(() => applyTuneFrame({ advance: true }), 1200);
   } else {
     $("#tLevel").textContent = "0%";
     $("#tLevelBar").style.width = "0%";
     $("#tState").textContent = "等待拨弦";
+    $("#tState").style.color = "#16A34A";
     $("#tFrameState").textContent = "模拟帧";
+    $("#tNoise").textContent = "门限 2.6x";
     $("#tHint").textContent = "先拨单根弦；当前预览复用模拟 PitchFrame，真实 App 后续接 AudioEngine。";
-    renderStrings(0);
+    renderStrings(selectedTuneIndex);
   }
 }
 let metroTimer = null;
@@ -2054,11 +2085,17 @@ document.addEventListener("click", event => {
   const chord = event.target.closest("[data-chord]");
   const chordCategory = event.target.closest("[data-chord-category]");
   const course = event.target.closest("[data-course]");
+  const tunerString = event.target.closest("[data-string]");
   if (open) openSheet(open.dataset.open);
   if (close) closeSheet(close.dataset.close);
   if (tabGo) go(tabGo.dataset.tabGo);
   if (song) openSong(song.dataset.openSong);
   if (chord) toast(`${chord.dataset.chord} 和弦示范音`);
+  if (tunerString) {
+    selectedTuneIndex = Number(tunerString.dataset.string);
+    tuneStep = 0;
+    applyTuneFrame();
+  }
   if (chordCategory) {
     activeChordCategory = chordCategory.dataset.chordCategory;
     renderChords();
@@ -2093,6 +2130,7 @@ function setupTunerPanel() {
       <div class="tuner-input-card card">
         <div class="tuner-input-row"><b>输入电平</b><span id="tLevel">0%</span></div>
         <div class="level-track"><i id="tLevelBar"></i></div>
+        <div class="tuner-noise-row"><span>拨弦触发检测</span><b id="tNoise">门限 2.6x</b></div>
         <p class="module-note" id="tHint">先拨单根弦；当前预览复用模拟 PitchFrame，真实 App 后续接 AudioEngine。</p>
       </div>
       <div class="strings" id="strings"></div>
@@ -2113,6 +2151,7 @@ $("#gMode").addEventListener("click", () => {
 $("#tunerCalibrate").addEventListener("click", () => {
   $("#tLevel").textContent = "8%";
   $("#tLevelBar").style.width = "8%";
+  $("#tNoise").textContent = "门限 3.2x";
   $("#tHint").textContent = "环境噪声已校准。现在拨弦触发检测，减少风扇和说话误判。";
   toast("环境噪声已校准");
 });

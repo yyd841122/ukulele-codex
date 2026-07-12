@@ -1459,6 +1459,7 @@ function TunerScreen() {
       : frameSourceLabel;
   const centsAngle = Math.max(-58, Math.min(58, cents * 2.6));
   const inputPercent = Math.round(combinedInputLevel * 100);
+  const noiseGateLabel = recorderMonitor.isRecording || realtimeTuner.isStreaming ? "门限 3.2x" : "门限 2.6x";
   const tunerHint = Math.abs(cents) <= IN_TUNE_CENTS
     ? "绿色范围内已经足够准，可以进入节奏练习。"
     : cents > 0
@@ -1601,6 +1602,10 @@ function TunerScreen() {
         <View style={styles.levelTrack}>
           <View style={[styles.levelFill, { width: `${inputPercent}%` }]} />
         </View>
+        <View style={styles.tunerNoiseRow}>
+          <Text style={styles.inputMeta}>拨弦触发检测</Text>
+          <Text style={styles.tunerNoiseValue}>{noiseGateLabel}</Text>
+        </View>
         <View style={styles.inputMetaRow}>
           <Text style={styles.inputMeta}>时长 {Math.round(recorderMonitor.durationMillis / 1000)}s</Text>
           <Text style={styles.inputMeta}>
@@ -1609,26 +1614,28 @@ function TunerScreen() {
         </View>
         {recorderMonitor.error ? <Text style={styles.errorText}>{recorderMonitor.error}</Text> : null}
         {realtimeTuner.error ? <Text style={styles.errorText}>{realtimeTuner.error}</Text> : null}
-        <Pressable
-          accessibilityRole="button"
-          disabled={recorderMonitor.isBusy}
-          onPress={toggleRecorder}
-          style={[styles.recorderButton, recorderMonitor.isRecording && styles.recorderButtonStop]}
-        >
-          <Text style={styles.recorderButtonText}>
-            {recorderMonitor.isBusy ? "处理中" : recorderMonitor.isRecording ? "停止录音 PoC" : "开始录音 PoC"}
-          </Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          disabled={realtimeTuner.isBusy}
-          onPress={toggleRealtimePitch}
-          style={[styles.realtimeButton, realtimeTuner.isStreaming && styles.recorderButtonStop]}
-        >
-          <Text style={styles.recorderButtonText}>
-            {realtimeTuner.isBusy ? "处理中" : realtimeTuner.isStreaming ? "停止实时 PitchFrame" : "启动实时 PitchFrame"}
-          </Text>
-        </Pressable>
+        <View style={styles.tunerActionRow}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={recorderMonitor.isBusy}
+            onPress={toggleRecorder}
+            style={[styles.recorderButton, styles.tunerActionButton, recorderMonitor.isRecording && styles.recorderButtonStop]}
+          >
+            <Text style={styles.recorderButtonText}>
+              {recorderMonitor.isBusy ? "处理中" : recorderMonitor.isRecording ? "停止电平" : "录音电平"}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={realtimeTuner.isBusy}
+            onPress={toggleRealtimePitch}
+            style={[styles.realtimeButton, styles.tunerActionButton, realtimeTuner.isStreaming && styles.recorderButtonStop]}
+          >
+            <Text style={styles.recorderButtonText}>
+              {realtimeTuner.isBusy ? "处理中" : realtimeTuner.isStreaming ? "停止 Pitch" : "实时 Pitch"}
+            </Text>
+          </Pressable>
+        </View>
       </View>
       <View style={styles.stringRow}>
         {tuning.strings.map((string, index) => {
@@ -4290,9 +4297,9 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   tunerPermissionPanel: {
-    minHeight: 82,
+    minHeight: 68,
     borderRadius: 8,
-    padding: 14,
+    padding: 12,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
@@ -4357,7 +4364,7 @@ const styles = StyleSheet.create({
   },
   tunerStatusCard: {
     flex: 1,
-    minHeight: 62,
+    minHeight: 56,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.line,
@@ -4417,11 +4424,11 @@ const styles = StyleSheet.create({
   },
   inputPanel: {
     borderRadius: 8,
-    padding: 14,
+    padding: 12,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
-    gap: 10
+    gap: 8
   },
   inputHeader: {
     flexDirection: "row",
@@ -4449,6 +4456,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 12
+  },
+  tunerNoiseRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12
+  },
+  tunerNoiseValue: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: "900"
   },
   inputMeta: {
     color: "#756D64",
@@ -4481,36 +4499,44 @@ const styles = StyleSheet.create({
     color: "#FFF8EC",
     fontWeight: "900"
   },
+  tunerActionRow: {
+    flexDirection: "row",
+    gap: 8
+  },
+  tunerActionButton: {
+    flex: 1,
+    minHeight: 44
+  },
   listItem: {
     color: "#4C4944",
     lineHeight: 22
   },
   tunerDial: {
-    minHeight: 284,
+    minHeight: 254,
     borderRadius: 8,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
-    padding: 20
+    gap: 8,
+    padding: 12
   },
   tunerGauge: {
     position: "relative",
-    width: 238,
-    height: 238,
-    borderRadius: 119,
-    borderWidth: 14,
+    width: 216,
+    height: 216,
+    borderRadius: 108,
+    borderWidth: 12,
     borderColor: "#DDF3E7",
     backgroundColor: "#F8FBF8",
     alignItems: "center",
     justifyContent: "center"
   },
   tunerGaugeCenter: {
-    width: 152,
-    height: 152,
-    borderRadius: 76,
+    width: 136,
+    height: 136,
+    borderRadius: 68,
     backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
@@ -4518,16 +4544,16 @@ const styles = StyleSheet.create({
   },
   tunerGaugeNeedle: {
     position: "absolute",
-    left: 110,
+    left: 100,
     top: 18,
     width: 4,
-    height: 100,
+    height: 88,
     borderRadius: 999,
     backgroundColor: colors.coral,
     transformOrigin: "50% 100%"
   },
   noteText: {
-    fontSize: 60,
+    fontSize: 54,
     fontWeight: "900",
     color: colors.forest
   },
@@ -4557,7 +4583,7 @@ const styles = StyleSheet.create({
   },
   stringButton: {
     flex: 1,
-    minHeight: 72,
+    minHeight: 64,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#D9D1C4",
