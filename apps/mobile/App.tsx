@@ -1005,6 +1005,16 @@ export default function App() {
     });
   }
 
+  function handlePracticeRecord(record: PracticeSessionRecord) {
+    appendPracticeRecord(record);
+    const completedCount = record.completedCount ?? record.completedSteps?.filter(Boolean).length ?? 0;
+    const totalSteps = record.totalSteps ?? record.completedSteps?.length ?? 0;
+    const rhythmScore = record.rhythmSummary?.averageRhythmScore ?? 0;
+    if (totalSteps > 0 && completedCount >= totalSteps && rhythmScore >= 70) {
+      setActiveTab("home");
+    }
+  }
+
   function clearPracticeRecords() {
     setPracticeHistory([]);
     void clearPracticeHistory();
@@ -1110,7 +1120,7 @@ export default function App() {
         )}
         {activeTab === "tuner" && <TunerScreen />}
         {activeTab === "practice" && (
-          <PracticeScreen launchConfig={practiceLaunchConfig} onPracticeRecord={appendPracticeRecord} />
+          <PracticeScreen launchConfig={practiceLaunchConfig} onPracticeRecord={handlePracticeRecord} />
         )}
         {activeTab === "songs" && <SongsScreen onStartSongPractice={startPracticeTemplate} />}
         {activeTab === "me" && (
