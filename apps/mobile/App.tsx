@@ -258,6 +258,24 @@ function getCourseActionLabel(course: CourseCatalogItem) {
   return "查看和弦库";
 }
 
+function getCourseActionHint(course: CourseCatalogItem) {
+  if (course.toolId === "tuner") return "下一步：打开调音器，把 G/C/E/A 调到绿色区";
+  const template = getCoursePracticeTemplate(course);
+  if (!template && course.linkedSongId) return "下一步：查看歌曲和本段用到的和弦";
+  if (!template) return "下一步：查看课程步骤";
+  if (template.type === "rhythm_pattern") return "下一步：进入节奏型练习，先稳住右手";
+  if (template.type === "chord_transition") return "下一步：进入和弦转换，先练两个和弦";
+  if (template.type === "song_fragment") return "下一步：进入歌曲片段，把节奏和和弦合起来";
+  return `下一步：开始${getPracticeTemplateShortLabel(template)}`;
+}
+
+function getCoursePathStatusText(status: LessonPathStatus) {
+  if (status === "done") return "已完成";
+  if (status === "current") return "当前";
+  if (status === "locked") return "未解锁";
+  return "待开始";
+}
+
 function getCoursePracticeTemplate(course: CourseCatalogItem) {
   return course.primaryPracticeTemplateId
     ? practiceTemplates.find((template) => template.id === course.primaryPracticeTemplateId) ?? null
@@ -2531,9 +2549,24 @@ function CourseDetailPanel({
   const activeSegmentIndex = Math.min(segments.length - 1, completedSegmentCount);
   const templateChordNames = getPracticeTemplateChordNames(template);
   const followupChordNames = getPracticeTemplateChordNames(followupTemplate);
+  const pathStatusText = getCoursePathStatusText(pathItem.status);
+  const actionHint = getCourseActionHint(course);
 
   return (
     <View style={styles.courseDetailPanel}>
+      <View style={styles.courseStateRow}>
+        <Text
+          style={[
+            styles.courseStatePill,
+            pathItem.status === "done" && styles.courseStatePillDone,
+            pathItem.status === "current" && styles.courseStatePillCurrent,
+            pathItem.status === "locked" && styles.courseStatePillLocked
+          ]}
+        >
+          {pathStatusText}
+        </Text>
+        <Text style={styles.courseStateHint} numberOfLines={2}>{actionHint}</Text>
+      </View>
       <View style={styles.courseDetailHeader}>
         <View style={styles.courseDetailCopy}>
           <Text style={styles.courseDetailEyebrow}>第 {course.order} 课 · {course.estimatedMinutes} 分钟</Text>
@@ -3082,6 +3115,45 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFDF8",
     padding: 12,
     gap: 10
+  },
+  courseStateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#F8F3EA"
+  },
+  courseStatePill: {
+    minWidth: 54,
+    borderRadius: 999,
+    overflow: "hidden",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    color: "#756D64",
+    backgroundColor: "#E6DED0",
+    fontSize: 11,
+    fontWeight: "900",
+    textAlign: "center"
+  },
+  courseStatePillDone: {
+    color: successGreen,
+    backgroundColor: "#DCFCE7"
+  },
+  courseStatePillCurrent: {
+    color: "#B45309",
+    backgroundColor: "#FEF3C7"
+  },
+  courseStatePillLocked: {
+    color: "#6D28D9",
+    backgroundColor: "#F3E8FF"
+  },
+  courseStateHint: {
+    flex: 1,
+    color: colors.forest,
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 16
   },
   courseDetailHeader: {
     flexDirection: "row",
