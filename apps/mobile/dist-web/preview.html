@@ -1373,7 +1373,24 @@
             <div class="checkin-grid" id="homeCheckinGrid"></div>
           </section>
 
-          <section class="home-module-grid" id="homeModules"></section>
+          <section class="home-module-grid" id="homeModules">
+            <button class="home-module card clickable" data-open="tuner">
+              <span class="module-icon">🎛️</span>
+              <span><b>调音器</b><small>开始前校准 GCEA</small></span>
+            </button>
+            <button class="home-module card clickable" data-open="chords">
+              <span class="module-icon">🎼</span>
+              <span><b>和弦</b><small>看指法图和试听</small></span>
+            </button>
+            <button class="home-module card clickable" data-tab-go="songs">
+              <span class="module-icon">🎵</span>
+              <span><b>曲谱库</b><small>找一首歌练</small></span>
+            </button>
+            <button class="home-module card clickable" data-tab-go="practice">
+              <span class="module-icon">🎸</span>
+              <span><b>练习</b><small>节奏与和弦转换</small></span>
+            </button>
+          </section>
 
           <section class="home-recommend">
             <div class="home-card-head">
@@ -1661,7 +1678,7 @@ const homeHotSongs = [
   { title: "晚安分解练习", diff: "入门", bpm: 60, chords: "C G Am F", minutes: 6 },
   { title: "小岛下扫歌", diff: "进阶", bpm: 85, chords: "F G7 C", minutes: 10 }
 ];
-function renderHome() {
+function renderHomeStaticFallback() {
   $("#homeCheckinGrid").innerHTML = homeCheckinDays.map(minutes => {
     const level = minutes >= 16 ? "lv3" : minutes >= 10 ? "lv2" : minutes > 0 ? "lv1" : "";
     return `<span class="checkin-dot ${level}" title="${minutes} 分钟"></span>`;
@@ -2480,30 +2497,35 @@ function completeFollow() {
   advanceAfterPracticeComplete("follow", 5, followState.score);
 }
 function renderHome() {
-  const doneText = appState.checkinDone ? "今日已打卡" : "点我打卡";
-  const checkin = document.querySelector(".checkin");
-  if (checkin) {
-    checkin.innerHTML = `<div><b>连续打卡 <span style="color:var(--orange-dark)">${appState.streak}</span> 天 🔥</b><small>今日已练 ${appState.todayMinutes} 分钟 · ${doneText}</small></div><div class="streak"><span class="day done">一</span><span class="day done">二</span><span class="day done">三</span><span class="day done">四</span><span class="day done">五</span><span class="day done">六</span><span class="day now">日</span></div>`;
+  const streakNumber = document.querySelector(".home-streak-badge b");
+  if (streakNumber) streakNumber.textContent = String(appState.streak || 7);
+  const checkinMeta = document.querySelector(".home-checkin-card .home-card-head small");
+  if (checkinMeta) checkinMeta.textContent = `本周 ${Math.max(84, appState.todayMinutes || 0)} 分钟`;
+  const checkinGrid = $("#homeCheckinGrid");
+  if (checkinGrid) {
+    checkinGrid.innerHTML = homeCheckinDays.map(minutes => {
+      const level = minutes >= 16 ? "lv3" : minutes >= 10 ? "lv2" : minutes > 0 ? "lv1" : "";
+      return `<span class="checkin-dot ${level}" title="${minutes} 分钟"></span>`;
+    }).join("");
   }
-  const nextCourse = nextRequiredCourse();
-  const continueCard = document.querySelector(".continue");
-  if (continueCard && nextCourse) {
-    const practiceSheet = coursePracticeSheet(nextCourse.order);
-    continueCard.removeAttribute("data-open-song");
-    continueCard.dataset.course = String(nextCourse.order);
-    continueCard.innerHTML = `
-      <div class="cover">${nextCourse.emoji}</div>
-      <div class="copy">
-        <div class="status-line"><span class="status-pill">${courseStateText(nextCourse)}</span><span>${nextCourse.progress}% · 第 ${nextCourse.order} 课</span></div>
-        <b>继续学习：${nextCourse.title}</b>
-        <p>${nextCourse.subtitle}${practiceSheet ? ` · ${courseActionText(nextCourse)}` : ""}</p>
-        <div class="progress"><i style="width:${nextCourse.progress}%"></i></div>
-      </div>
-      <div class="play-round">▶</div>
-    `;
+  const moduleGrid = $("#homeModules");
+  if (moduleGrid) {
+    moduleGrid.innerHTML = homeModules.map(module => {
+      const nav = module.open ? `data-open="${module.open}"` : `data-tab-go="${module.tab}"`;
+      return `<button class="home-module card clickable" ${nav}>
+        <span class="module-icon">${module.icon}</span>
+        <span><b>${module.title}</b><small>${module.subtitle}</small></span>
+      </button>`;
+    }).join("");
   }
-  $("#hotSongs").innerHTML = songs.map(song => `<button class="song-card clickable" data-open-song="${song.title}"><div class="cover" style="background:linear-gradient(135deg,${song.color},${song.light})">${song.emoji}</div><b>${song.title}</b><small>${song.artist}</small><div class="stars">${starText(song.stars)}</div></button>`).join("");
-  $("#rankList").innerHTML = songs.slice(0,4).map((song, index) => `<button class="rank-row clickable" data-open-song="${song.title}"><div class="no">${index + 1}</div><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light})">${song.emoji}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · ${12 - index * 2}.3 万人练过</small></div><div class="difficulty">练 ▶</div></button>`).join("");
+  const hotList = $("#homeHotSongs");
+  if (hotList) {
+    hotList.innerHTML = homeHotSongs.map((song, index) => `<button class="home-song-row card clickable" data-tab-go="songs">
+      <span class="home-song-mark">${index + 1}</span>
+      <span class="row-copy"><b>${song.title}</b><small>${song.diff} · ${song.bpm} BPM · ${song.chords} · ${song.minutes} 分钟</small></span>
+      <span class="difficulty">去练</span>
+    </button>`).join("");
+  }
 }
 function renderCourses() {
   setupEnhancedPreview();
