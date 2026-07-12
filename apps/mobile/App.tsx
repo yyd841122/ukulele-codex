@@ -1292,7 +1292,7 @@ function HomeScreen({
           </Pressable>
         </View>
         <View style={styles.homeSongList}>
-          {hotSongs.map((song, index) => (
+          {hotSongs.slice(0, 2).map((song, index) => (
             <Pressable accessibilityRole="button" key={song.title} onPress={onOpenSongs} style={styles.homeSongRow}>
               <View style={styles.homeSongIndex}>
                 <Text style={styles.homeSongIndexText}>{index + 1}</Text>
@@ -2920,18 +2920,18 @@ const styles = StyleSheet.create({
     fontWeight: "900"
   },
   content: {
-    padding: 20,
-    paddingBottom: 112
+    padding: 14,
+    paddingBottom: 90
   },
   stack: {
     gap: 16
   },
   homeStack: {
-    gap: 14
+    gap: 9
   },
   homeHeroPanel: {
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 15,
+    padding: 12,
     backgroundColor: "#E6F7F4",
     borderWidth: 1,
     borderColor: "#C7ECE7"
@@ -2940,53 +2940,53 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    gap: 12
+    gap: 8
   },
   homeHeroCopyBlock: {
     flex: 1
   },
   homeEyebrow: {
     color: "#0F766E",
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "900",
     letterSpacing: 0
   },
   homeTitle: {
-    marginTop: 4,
+    marginTop: 2,
     color: colors.forest,
-    fontSize: 25,
-    lineHeight: 31,
+    fontSize: 22,
+    lineHeight: 25,
     fontWeight: "900"
   },
   homeSubtitle: {
-    marginTop: 6,
+    marginTop: 4,
     color: "#64748B",
-    fontSize: 13,
-    lineHeight: 19
+    fontSize: 11,
+    lineHeight: 16
   },
   homeStreakBadge: {
-    minWidth: 64,
-    borderRadius: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    minWidth: 56,
+    borderRadius: 14,
+    paddingVertical: 7,
+    paddingHorizontal: 8,
     alignItems: "center",
     backgroundColor: "#FFFFFF"
   },
   homeStreakNumber: {
     color: colors.forest,
-    fontSize: 20,
-    lineHeight: 22,
+    fontSize: 17,
+    lineHeight: 19,
     fontWeight: "900"
   },
   homeStreakLabel: {
-    marginTop: 2,
+    marginTop: 1,
     color: "#64748B",
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "900"
   },
   homeCheckinPanel: {
-    borderRadius: 14,
-    padding: 12,
+    borderRadius: 13,
+    padding: 10,
     backgroundColor: "#FFFDF8",
     borderWidth: 1,
     borderColor: colors.line
@@ -2999,23 +2999,23 @@ const styles = StyleSheet.create({
   },
   homePanelTitle: {
     color: colors.forest,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "900"
   },
   homePanelMeta: {
     color: "#64748B",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "800"
   },
   homeCheckinGrid: {
-    marginTop: 10,
+    marginTop: 7,
     flexDirection: "row",
-    gap: 4
+    gap: 3
   },
   homeCheckinDot: {
     flex: 1,
-    height: 15,
-    borderRadius: 5,
+    height: 12,
+    borderRadius: 4,
     backgroundColor: "#E2E8F0"
   },
   homeCheckinDotLow: {
@@ -3030,99 +3030,99 @@ const styles = StyleSheet.create({
   homeModuleGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10
+    gap: 8
   },
   homeModuleCard: {
-    width: "48%",
-    minHeight: 86,
-    borderRadius: 14,
-    padding: 12,
+    width: "48.7%",
+    minHeight: 66,
+    borderRadius: 12,
+    padding: 9,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     backgroundColor: "#FFFDF8",
     borderWidth: 1,
     borderColor: colors.line
   },
   homeModuleIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#E0F2F1"
   },
   homeModuleIconText: {
-    fontSize: 20
+    fontSize: 18
   },
   homeModuleCopy: {
     flex: 1
   },
   homeModuleTitle: {
     color: colors.forest,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "900"
   },
   homeModuleDetail: {
-    marginTop: 4,
+    marginTop: 2,
     color: "#64748B",
-    fontSize: 11,
-    lineHeight: 15
+    fontSize: 10,
+    lineHeight: 13
   },
   homeRecommendPanel: {
-    borderRadius: 16,
-    padding: 14,
-    gap: 10,
+    borderRadius: 14,
+    padding: 10,
+    gap: 7,
     backgroundColor: colors.forest
   },
   homeRecommendTitle: {
     flex: 1,
     color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "900"
   },
   homeRecommendMeta: {
     color: "#D9E4DB",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "900"
   },
   homeRecommendDetail: {
     color: "#D9E4DB",
-    fontSize: 13,
-    lineHeight: 19
+    fontSize: 11,
+    lineHeight: 15
   },
   homeMetaGrid: {
     flexDirection: "row",
-    gap: 6
+    gap: 5
   },
   homeMetaBox: {
     flex: 1,
-    borderRadius: 10,
-    paddingVertical: 7,
+    borderRadius: 8,
+    paddingVertical: 5,
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.12)"
   },
   homeMetaLabel: {
     color: "#BBD2CC",
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "800"
   },
   homeMetaValue: {
-    marginTop: 2,
+    marginTop: 1,
     color: "#FFFFFF",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "900"
   },
   homeStartButton: {
-    minHeight: 44,
-    borderRadius: 12,
+    minHeight: 36,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.amber
   },
   homeStartButtonText: {
     color: "#1F2522",
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "900"
   },
   homeSectionRow: {
@@ -3132,33 +3132,33 @@ const styles = StyleSheet.create({
   },
   homeSectionTitle: {
     color: colors.ink,
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: "900"
   },
   homeSectionAction: {
     color: "#0F766E",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "900"
   },
   homeSongList: {
-    marginTop: 10,
-    gap: 8
+    marginTop: 7,
+    gap: 6
   },
   homeSongRow: {
-    minHeight: 62,
-    borderRadius: 14,
-    padding: 10,
+    minHeight: 48,
+    borderRadius: 12,
+    padding: 8,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     backgroundColor: "#FFFDF8",
     borderWidth: 1,
     borderColor: colors.line
   },
   homeSongIndex: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#FEF3C7"
@@ -3172,14 +3172,14 @@ const styles = StyleSheet.create({
   },
   homeSongTitle: {
     color: colors.forest,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "900"
   },
   homeSongMeta: {
-    marginTop: 3,
+    marginTop: 2,
     color: "#64748B",
-    fontSize: 11,
-    lineHeight: 15
+    fontSize: 10,
+    lineHeight: 13
   },
   homeSongAction: {
     color: "#0F766E",
