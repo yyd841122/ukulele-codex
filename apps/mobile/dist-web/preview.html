@@ -1853,6 +1853,12 @@ function nextRequiredCourse() {
     .sort((a, b) => a.order - b.order);
   return required.find(course => course.progress < 100) || required[required.length - 1];
 }
+function nextRequiredCourseAfter(order) {
+  return allCourses()
+    .filter(course => course.type === "required" && course.access === "free" && course.order > Number(order))
+    .sort((a, b) => a.order - b.order)
+    .find(course => course.progress < 100) || null;
+}
 function courseSegments(course) {
   return course.segments || ["预习", "练习", "复盘", "完成"];
 }
@@ -2296,7 +2302,7 @@ function renderCourseDetail() {
   const completeCount = Math.floor(progress / 25);
   $("#courseSegments").innerHTML = courseSegments(course).map((label, index) => `<div class="segment-item ${index < completeCount ? "active" : ""}"><span class="segment-index">${index + 1}</span><b>${label}</b><small>${index < completeCount ? "已完成" : index === completeCount ? "当前步骤" : "未开始"}</small></div>`).join("");
   renderCourseResources(course);
-  $("#courseNext").textContent = progress >= 100 ? "本课已完成" : "完成下一步";
+  $("#courseNext").textContent = progress >= 100 ? "进入下一课" : "完成下一步";
   $("#coursePractice").textContent = practiceSheet ? "进入本课练习" : "查看课程步骤";
   const followupTemplate = courseFollowupPracticeTemplate(course);
   $("#courseFollowup").style.display = followupTemplate ? "block" : "none";
@@ -2304,6 +2310,16 @@ function renderCourseDetail() {
 }
 function completeCourseStep() {
   const current = appState.courseProgress[selectedCourseOrder] || 0;
+  if (current >= 100) {
+    const nextCourse = nextRequiredCourseAfter(selectedCourseOrder);
+    if (nextCourse) {
+      openCourse(nextCourse.order);
+      toast(`进入第 ${nextCourse.order} 课`);
+      return;
+    }
+    toast("必修路径已经完成");
+    return;
+  }
   appState.courseProgress[selectedCourseOrder] = Math.min(100, current + 25);
   addSession({ type: "课程", title: `第 ${selectedCourseOrder} 课`, score: 75, minutes: 2 });
   renderCourseDetail();
