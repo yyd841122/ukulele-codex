@@ -1859,6 +1859,22 @@ function nextRequiredCourseAfter(order) {
     .sort((a, b) => a.order - b.order)
     .find(course => course.progress < 100) || null;
 }
+function advanceAfterPracticeComplete(sheetId, courseOrder, score) {
+  renderCourses();
+  renderHome();
+  if (score < 70) {
+    toast("还差一点，建议先复练本组");
+    return;
+  }
+  const nextCourse = nextRequiredCourseAfter(courseOrder);
+  if (nextCourse) {
+    closeSheet(sheetId);
+    openCourse(nextCourse.order);
+    toast(`已达标，进入第 ${nextCourse.order} 课`);
+    return;
+  }
+  toast("本段路径已完成，可以进入复盘");
+}
 function courseSegments(course) {
   return course.segments || ["预习", "练习", "复盘", "完成"];
 }
@@ -2082,9 +2098,8 @@ function completeRhythm() {
     completedCount: template?.targets.length ?? 4,
     totalSteps: template?.targets.length ?? 4
   });
-  toast(`节奏练习完成：${rhythmState.score} 分`);
   renderRhythm();
-  renderCourses();
+  advanceAfterPracticeComplete("rhythm", courseOrder, rhythmState.score);
 }
 function renderTransition() {
   const pair = transitionPairs[transitionState.index];
@@ -2131,9 +2146,8 @@ function completeTransition() {
     completedCount: Math.min(transitionPairs.length, transitionState.reps),
     totalSteps: transitionState.index === 0 ? 2 : 4
   });
-  toast(`转换练习完成：${transitionState.score} 分`);
   renderTransition();
-  renderCourses();
+  advanceAfterPracticeComplete("transition", 4, transitionState.score);
 }
 function activeSong() {
   return songs.find(item => item.title === activeSongTitle) || songs[0];
@@ -2189,9 +2203,8 @@ function completeFollow() {
     completedCount: 4,
     totalSteps: 4
   });
-  toast(`跟弹提交：${followState.score} 分`);
   renderFollow();
-  renderCourses();
+  advanceAfterPracticeComplete("follow", 5, followState.score);
 }
 function renderHome() {
   const doneText = appState.checkinDone ? "今日已打卡" : "点我打卡";
