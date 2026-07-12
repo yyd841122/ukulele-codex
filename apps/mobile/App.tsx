@@ -1111,7 +1111,11 @@ export default function App() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        bounces={activeTab !== "home"}
+        contentContainerStyle={[styles.content, activeTab === "home" && styles.homeContent]}
+        scrollEnabled={activeTab !== "home"}
+      >
         {activeTab === "home" && (
           <HomeScreen
             latestPracticeSummary={latestPracticeSummary}
@@ -2922,6 +2926,9 @@ const styles = StyleSheet.create({
   content: {
     padding: 14,
     paddingBottom: 90
+  },
+  homeContent: {
+    flexGrow: 1
   },
   stack: {
     gap: 16

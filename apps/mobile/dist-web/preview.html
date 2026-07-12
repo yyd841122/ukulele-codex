@@ -73,6 +73,10 @@
   }
   .page.active { opacity: 1; pointer-events: auto; transform: translateX(0); }
   .page::-webkit-scrollbar, .scroll-x::-webkit-scrollbar, .filters::-webkit-scrollbar { display: none; }
+  #page-home {
+    overflow: hidden;
+    padding-bottom: 0;
+  }
   .tabbar {
     position: absolute;
     left: 0;
@@ -101,8 +105,9 @@
   .tab.active { color: #0F766E; }
   .tab.active .icon { transform: translateY(-1px); }
   .home-shell {
-    min-height: 100%;
+    height: 100%;
     padding: 48px 14px 78px;
+    overflow: hidden;
     background:
       radial-gradient(circle at 18% 0%, rgba(45, 212, 191, .20), transparent 30%),
       linear-gradient(180deg, #F3FBFA 0%, #F8FAFC 44%, #FFF7ED 100%);
