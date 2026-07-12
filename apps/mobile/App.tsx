@@ -456,6 +456,11 @@ type CoursePathItem = {
   progress: number;
 };
 
+type PracticeCompletionNotice = {
+  title: string;
+  detail: string;
+} | null;
+
 type PracticeLaunchConfig = {
   templateId?: string;
   bpm: number;
@@ -956,6 +961,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [practiceHistory, setPracticeHistory] = useState<PracticeSessionRecord[]>([]);
   const [practiceLaunchConfig, setPracticeLaunchConfig] = useState<PracticeLaunchConfig | undefined>();
+  const [practiceCompletionNotice, setPracticeCompletionNotice] = useState<PracticeCompletionNotice>(null);
   const latestPracticeSummary = useMemo(() => {
     const latestRecord = practiceHistory[0];
     return latestRecord ? summarizePracticeRecord(latestRecord) : undefined;
@@ -1011,16 +1017,23 @@ export default function App() {
     const totalSteps = record.totalSteps ?? record.completedSteps?.length ?? 0;
     const rhythmScore = record.rhythmSummary?.averageRhythmScore ?? 0;
     if (totalSteps > 0 && completedCount >= totalSteps && rhythmScore >= 70) {
+      const templateTitle = record.template ? getPracticeTemplateTitle(record.template) : "本次练习";
+      setPracticeCompletionNotice({
+        title: "练习达标",
+        detail: `${templateTitle} · 节奏 ${rhythmScore} · 已回到课程路径`
+      });
       setActiveTab("home");
     }
   }
 
   function clearPracticeRecords() {
     setPracticeHistory([]);
+    setPracticeCompletionNotice(null);
     void clearPracticeHistory();
   }
 
   function startPractice(config?: Omit<PracticeLaunchConfig, "token">) {
+    setPracticeCompletionNotice(null);
     if (config) {
       setPracticeLaunchConfig({ ...config, token: Date.now() });
     }
@@ -1115,6 +1128,7 @@ export default function App() {
             practiceHistorySummary={practiceHistorySummary}
             practicePathSummary={practicePathSummary}
             recentPracticeSummaries={recentPracticeSummaries}
+            completionNotice={practiceCompletionNotice}
             contentSummary={sharedContentSummary}
           />
         )}
@@ -1169,6 +1183,7 @@ function HomeScreen({
   practiceHistorySummary,
   practicePathSummary,
   recentPracticeSummaries,
+  completionNotice,
   contentSummary,
   onStart
 }: {
@@ -1185,6 +1200,7 @@ function HomeScreen({
   practiceHistorySummary: PracticeHistorySummary;
   practicePathSummary: PracticePathSummaryItem[];
   recentPracticeSummaries: PracticeRecordSummary[];
+  completionNotice?: PracticeCompletionNotice;
   contentSummary: typeof sharedContentSummary;
   onStart: () => void;
 }) {
@@ -1218,6 +1234,7 @@ function HomeScreen({
   const nextSelectablePathItem = selectedPathIndex >= 0
     ? pathItems.slice(selectedPathIndex + 1).find((item) => item.status !== "done") ?? null
     : null;
+  const currentPathItem = pathItems.find((item) => item.status === "current") ?? nextSelectablePathItem;
 
   useEffect(() => {
     if (recommendedCourseId && !pathItems.some((item) => item.id === selectedCourseId)) {
@@ -1236,6 +1253,15 @@ function HomeScreen({
           <Text style={styles.primaryButtonText}>开始 8 分钟练习</Text>
         </Pressable>
       </View>
+
+      {completionNotice ? (
+        <View style={styles.completionNotice}>
+          <Text style={styles.completionNoticeTitle}>{completionNotice.title}</Text>
+          <Text style={styles.completionNoticeDetail}>
+            {completionNotice.detail}{currentPathItem ? ` · 下一步：${currentPathItem.title}` : ""}
+          </Text>
+        </View>
+      ) : null}
 
       <SectionTitle title="课程路径" detail={`${completedPathItems}/${pathItems.length} · ${pathPercent}%`} />
       <View style={styles.courseFilterRow}>
@@ -3045,6 +3071,25 @@ const styles = StyleSheet.create({
   heroCopy: {
     color: "#D9E4DB",
     lineHeight: 22
+  },
+  completionNotice: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#B7E4C7",
+    backgroundColor: "#ECFDF3",
+    padding: 12,
+    gap: 4
+  },
+  completionNoticeTitle: {
+    color: successGreen,
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  completionNoticeDetail: {
+    color: colors.forest,
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 17
   },
   lessonPathPanel: {
     minHeight: 142,
