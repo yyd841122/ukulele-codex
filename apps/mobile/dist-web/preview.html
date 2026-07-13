@@ -489,11 +489,85 @@
   .song-card b { display: block; margin-top: 8px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .song-card small { color: var(--text-2); font-size: 11px; }
   .stars { color: var(--warn); font-size: 10px; }
+  .song-library-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0 16px 12px;
+  }
+  .song-library-stat {
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .song-library-stat b {
+    display: block;
+    color: var(--teal);
+    font-size: 18px;
+  }
+  .song-library-stat span {
+    color: var(--text-2);
+    font-size: 11px;
+    font-weight: 850;
+  }
+  .song-feature-card {
+    margin: 0 16px 12px;
+    padding: 12px;
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 12px;
+    align-items: center;
+  }
+  .song-feature-cover {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    font-size: 34px;
+  }
+  .song-feature-copy b {
+    display: block;
+    color: var(--text-1);
+    font-size: 17px;
+  }
+  .song-feature-copy small {
+    color: var(--text-2);
+    font-size: 11px;
+    line-height: 1.5;
+    font-weight: 800;
+  }
+  .song-feature-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin: 6px 0;
+  }
+  .song-feature-meta span {
+    padding: 3px 8px;
+    border-radius: 999px;
+    color: var(--teal);
+    background: #DDF5E9;
+    font-size: 10px;
+    font-weight: 900;
+  }
   .rank-row, .song-row {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 10px 16px;
+  }
+  .song-library-row {
+    margin: 0 16px 10px;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: #fff;
+  }
+  .song-library-row .mini-chord-list {
+    margin-top: 6px;
+  }
+  .song-library-row .difficulty {
+    min-width: 54px;
   }
   .rank-row .no { width: 22px; text-align: center; color: var(--orange); font-weight: 900; }
   .avatar-cover {
@@ -2012,6 +2086,8 @@
         <div class="hero tight"><div class="eyebrow">🎵 曲谱库</div><h1>边弹边唱的歌单</h1><p>按难度、调式和节奏型筛选。</p></div>
         <div class="search card">🔎 搜索歌名 / 歌手</div>
         <div class="filters"><button class="filter active">全部</button><button class="filter">⭐ 入门</button><button class="filter">⭐⭐ 进阶</button><button class="filter">会员</button></div>
+        <div class="song-library-summary" id="songLibrarySummary"></div>
+        <div id="songFeature"></div>
         <div id="songList"></div>
       </section>
 
@@ -2130,6 +2206,67 @@ const songs = [
       ["F", "啦啦啦啦 右手保持匀速"],
       ["G7", "啦啦啦啦 轻轻收尾"]
     ]
+  },
+  {
+    title: "四和弦海风",
+    artist: "入门练习曲",
+    emoji: "🏝️",
+    color: "#5EEAD4",
+    light: "#CCFBF1",
+    stars: 1,
+    diff: "入门",
+    key: "C",
+    bpm: 70,
+    chords: ["C", "Am", "F", "G7"],
+    templateId: "practice-song-fragment-four-chord-hum",
+    lyrics: [
+      ["C", "海风轻轻吹 稳住第一拍"],
+      ["Am", "左手提前换 右手不停摆"],
+      ["F", "扫弦别着急 声音要打开"],
+      ["G7", "回到下一轮 放松再重来"]
+    ]
+  },
+  {
+    title: "晚安分解练习",
+    artist: "入门练习曲",
+    emoji: "🌙",
+    color: "#93C5FD",
+    light: "#DBEAFE",
+    stars: 1,
+    diff: "入门",
+    key: "C",
+    bpm: 60,
+    chords: ["C", "G", "Am", "F"],
+    templateId: "practice-c-am-f-g7-loop",
+    lyrics: [["C", "先用 C-G-Am-F 练习慢速换和弦"]]
+  },
+  {
+    title: "G调换指练习",
+    artist: "进阶练习曲",
+    emoji: "🛤️",
+    color: "#C4B5FD",
+    light: "#EDE9FE",
+    stars: 2,
+    diff: "进阶",
+    key: "G",
+    bpm: 72,
+    chords: ["G", "D", "Em", "C"],
+    templateId: "practice-c-am-f-g7-loop",
+    lyrics: [["G", "练 G-D-Em-C 的常用弹唱走向"]]
+  },
+  {
+    title: "三拍子慢歌",
+    artist: "节奏练习曲",
+    emoji: "💧",
+    color: "#A7F3D0",
+    light: "#ECFDF5",
+    stars: 2,
+    diff: "进阶",
+    key: "C",
+    bpm: 60,
+    chords: ["C", "F", "G7"],
+    templateId: "practice-rhythm-waltz-three",
+    lyrics: [["C", "用 3/4 强弱弱节奏练慢歌进入"]]
   },
   { title: "小幸运", artist: "田馥甄", emoji: "🍀", color: "#86EFAC", light: "#BBF7D0", stars: 2, diff: "进阶", key: "C", bpm: 78, chords: ["C", "G", "Am", "F"], templateId: "practice-c-am-f-g7-loop", lyrics: [["C", "先用四和弦练习代替完整曲谱"]] },
   { title: "晴天", artist: "周杰伦", emoji: "☀️", color: "#FDBA74", light: "#FED7AA", stars: 2, diff: "进阶", key: "G", bpm: 76, chords: ["G", "D", "Em", "C"], templateId: "practice-c-am-f-g7-loop", lyrics: [["G", "进阶歌曲后续接完整曲谱"]] },
@@ -3445,10 +3582,27 @@ function renderSongs() {
       (activeSongFilter === "entry" && song.stars <= 1) ||
       (activeSongFilter === "advanced" && song.stars === 2) ||
       (activeSongFilter === "member" && song.diff === "会员");
-    const searchMatch = !query || `${song.title} ${song.artist} ${song.key}`.toLowerCase().includes(query);
+    const searchMatch = !query || `${song.title} ${song.artist} ${song.key} ${(song.chords || []).join(" ")}`.toLowerCase().includes(query);
     return filterMatch && searchMatch;
   });
-  $("#songList").innerHTML = visible.map(song => `<button class="song-row clickable" data-open-song="${song.title}"><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light});position:relative">${song.emoji}${song.diff === "会员" ? "<span class='member-tag' style='position:absolute;right:-8px;top:-5px'>会员</span>" : ""}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · ${song.key} 调 · ${song.bpm} BPM</small>${renderMiniChordList(song.chords)}</div><div class="difficulty">${starText(song.stars)}<br>${song.diff}</div></button>`).join("") || `<div class="empty-state">没有找到匹配曲谱。</div>`;
+  const freeCount = songs.filter(song => song.diff !== "会员").length;
+  const entryCount = songs.filter(song => song.stars <= 1).length;
+  $("#songLibrarySummary").innerHTML = [
+    ["曲谱", songs.length],
+    ["免费", freeCount],
+    ["入门", entryCount]
+  ].map(([label, value]) => `<div class="song-library-stat card"><b>${value}</b><span>${label}</span></div>`).join("");
+  const featured = visible.find(song => song.diff !== "会员") || visible[0] || songs[0];
+  $("#songFeature").innerHTML = featured ? `<button class="song-feature-card card clickable" data-open-song="${featured.title}">
+    <div class="song-feature-cover" style="background:linear-gradient(135deg,${featured.color},${featured.light})">${featured.emoji}</div>
+    <div class="song-feature-copy">
+      <b>${featured.title}</b>
+      <small>${featured.artist} · 建议从这一首开始</small>
+      <div class="song-feature-meta"><span>Key ${featured.key}</span><span>${featured.bpm} BPM</span><span>${starText(featured.stars)} ${featured.diff}</span></div>
+      ${renderMiniChordList(featured.chords)}
+    </div>
+  </button>` : "";
+  $("#songList").innerHTML = visible.map(song => `<button class="song-row song-library-row clickable" data-open-song="${song.title}"><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light});position:relative">${song.emoji}${song.diff === "会员" ? "<span class='member-tag' style='position:absolute;right:-8px;top:-5px'>会员</span>" : ""}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · Key ${song.key} · ${song.bpm} BPM · ${song.chords.join(" ")}</small>${renderMiniChordList(song.chords)}</div><div class="difficulty">${starText(song.stars)}<br>${song.diff}</div></button>`).join("") || `<div class="empty-state">没有找到匹配曲谱。</div>`;
   $all("[data-song-filter]").forEach(node => node.classList.toggle("active", node.dataset.songFilter === activeSongFilter));
 }
 function renderMe() {
