@@ -1043,6 +1043,112 @@
     line-height: 1.35;
     font-weight: 800;
   }
+  #melody { overflow: hidden; }
+  #melody .sheet-head { padding: 10px 16px 12px; }
+  #melody .sheet-head .back { margin-bottom: 2px; }
+  .melody-page {
+    padding: 10px 14px;
+    display: grid;
+    gap: 8px;
+    background: linear-gradient(180deg, #FFFDF8 0%, #F5F0E6 100%);
+  }
+  .melody-main-card {
+    padding: 12px;
+    display: grid;
+    gap: 10px;
+    text-align: center;
+  }
+  .melody-note {
+    color: var(--teal);
+    font-size: 68px;
+    line-height: .95;
+    font-weight: 950;
+  }
+  .melody-target-meta {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .melody-target-meta span {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #DDF5E9;
+    color: var(--teal);
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .melody-sequence {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .melody-step {
+    min-height: 58px;
+    padding: 7px 4px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #FFFDF8;
+    color: var(--text-2);
+    text-align: center;
+    font-size: 10px;
+    font-weight: 850;
+  }
+  .melody-step b {
+    display: block;
+    color: var(--text-1);
+    font-size: 17px;
+  }
+  .melody-step.active {
+    border-color: var(--orange);
+    background: #FFF7ED;
+    box-shadow: 0 8px 18px rgba(37, 58, 51, .1);
+  }
+  .melody-controls {
+    display: grid;
+    grid-template-columns: 1fr 86px 1fr;
+    gap: 8px;
+    align-items: center;
+  }
+  .melody-controls.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .melody-controls .primary { min-height: 42px; font-size: 15px; }
+  .melody-controls .ghost { min-height: 38px; }
+  .melody-bpm-badge {
+    min-height: 40px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    background: #FFFDF8;
+    color: var(--teal);
+    font-size: 22px;
+    font-weight: 950;
+  }
+  .melody-bpm-badge small { display: block; color: var(--text-2); font-size: 10px; line-height: 1; }
+  .melody-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .melody-stat {
+    padding: 7px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: #FFFDF8;
+    text-align: center;
+  }
+  .melody-stat b { display: block; color: var(--teal); font-size: 18px; }
+  .melody-stat small { color: var(--text-2); font-weight: 850; }
+  .melody-feedback {
+    min-height: 34px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    color: var(--teal);
+    background: #DDF5E9;
+    font-size: 12px;
+    line-height: 1.35;
+    font-weight: 900;
+  }
   .follow-lyrics { margin-top: 12px; padding: 10px 0 0; border-top: 1px solid var(--line); }
   .follow-lyrics .lyric-line { line-height: 2; color: var(--text-2); font-size: 14px; }
   .follow-lyrics .lyric-line.now { color: var(--text-1); font-weight: 850; }
@@ -2251,7 +2357,24 @@
           <div class="song-fragment-list" id="lyrics"></div>
         </div>
       </div>
-      <div class="sticky-actions"><button class="primary" id="detailPlay">开始歌曲片段跟弹</button></div>
+      <div class="sticky-actions"><button class="ghost" id="detailMelody">先练单音</button><button class="primary" id="detailPlay">开始歌曲片段跟弹</button></div>
+    </section>
+
+    <section class="sheet" id="melody">
+      <div class="sheet-head"><button class="back" data-close="melody">‹</button><h2>单音跟弹</h2><p id="melodySubtitle">从歌曲片段里拆出单音短句。</p></div>
+      <div class="melody-page">
+        <div class="melody-main-card card">
+          <div class="module-row"><div><small class="eyebrow">当前目标</small><h3 id="melodySongTitle">童年</h3></div><b id="melodyStateLabel">待开始</b></div>
+          <div class="melody-note" id="melodyNote">C</div>
+          <div class="melody-target-meta"><span id="melodyString">A 弦</span><span id="melodyFret">3 品</span><span id="melodyBeat">第 1 拍</span></div>
+          <div class="melody-sequence" id="melodySequence"></div>
+          <div class="melody-controls"><button class="ghost" id="melodyBpmDown">-5</button><div class="melody-bpm-badge"><span id="melodyBpm">70</span><small>BPM</small></div><button class="ghost" id="melodyBpmUp">+5</button></div>
+          <div class="melody-controls two"><button class="ghost" id="melodyReset">重置</button><button class="primary" id="melodyToggle">开始</button></div>
+          <div class="melody-stats"><div class="melody-stat"><small>命中</small><b id="melodyHits">0</b></div><div class="melody-stat"><small>轮次</small><b id="melodyRounds">0</b></div><div class="melody-stat"><small>分数</small><b id="melodyScore">--</b></div></div>
+          <div class="melody-feedback" id="melodyFeedback">点击开始后，按提示弦和品位逐拍练单音。</div>
+          <div class="melody-controls two"><button class="ghost" id="melodyBackToSong">返回歌曲</button><button class="ghost" id="melodyComplete">完成本组</button></div>
+        </div>
+      </div>
     </section>
 
     <section class="sheet tuner-page" id="tuner">
@@ -3050,6 +3173,40 @@ const rhythmState = { pattern: 0, beat: 0, bars: 0, running: false, timer: null,
 const transitionAutoOffsets = [-44, 32, 18, 86, -72, 12, 48, -26];
 const transitionState = { index: 0, beat: 0, reps: 0, stable: 0, running: false, timer: null, bpm: 60, score: 0, scores: [], feedback: "点击开始后，第 4 拍会自动记录一次换指尝试。" };
 const followState = { beat: 0, bars: 0, running: false, timer: null, score: 60 };
+const melodyHitPattern = [92, 86, 78, 95, 72, 88, 81, 96];
+const melodyState = { index: 0, rounds: 0, hits: 0, running: false, timer: null, bpm: 70, scores: [], feedback: "点击开始后，按提示弦和品位逐拍练单音。" };
+const melodyPhrases = {
+  C: [
+    { note: "C", string: "A", fret: 3 },
+    { note: "E", string: "E", fret: 0 },
+    { note: "G", string: "E", fret: 3 },
+    { note: "C", string: "A", fret: 3 },
+    { note: "A", string: "A", fret: 0 },
+    { note: "G", string: "E", fret: 3 },
+    { note: "E", string: "E", fret: 0 },
+    { note: "C", string: "A", fret: 3 }
+  ],
+  G: [
+    { note: "G", string: "E", fret: 3 },
+    { note: "B", string: "A", fret: 2 },
+    { note: "D", string: "C", fret: 2 },
+    { note: "G", string: "E", fret: 3 },
+    { note: "E", string: "E", fret: 0 },
+    { note: "D", string: "C", fret: 2 },
+    { note: "B", string: "A", fret: 2 },
+    { note: "G", string: "E", fret: 3 }
+  ],
+  Am: [
+    { note: "A", string: "A", fret: 0 },
+    { note: "C", string: "A", fret: 3 },
+    { note: "E", string: "E", fret: 0 },
+    { note: "A", string: "A", fret: 0 },
+    { note: "G", string: "E", fret: 3 },
+    { note: "E", string: "E", fret: 0 },
+    { note: "C", string: "A", fret: 3 },
+    { note: "A", string: "A", fret: 0 }
+  ]
+};
 function saveAppState() {
   localStorage.setItem("ukulelePreviewState", JSON.stringify(appState));
 }
@@ -3604,6 +3761,99 @@ function completeTransition() {
 function activeSong() {
   return songs.find(item => item.title === activeSongTitle) || songs[0];
 }
+function activeMelodyPhrase() {
+  const song = activeSong();
+  return melodyPhrases[song.key] || melodyPhrases.C;
+}
+function melodyAverageScore() {
+  if (!melodyState.scores.length) return "--";
+  return Math.round(melodyState.scores.reduce((sum, score) => sum + score, 0) / melodyState.scores.length);
+}
+function melodyScoreValue() {
+  const average = melodyAverageScore();
+  return average === "--" ? 0 : Number(average);
+}
+function renderMelody() {
+  const song = activeSong();
+  const phrase = activeMelodyPhrase();
+  const current = phrase[melodyState.index] || phrase[0];
+  $("#melodySubtitle").textContent = `《${song.title}》· ${song.key} 调 · ${melodyState.bpm} BPM`;
+  $("#melodySongTitle").textContent = song.title;
+  $("#melodyStateLabel").textContent = melodyState.running ? "进行中" : "待开始";
+  $("#melodyNote").textContent = current.note;
+  $("#melodyString").textContent = `${current.string} 弦`;
+  $("#melodyFret").textContent = `${current.fret} 品`;
+  $("#melodyBeat").textContent = `第 ${(melodyState.index % 4) + 1} 拍`;
+  $("#melodyBpm").textContent = melodyState.bpm;
+  $("#melodyHits").textContent = melodyState.hits;
+  $("#melodyRounds").textContent = melodyState.rounds;
+  $("#melodyScore").textContent = melodyAverageScore();
+  $("#melodyFeedback").textContent = melodyState.feedback;
+  $("#melodyToggle").textContent = melodyState.running ? "暂停" : "开始";
+  $("#melodySequence").innerHTML = phrase.map((item, index) => `<div class="melody-step ${index === melodyState.index ? "active" : ""}"><b>${item.note}</b>${item.string} 弦 ${item.fret} 品</div>`).join("");
+}
+function recordMelodyHit() {
+  const score = melodyHitPattern[melodyState.scores.length % melodyHitPattern.length];
+  melodyState.scores.push(score);
+  if (score >= 80) melodyState.hits += 1;
+  melodyState.feedback = score >= 85
+    ? `命中 ${score} 分 · 当前音很稳，继续保持节拍。`
+    : score >= 70
+      ? `接近 ${score} 分 · 找品基本正确，下一拍再提前一点。`
+      : `偏差较大 ${score} 分 · 先看清弦名和品位再弹。`;
+}
+function tickMelody() {
+  const phrase = activeMelodyPhrase();
+  playClick(melodyState.index % 4 === 0);
+  recordMelodyHit();
+  melodyState.index = (melodyState.index + 1) % phrase.length;
+  if (melodyState.index === 0) melodyState.rounds += 1;
+  renderMelody();
+}
+function toggleMelody() {
+  melodyState.running = !melodyState.running;
+  clearInterval(melodyState.timer);
+  if (melodyState.running) {
+    tickMelody();
+    melodyState.timer = setInterval(tickMelody, 60000 / melodyState.bpm);
+  }
+  renderMelody();
+}
+function resetMelody() {
+  melodyState.running = false;
+  clearInterval(melodyState.timer);
+  melodyState.index = 0;
+  melodyState.rounds = 0;
+  melodyState.hits = 0;
+  melodyState.scores = [];
+  melodyState.feedback = "点击开始后，按提示弦和品位逐拍练单音。";
+  renderMelody();
+}
+function startMelodyPractice() {
+  const song = activeSong();
+  closeSheet("songDetail");
+  melodyState.bpm = song.bpm;
+  resetMelody();
+  openSheet("melody");
+}
+function completeMelody() {
+  melodyState.running = false;
+  clearInterval(melodyState.timer);
+  const score = melodyScoreValue();
+  addSession({
+    type: "单音",
+    title: `${activeSong().title} 单音短句`,
+    templateId: "practice-melody-preview",
+    courseId: "course-first-song-fragment",
+    songId: activeSong().title,
+    score,
+    minutes: Math.max(1, melodyState.rounds + 1),
+    completedCount: melodyState.hits,
+    totalSteps: Math.max(1, melodyState.scores.length)
+  });
+  melodyState.feedback = score >= 70 ? "本组已记录，可以回到歌曲片段跟弹。" : "本组已记录，建议降速再练一轮。";
+  renderMelody();
+}
 function renderFollow() {
   const song = activeSong();
   const chords = song.chords?.length ? song.chords : followChords;
@@ -3915,6 +4165,26 @@ function bindEnhancedPreview() {
     if (event.target.id === "detailPlay") {
       startSongPractice();
     }
+    if (event.target.id === "detailMelody") startMelodyPractice();
+    if (event.target.id === "melodyToggle") toggleMelody();
+    if (event.target.id === "melodyReset") resetMelody();
+    if (event.target.id === "melodyComplete") completeMelody();
+    if (event.target.id === "melodyBackToSong") {
+      closeSheet("melody");
+      openSheet("songDetail");
+    }
+    if (event.target.id === "melodyBpmDown") {
+      melodyState.bpm = Math.max(40, melodyState.bpm - 5);
+      clearInterval(melodyState.timer);
+      if (melodyState.running) melodyState.timer = setInterval(tickMelody, 60000 / melodyState.bpm);
+      renderMelody();
+    }
+    if (event.target.id === "melodyBpmUp") {
+      melodyState.bpm = Math.min(140, melodyState.bpm + 5);
+      clearInterval(melodyState.timer);
+      if (melodyState.running) melodyState.timer = setInterval(tickMelody, 60000 / melodyState.bpm);
+      renderMelody();
+    }
     if (event.target.id === "rhythmToggle") toggleRhythm();
     if (event.target.id === "rhythmComplete") completeRhythm();
     if (event.target.id === "rhythmReset") resetRhythm();
@@ -3979,6 +4249,7 @@ setupEnhancedPreview();
 bindEnhancedPreview();
 renderRhythm();
 renderTransition();
+renderMelody();
 renderFollow();
 renderHome();
 renderPracticePlan();
