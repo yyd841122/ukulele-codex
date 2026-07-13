@@ -26,6 +26,8 @@
 - 我的页能看到统计、学习进度、成绩摘要、建议、日历、成就、最近记录。
 - 完成练习后，最近记录和分数会更新。
 - 清空最近记录后，最近记录区域显示空状态。
+- Expo App 我的页消费 `practiceHistorySummary`、`practicePathSummary`、`buildCoursePath` 和 `nextPracticeRecommendation`，与 preview 记录页保持同一信息结构。
+- Expo App 下一步建议入口回到学习页，不直接绕过课程路径。
 - `npm.cmd test`、`npx.cmd tsc -p apps/mobile --noEmit`、preview script syntax、`git diff --check` 通过。
 
 ## 后续迭代

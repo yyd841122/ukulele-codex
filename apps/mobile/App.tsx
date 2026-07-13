@@ -1226,8 +1226,11 @@ export default function App() {
         )}
         {activeTab === "me" && (
           <ProfileScreen
+            coursePath={coursePathsByFilter.required}
             latestPracticeSummary={latestPracticeSummary}
+            nextPracticeRecommendation={nextPracticeRecommendation}
             onClearHistory={clearPracticeRecords}
+            onOpenLearn={() => setActiveTab("learn")}
             practiceHistorySummary={practiceHistorySummary}
             practicePathSummary={practicePathSummary}
             recentPracticeSummaries={recentPracticeSummaries}
@@ -2239,18 +2242,33 @@ function SongsScreen({
 }
 
 function ProfileScreen({
+  coursePath,
   latestPracticeSummary,
+  nextPracticeRecommendation,
   onClearHistory,
+  onOpenLearn,
   practiceHistorySummary,
   practicePathSummary,
   recentPracticeSummaries
 }: {
+  coursePath: CoursePathItem[];
   latestPracticeSummary?: PracticeRecordSummary;
+  nextPracticeRecommendation: NextPracticeRecommendation;
   onClearHistory: () => void;
+  onOpenLearn: () => void;
   practiceHistorySummary: PracticeHistorySummary;
   practicePathSummary: PracticePathSummaryItem[];
   recentPracticeSummaries: PracticeRecordSummary[];
 }) {
+  const rhythmScores = recentPracticeSummaries
+    .map((summary) => Number(summary.rhythmLabel))
+    .filter((score) => Number.isFinite(score) && score > 0);
+  const bestRhythmScore = rhythmScores.length > 0 ? Math.max(...rhythmScores) : null;
+  const courseDoneCount = coursePath.filter((item) => item.status === "done").length;
+  const courseProgress = coursePath.length === 0
+    ? 0
+    : Math.round(coursePath.reduce((sum, item) => sum + Math.min(item.progress, 100), 0) / coursePath.length);
+  const currentCourse = coursePath.find((item) => item.status === "current") ?? coursePath.find((item) => item.status !== "done") ?? coursePath[coursePath.length - 1];
   const badges = [
     { label: "连续练习", value: `${practiceHistorySummary.currentStreakDays} 天`, active: practiceHistorySummary.currentStreakDays > 0 },
     { label: "节奏记录", value: latestPracticeSummary?.rhythmLabel ?? "--", active: Boolean(latestPracticeSummary) },
@@ -2273,6 +2291,49 @@ function ProfileScreen({
           <ScoreBox label="连续" value={`${practiceHistorySummary.currentStreakDays}`} />
         </View>
       </View>
+
+      <View style={styles.profileCoursePanel}>
+        <View style={styles.profilePanelHead}>
+          <View style={styles.profilePanelCopy}>
+            <Text style={styles.profilePanelTitle}>第一课路径</Text>
+            <Text style={styles.profilePanelMeta}>
+              {courseDoneCount}/{coursePath.length} 个必修节点完成 · 当前 {currentCourse?.title ?? "待开始"}
+            </Text>
+          </View>
+          <Text style={styles.profileProgressBadge}>{courseProgress}%</Text>
+        </View>
+        <View style={styles.profileProgressTrack}>
+          <View style={[styles.profileProgressFill, { width: `${courseProgress}%` }]} />
+        </View>
+        <View style={styles.profileCourseStrip}>
+          {coursePath.map((item) => (
+            <View
+              key={item.id}
+              style={[
+                styles.profileCourseStep,
+                item.status === "done" && styles.profileCourseStepDone,
+                item.status === "current" && styles.profileCourseStepCurrent
+              ]}
+            />
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.profileScoreGrid}>
+        <ProfileMetric label="最近节奏" value={latestPracticeSummary?.rhythmLabel ?? "--"} />
+        <ProfileMetric label="最高节奏" value={bestRhythmScore == null ? "--" : `${bestRhythmScore}`} />
+        <ProfileMetric label="练习次数" value={`${practiceHistorySummary.totalSessions}`} />
+      </View>
+
+      <Pressable accessibilityRole="button" onPress={onOpenLearn} style={styles.profileAdviceCard}>
+        <View style={styles.profilePanelCopy}>
+          <Text style={styles.profilePanelTitle}>下一步建议</Text>
+          <Text style={styles.profilePanelMeta}>
+            {nextPracticeRecommendation.title} · {nextPracticeRecommendation.bpm} BPM · {localizeRecommendationReason(nextPracticeRecommendation)}
+          </Text>
+        </View>
+        <Text style={styles.profileAdviceArrow}>›</Text>
+      </Pressable>
 
       <SectionTitle title="成就" detail="本地模拟徽章" />
       <View style={styles.badgeGrid}>
@@ -3338,6 +3399,15 @@ function InfoRow({ title, detail }: { title: string; detail: string }) {
     <View style={styles.infoRow}>
       <Text style={styles.infoTitle}>{title}</Text>
       <Text style={styles.infoDetail}>{detail}</Text>
+    </View>
+  );
+}
+
+function ProfileMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.profileMetricCard}>
+      <Text style={styles.profileMetricValue}>{value}</Text>
+      <Text style={styles.profileMetricLabel}>{label}</Text>
     </View>
   );
 }
@@ -4802,6 +4872,121 @@ const styles = StyleSheet.create({
     color: "#D9E4DB",
     fontSize: 13,
     lineHeight: 20
+  },
+  profileCoursePanel: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    padding: 12,
+    gap: 10
+  },
+  profilePanelHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10
+  },
+  profilePanelCopy: {
+    flex: 1,
+    gap: 3
+  },
+  profilePanelTitle: {
+    color: colors.forest,
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  profilePanelMeta: {
+    color: "#756D64",
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: "700"
+  },
+  profileProgressBadge: {
+    overflow: "hidden",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    color: successGreen,
+    backgroundColor: "#DCFCE7",
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  profileProgressTrack: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: "#EAE2D5",
+    overflow: "hidden"
+  },
+  profileProgressFill: {
+    height: "100%",
+    borderRadius: 999,
+    backgroundColor: successGreen
+  },
+  profileCourseStrip: {
+    flexDirection: "row",
+    gap: 5
+  },
+  profileCourseStep: {
+    flex: 1,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: "#E5E7EB"
+  },
+  profileCourseStepDone: {
+    backgroundColor: successGreen
+  },
+  profileCourseStepCurrent: {
+    backgroundColor: colors.amber
+  },
+  profileScoreGrid: {
+    flexDirection: "row",
+    gap: 8
+  },
+  profileMetricCard: {
+    flex: 1,
+    minHeight: 64,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 8
+  },
+  profileMetricValue: {
+    color: colors.forest,
+    fontSize: 20,
+    fontWeight: "900"
+  },
+  profileMetricLabel: {
+    marginTop: 3,
+    color: "#756D64",
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  profileAdviceCard: {
+    minHeight: 64,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10
+  },
+  profileAdviceArrow: {
+    width: 30,
+    height: 30,
+    borderRadius: 999,
+    overflow: "hidden",
+    color: "#FFF8EC",
+    backgroundColor: colors.forest,
+    textAlign: "center",
+    lineHeight: 30,
+    fontSize: 20,
+    fontWeight: "900"
   },
   badgeGrid: {
     flexDirection: "row",
