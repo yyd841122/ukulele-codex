@@ -1117,14 +1117,16 @@
   #rhythm .sheet-head p { display: none; }
   .rhythm-page { padding: 10px 14px; display: grid; gap: 8px; }
   .rhythm-runner { padding: 10px; display: grid; gap: 8px; }
-  .rhythm-template-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .rhythm-template-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
   .rhythm-template-tab {
-    min-height: 44px;
+    min-height: 36px;
     border-radius: 10px;
     background: #EEE8DC;
     color: var(--text-2);
+    font-size: 12px;
     font-weight: 950;
   }
+  .rhythm-template-tab small { font-size: 9px; }
   .rhythm-template-tab.active { background: var(--teal); color: #FFF8EC; }
   .rhythm-action {
     padding: 10px;
@@ -2045,22 +2047,36 @@ const chordCategories = [
   { id: "major", label: "大三和弦" },
   { id: "minor", label: "小三和弦" },
   { id: "seventh", label: "属七和弦" },
+  { id: "accidental", label: "升降和弦" },
   { id: "suspended", label: "挂留和弦" }
 ];
 let activeChordCategory = "all";
 const chords = [
   { name: "C", category: "major", tags: ["beginner"], frets: [0,0,0,3], fingers: [0,0,0,3] },
-  { name: "Am", category: "minor", tags: ["beginner"], frets: [2,0,0,0], fingers: [2,0,0,0] },
-  { name: "F", category: "major", tags: ["beginner"], frets: [2,0,1,0], fingers: [2,0,1,0] },
-  { name: "G7", category: "seventh", tags: ["beginner"], frets: [0,2,1,2], fingers: [0,2,1,3] },
-  { name: "G", category: "major", frets: [0,2,3,2], fingers: [0,1,3,2] },
-  { name: "D", category: "major", frets: [2,2,2,0], fingers: [1,2,3,0] },
+  { name: "Dm", category: "minor", frets: [2,2,1,0], fingers: [2,3,1,0] },
   { name: "Em", category: "minor", frets: [0,4,3,2], fingers: [0,3,2,1] },
-  { name: "Bm", category: "minor", frets: [4,2,2,2], fingers: [3,1,1,1] },
+  { name: "F", category: "major", tags: ["beginner"], frets: [2,0,1,0], fingers: [2,0,1,0] },
+  { name: "G", category: "major", frets: [0,2,3,2], fingers: [0,1,3,2] },
+  { name: "Am", category: "minor", tags: ["beginner"], frets: [2,0,0,0], fingers: [2,0,0,0] },
+  { name: "G7", category: "seventh", tags: ["beginner"], frets: [0,2,1,2], fingers: [0,2,1,3] },
+  { name: "D", category: "major", frets: [2,2,2,0], fingers: [1,2,3,0] },
+  { name: "F#m", category: "minor", tags: ["sharp"], frets: [2,1,2,0], fingers: [2,1,3,0] },
+  { name: "A", category: "major", frets: [2,1,0,0], fingers: [2,1,0,0] },
+  { name: "Bm", category: "minor", tags: ["barre"], frets: [4,2,2,2], fingers: [3,1,1,1] },
+  { name: "A7", category: "seventh", frets: [0,1,0,0], fingers: [0,1,0,0] },
+  { name: "E", category: "major", frets: [4,4,4,2], fingers: [2,3,4,1] },
+  { name: "G#m", category: "minor", tags: ["sharp"], frets: [1,3,4,2], fingers: [1,3,4,2] },
+  { name: "B", category: "major", tags: ["barre"], frets: [4,3,2,2], fingers: [4,3,1,1] },
+  { name: "C#m", category: "minor", tags: ["sharp","barre"], frets: [1,1,0,4], fingers: [1,1,0,4] },
+  { name: "B7", category: "seventh", tags: ["barre"], frets: [2,3,2,2], fingers: [1,3,1,1] },
+  { name: "Gm", category: "minor", frets: [0,2,3,1], fingers: [0,2,3,1] },
+  { name: "Bb", category: "major", tags: ["flat","barre"], frets: [3,2,1,1], fingers: [3,2,1,1] },
   { name: "C7", category: "seventh", frets: [0,0,0,1], fingers: [0,0,0,1] },
-  { name: "D7", category: "seventh", frets: [2,0,2,0], fingers: [1,0,2,0] },
-  { name: "E", category: "major", frets: [1,4,0,2], fingers: [1,4,0,2] },
-  { name: "Asus4", category: "suspended", frets: [2,2,0,0], fingers: [1,2,0,0] }
+  { name: "D7", category: "seventh", tags: ["barre"], frets: [2,2,2,3], fingers: [1,1,1,2] },
+  { name: "E7", category: "seventh", frets: [1,2,0,2], fingers: [1,2,0,3] },
+  { name: "D#m", category: "minor", tags: ["sharp","barre"], frets: [3,3,2,1], fingers: [3,3,2,1] },
+  { name: "F#", category: "major", tags: ["sharp","barre"], frets: [3,1,2,1], fingers: [3,1,2,1] },
+  { name: "F#7", category: "seventh", tags: ["sharp"], frets: [3,4,2,4], fingers: [2,3,1,4] }
 ];
 const favoriteChordNames = ["C", "Am", "F", "G7"];
 function $(sel) { return document.querySelector(sel); }
@@ -2122,12 +2138,13 @@ function renderMe() {
   $("#badges").innerHTML = badges.map(([emoji, label, on]) => `<div class="badge ${on ? "" : "lock"}"><div class="medal">${emoji}</div><small>${label}</small></div>`).join("");
 }
 function renderChordDiagram(chord) {
+  const fretCount = Math.max(4, Math.max(...chord.frets, 0));
   const stringLines = [0, 1, 2, 3].map(index => `<span class="fret-string" style="left:${(index / 3) * 100}%"></span>`).join("");
-  const fretLines = [0, 1, 2, 3, 4].map(index => `<span class="fret-line ${index === 0 ? "nut" : ""}" style="top:${(index / 4) * 100}%"></span>`).join("");
+  const fretLines = Array.from({ length: fretCount + 1 }, (_, index) => `<span class="fret-line ${index === 0 ? "nut" : ""}" style="top:${(index / fretCount) * 100}%"></span>`).join("");
   const dots = chord.frets.map((fret, stringIndex) => {
     if (fret <= 0) return "";
     const left = (stringIndex / 3) * 100;
-    const top = ((Math.min(fret, 4) - 0.5) / 4) * 100;
+    const top = ((fret - 0.5) / fretCount) * 100;
     const finger = chord.fingers?.[stringIndex] || fret;
     return `<span class="fret-dot" style="left:${left}%;top:${top}%">${finger}</span>`;
   }).join("");
@@ -2452,6 +2469,10 @@ let selectedCourseOrder = 3;
 const practiceTemplates = [
   { id: "practice-rhythm-down-four", courseOrder: 3, sheet: "rhythm", type: "节奏型", title: "下扫四拍", bpm: 60, detail: "第一拍重音，后三拍轻扫，先让右手稳定。", targets: ["强", "轻", "轻", "轻"] },
   { id: "practice-rhythm-down-down-up-up", courseOrder: 6, sheet: "rhythm", type: "节奏型", title: "下下上上", bpm: 60, detail: "常见弹唱扫弦方向，先慢速熟悉下、下上、上、下上。", targets: ["强", "下上", "轻", "上下"], patternIndex: 1 },
+  { id: "practice-rhythm-down-up-eight", courseOrder: 6, sheet: "rhythm", type: "节奏型", title: "连续下上", bpm: 60, detail: "八分音符连续下上扫，训练手腕稳定。", targets: ["↓","↑","↓","↑","↓","↑","↓","↑"], patternIndex: 2 },
+  { id: "practice-rhythm-chuck-two-four", courseOrder: 6, sheet: "rhythm", type: "节奏型", title: "二四切音", bpm: 60, detail: "第二拍和第四拍加入切音，建立弹唱律动。", targets: ["↓","×","↓","×"], patternIndex: 3 },
+  { id: "practice-rhythm-waltz-three", courseOrder: 6, sheet: "rhythm", type: "节奏型", title: "三拍子", bpm: 60, detail: "强弱弱三拍子，适合慢歌和民谣。", targets: ["↓","↓","↑"], patternIndex: 4 },
+  { id: "practice-rhythm-ballad-split", courseOrder: 6, sheet: "rhythm", type: "节奏型", title: "民谣切分", bpm: 65, detail: "带空拍的民谣节奏，练习切分感。", targets: ["↓","•","↑","↓","↑"], patternIndex: 5 },
   { id: "practice-transition-c-am", courseOrder: 4, sheet: "transition", type: "和弦转换", title: "C → Am 转换", bpm: 60, detail: "提前准备二指，在下一小节第一拍落到 Am。", targets: ["C", "Am"] },
   { id: "practice-c-am-f-g7-loop", courseOrder: 4, sheet: "transition", type: "四和弦循环", title: "C-Am-F-G7", bpm: 70, detail: "把四个入门和弦连成稳定循环。", targets: ["C", "Am", "F", "G7"] },
   { id: "practice-song-fragment-four-chord-hum", courseOrder: 5, sheet: "follow", type: "歌曲片段", title: "童年前 4 小节", bpm: 70, detail: "把节奏和换和弦放回真实歌曲片段。", targets: ["C", "Am", "F", "G7"] }
@@ -2481,6 +2502,62 @@ const rhythmPatterns = [
       { label: "↑", beat: "2.2", action: "↑", accent: false },
       { label: "↑", beat: "3.2", action: "↑", accent: false },
       { label: "↓", beat: "4", action: "↓", accent: false },
+      { label: "↑", beat: "4.2", action: "↑", accent: false }
+    ],
+    hint: "第 1 拍 · 重音"
+  },
+  {
+    id: "down-up-eight",
+    templateId: "practice-rhythm-down-up-eight",
+    name: "↓↑ 连续",
+    bpm: 60,
+    beats: [
+      { label: "↓", beat: "1", action: "↓", accent: true },
+      { label: "↑", beat: "1.2", action: "↑", accent: false },
+      { label: "↓", beat: "2", action: "↓", accent: false },
+      { label: "↑", beat: "2.2", action: "↑", accent: false },
+      { label: "↓", beat: "3", action: "↓", accent: false },
+      { label: "↑", beat: "3.2", action: "↑", accent: false },
+      { label: "↓", beat: "4", action: "↓", accent: false },
+      { label: "↑", beat: "4.2", action: "↑", accent: false }
+    ],
+    hint: "第 1 拍 · 重音"
+  },
+  {
+    id: "chuck-two-four",
+    templateId: "practice-rhythm-chuck-two-four",
+    name: "↓ × ↓ ×",
+    bpm: 60,
+    beats: [
+      { label: "↓", beat: "1", action: "↓", accent: true },
+      { label: "×", beat: "2", action: "×", accent: false },
+      { label: "↓", beat: "3", action: "↓", accent: false },
+      { label: "×", beat: "4", action: "×", accent: false }
+    ],
+    hint: "第 1 拍 · 重音"
+  },
+  {
+    id: "waltz-three",
+    templateId: "practice-rhythm-waltz-three",
+    name: "3/4 ↓ ↓ ↑",
+    bpm: 60,
+    beats: [
+      { label: "↓", beat: "1", action: "↓", accent: true },
+      { label: "↓", beat: "2", action: "↓", accent: false },
+      { label: "↑", beat: "3", action: "↑", accent: false }
+    ],
+    hint: "第 1 拍 · 重音"
+  },
+  {
+    id: "ballad-split",
+    templateId: "practice-rhythm-ballad-split",
+    name: "↓ • ↑ ↓ ↑",
+    bpm: 65,
+    beats: [
+      { label: "↓", beat: "1", action: "↓", accent: true },
+      { label: "•", beat: "2", action: "•", accent: false },
+      { label: "↑", beat: "2.2", action: "↑", accent: false },
+      { label: "↓", beat: "3", action: "↓", accent: false },
       { label: "↑", beat: "4.2", action: "↑", accent: false }
     ],
     hint: "第 1 拍 · 重音"

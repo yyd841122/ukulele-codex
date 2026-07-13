@@ -56,6 +56,19 @@ test("MVP chord loop uses beginner chords", () => {
   }
 });
 
+test("common chord library includes the key chart chords", () => {
+  const chordNames = new Set(beginnerChords.map((chord) => chord.name));
+  for (const chordName of [
+    "C", "Dm", "Em", "F", "G", "Am", "G7",
+    "D", "F#m", "A", "Bm", "A7",
+    "E", "G#m", "B", "C#m", "B7",
+    "Gm", "Bb", "C7", "D7", "E7",
+    "D#m", "F#", "F#7"
+  ]) {
+    assert.ok(chordNames.has(chordName), `${chordName} should be in the chord library`);
+  }
+});
+
 test("MVP practice template can be queried by id", () => {
   const template = getMvpPracticeTemplate("practice-c-am-f-g7-loop");
 
@@ -75,7 +88,7 @@ test("MVP content path includes rhythm transitions and song fragment", () => {
 });
 
 test("practice templates cover the real beginner practice ladder", () => {
-  assert.equal(getPracticeTemplatesByType("rhythm_pattern").length, 2);
+  assert.equal(getPracticeTemplatesByType("rhythm_pattern").length, 6);
   assert.equal(getPracticeTemplatesByType("chord_transition").length, 1);
   assert.equal(getPracticeTemplatesByType("chord_switch").length, 1);
   assert.equal(getPracticeTemplatesByType("song_fragment").length, 1);

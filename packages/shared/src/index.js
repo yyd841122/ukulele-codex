@@ -25,42 +25,31 @@ export const ukuleleInstrument = {
 };
 
 export const beginnerChords = [
-  {
-    id: "uke-c",
-    instrumentId: "ukulele",
-    name: "C",
-    fingering: [0, 0, 0, 3],
-    fingers: [0, 0, 0, 3],
-    difficulty: 1,
-    tags: ["open", "beginner"]
-  },
-  {
-    id: "uke-am",
-    instrumentId: "ukulele",
-    name: "Am",
-    fingering: [2, 0, 0, 0],
-    fingers: [2, 0, 0, 0],
-    difficulty: 1,
-    tags: ["open", "beginner"]
-  },
-  {
-    id: "uke-f",
-    instrumentId: "ukulele",
-    name: "F",
-    fingering: [2, 0, 1, 0],
-    fingers: [2, 0, 1, 0],
-    difficulty: 2,
-    tags: ["beginner", "change-practice"]
-  },
-  {
-    id: "uke-g7",
-    instrumentId: "ukulele",
-    name: "G7",
-    fingering: [0, 2, 1, 2],
-    fingers: [0, 2, 1, 3],
-    difficulty: 2,
-    tags: ["beginner", "song-common"]
-  }
+  { id: "uke-c", instrumentId: "ukulele", name: "C", fingering: [0, 0, 0, 3], fingers: [0, 0, 0, 3], difficulty: 1, tags: ["open", "beginner", "major", "key-c", "key-f", "key-g"] },
+  { id: "uke-dm", instrumentId: "ukulele", name: "Dm", fingering: [2, 2, 1, 0], fingers: [2, 3, 1, 0], difficulty: 2, tags: ["minor", "key-c", "key-f"] },
+  { id: "uke-em", instrumentId: "ukulele", name: "Em", fingering: [0, 4, 3, 2], fingers: [0, 3, 2, 1], difficulty: 3, tags: ["minor", "key-c", "key-d", "key-g"] },
+  { id: "uke-f", instrumentId: "ukulele", name: "F", fingering: [2, 0, 1, 0], fingers: [2, 0, 1, 0], difficulty: 2, tags: ["beginner", "change-practice", "major", "key-c", "key-f"] },
+  { id: "uke-g", instrumentId: "ukulele", name: "G", fingering: [0, 2, 3, 2], fingers: [0, 1, 3, 2], difficulty: 2, tags: ["major", "key-c", "key-d", "key-g"] },
+  { id: "uke-am", instrumentId: "ukulele", name: "Am", fingering: [2, 0, 0, 0], fingers: [2, 0, 0, 0], difficulty: 1, tags: ["open", "beginner", "minor", "key-c", "key-f", "key-g"] },
+  { id: "uke-g7", instrumentId: "ukulele", name: "G7", fingering: [0, 2, 1, 2], fingers: [0, 2, 1, 3], difficulty: 2, tags: ["beginner", "song-common", "seventh", "key-c"] },
+  { id: "uke-d", instrumentId: "ukulele", name: "D", fingering: [2, 2, 2, 0], fingers: [1, 2, 3, 0], difficulty: 2, tags: ["major", "key-d", "key-g", "key-a"] },
+  { id: "uke-fsharp-m", instrumentId: "ukulele", name: "F#m", fingering: [2, 1, 2, 0], fingers: [2, 1, 3, 0], difficulty: 3, tags: ["minor", "sharp", "key-d", "key-e", "key-a"] },
+  { id: "uke-a", instrumentId: "ukulele", name: "A", fingering: [2, 1, 0, 0], fingers: [2, 1, 0, 0], difficulty: 2, tags: ["major", "key-d", "key-e", "key-a"] },
+  { id: "uke-bm", instrumentId: "ukulele", name: "Bm", fingering: [4, 2, 2, 2], fingers: [3, 1, 1, 1], difficulty: 4, tags: ["minor", "barre", "key-d", "key-g", "key-a"] },
+  { id: "uke-a7", instrumentId: "ukulele", name: "A7", fingering: [0, 1, 0, 0], fingers: [0, 1, 0, 0], difficulty: 1, tags: ["seventh", "key-d"] },
+  { id: "uke-e", instrumentId: "ukulele", name: "E", fingering: [4, 4, 4, 2], fingers: [2, 3, 4, 1], difficulty: 4, tags: ["major", "key-e", "key-a", "key-b"] },
+  { id: "uke-gsharp-m", instrumentId: "ukulele", name: "G#m", fingering: [1, 3, 4, 2], fingers: [1, 3, 4, 2], difficulty: 4, tags: ["minor", "sharp", "key-e", "key-b"] },
+  { id: "uke-b", instrumentId: "ukulele", name: "B", fingering: [4, 3, 2, 2], fingers: [4, 3, 1, 1], difficulty: 4, tags: ["major", "barre", "key-e", "key-b"] },
+  { id: "uke-csharp-m", instrumentId: "ukulele", name: "C#m", fingering: [1, 1, 0, 4], fingers: [1, 1, 0, 4], difficulty: 4, tags: ["minor", "sharp", "barre", "key-e", "key-a", "key-b"] },
+  { id: "uke-b7", instrumentId: "ukulele", name: "B7", fingering: [2, 3, 2, 2], fingers: [1, 3, 1, 1], difficulty: 4, tags: ["seventh", "barre", "key-e"] },
+  { id: "uke-gm", instrumentId: "ukulele", name: "Gm", fingering: [0, 2, 3, 1], fingers: [0, 2, 3, 1], difficulty: 3, tags: ["minor", "key-f"] },
+  { id: "uke-bb", instrumentId: "ukulele", name: "Bb", fingering: [3, 2, 1, 1], fingers: [3, 2, 1, 1], difficulty: 3, tags: ["major", "flat", "barre", "key-f"] },
+  { id: "uke-c7", instrumentId: "ukulele", name: "C7", fingering: [0, 0, 0, 1], fingers: [0, 0, 0, 1], difficulty: 1, tags: ["seventh", "key-f"] },
+  { id: "uke-d7", instrumentId: "ukulele", name: "D7", fingering: [2, 2, 2, 3], fingers: [1, 1, 1, 2], difficulty: 3, tags: ["seventh", "barre", "key-g"] },
+  { id: "uke-e7", instrumentId: "ukulele", name: "E7", fingering: [1, 2, 0, 2], fingers: [1, 2, 0, 3], difficulty: 2, tags: ["seventh", "key-a"] },
+  { id: "uke-dsharp-m", instrumentId: "ukulele", name: "D#m", fingering: [3, 3, 2, 1], fingers: [3, 3, 2, 1], difficulty: 4, tags: ["minor", "sharp", "barre", "key-b"] },
+  { id: "uke-fsharp", instrumentId: "ukulele", name: "F#", fingering: [3, 1, 2, 1], fingers: [3, 1, 2, 1], difficulty: 4, tags: ["major", "sharp", "barre", "key-b"] },
+  { id: "uke-fsharp7", instrumentId: "ukulele", name: "F#7", fingering: [3, 4, 2, 4], fingers: [2, 3, 1, 4], difficulty: 4, tags: ["seventh", "sharp", "key-b"] }
 ];
 
 export const mvpLesson = {
@@ -130,6 +119,70 @@ export const beginnerRhythmPatterns = [
       { beat: 4, subdivision: 2, stroke: "up", accent: false }
     ],
     teachingFocus: "用慢速熟悉常见弹唱扫弦方向，后续接入歌曲片段。"
+  },
+  {
+    id: "rhythm-down-up-eight",
+    name: "Down Up Eighths",
+    instrument: "ukulele",
+    level: "P1",
+    timeSignature: "4/4",
+    defaultBpm: 60,
+    beats: [
+      { beat: 1, subdivision: 1, stroke: "down", accent: true },
+      { beat: 1, subdivision: 2, stroke: "up", accent: false },
+      { beat: 2, subdivision: 1, stroke: "down", accent: false },
+      { beat: 2, subdivision: 2, stroke: "up", accent: false },
+      { beat: 3, subdivision: 1, stroke: "down", accent: false },
+      { beat: 3, subdivision: 2, stroke: "up", accent: false },
+      { beat: 4, subdivision: 1, stroke: "down", accent: false },
+      { beat: 4, subdivision: 2, stroke: "up", accent: false }
+    ],
+    teachingFocus: "连续下上扫，训练手腕稳定摆动。"
+  },
+  {
+    id: "rhythm-chuck-two-four",
+    name: "Chuck On Two Four",
+    instrument: "ukulele",
+    level: "P1",
+    timeSignature: "4/4",
+    defaultBpm: 60,
+    beats: [
+      { beat: 1, subdivision: 1, stroke: "down", accent: true },
+      { beat: 2, subdivision: 1, stroke: "mute", accent: false },
+      { beat: 3, subdivision: 1, stroke: "down", accent: false },
+      { beat: 4, subdivision: 1, stroke: "mute", accent: false }
+    ],
+    teachingFocus: "在第二拍和第四拍加入切音，建立弹唱律动。"
+  },
+  {
+    id: "rhythm-waltz-three",
+    name: "Three Four Waltz",
+    instrument: "ukulele",
+    level: "P1",
+    timeSignature: "3/4",
+    defaultBpm: 60,
+    beats: [
+      { beat: 1, subdivision: 1, stroke: "down", accent: true },
+      { beat: 2, subdivision: 1, stroke: "down", accent: false },
+      { beat: 3, subdivision: 1, stroke: "up", accent: false }
+    ],
+    teachingFocus: "练习三拍子强弱弱，适合慢歌和民谣。"
+  },
+  {
+    id: "rhythm-ballad-split",
+    name: "Ballad Split Strum",
+    instrument: "ukulele",
+    level: "P2",
+    timeSignature: "4/4",
+    defaultBpm: 65,
+    beats: [
+      { beat: 1, subdivision: 1, stroke: "down", accent: true },
+      { beat: 2, subdivision: 1, stroke: "rest", accent: false },
+      { beat: 2, subdivision: 2, stroke: "up", accent: false },
+      { beat: 3, subdivision: 1, stroke: "down", accent: false },
+      { beat: 4, subdivision: 2, stroke: "up", accent: false }
+    ],
+    teachingFocus: "带空拍的民谣节奏，帮助新手熟悉切分感。"
   }
 ];
 
@@ -214,8 +267,15 @@ const rhythmPatternTargets = (pattern, chord = "C", chordId = "uke-c", primaryNo
     primaryNote
   }));
 
-const rhythmDownFourTargets = rhythmPatternTargets(beginnerRhythmPatterns[0]);
-const rhythmDownDownUpUpTargets = rhythmPatternTargets(beginnerRhythmPatterns[1]);
+const rhythmTargetsByPatternId = Object.fromEntries(
+  beginnerRhythmPatterns.map((pattern) => [pattern.id, rhythmPatternTargets(pattern)])
+);
+const rhythmDownFourTargets = rhythmTargetsByPatternId["rhythm-down-four"];
+const rhythmDownDownUpUpTargets = rhythmTargetsByPatternId["rhythm-down-down-up-up"];
+const rhythmDownUpEightTargets = rhythmTargetsByPatternId["rhythm-down-up-eight"];
+const rhythmChuckTwoFourTargets = rhythmTargetsByPatternId["rhythm-chuck-two-four"];
+const rhythmWaltzThreeTargets = rhythmTargetsByPatternId["rhythm-waltz-three"];
+const rhythmBalladSplitTargets = rhythmTargetsByPatternId["rhythm-ballad-split"];
 
 const cAmTransitionTargets = [
   { id: "transition-c", bar: 1, beat: 1, chord: "C", chordId: "uke-c", primaryNote: "C4" },
@@ -296,6 +356,94 @@ export const mvpPracticeTemplates = [
       primaryLabel: "开始扫弦",
       secondaryLabel: "循环一小节",
       completionLabel: "完成进阶节奏"
+    }
+  },
+  {
+    id: "practice-rhythm-down-up-eight",
+    type: "rhythm_pattern",
+    instrument: "ukulele",
+    bpm: 60,
+    timeSignature: "4/4",
+    passingScore: 70,
+    rhythmPatternId: "rhythm-down-up-eight",
+    targets: rhythmDownUpEightTargets,
+    tempoPresets: practiceTempoPresets,
+    loopModes: practiceLoopModes,
+    display: {
+      title: "连续下上",
+      subtitle: "用八分音符连续下上扫，训练手腕稳定摆动。",
+      targetLabel: "连续扫弦"
+    },
+    action: {
+      primaryLabel: "开始连续扫",
+      secondaryLabel: "循环一小节",
+      completionLabel: "完成连续下上"
+    }
+  },
+  {
+    id: "practice-rhythm-chuck-two-four",
+    type: "rhythm_pattern",
+    instrument: "ukulele",
+    bpm: 60,
+    timeSignature: "4/4",
+    passingScore: 70,
+    rhythmPatternId: "rhythm-chuck-two-four",
+    targets: rhythmChuckTwoFourTargets,
+    tempoPresets: practiceTempoPresets,
+    loopModes: practiceLoopModes,
+    display: {
+      title: "二四切音",
+      subtitle: "第二拍和第四拍加入切音，建立弹唱律动。",
+      targetLabel: "切音拍点"
+    },
+    action: {
+      primaryLabel: "开始切音",
+      secondaryLabel: "循环一小节",
+      completionLabel: "完成切音节奏"
+    }
+  },
+  {
+    id: "practice-rhythm-waltz-three",
+    type: "rhythm_pattern",
+    instrument: "ukulele",
+    bpm: 60,
+    timeSignature: "3/4",
+    passingScore: 70,
+    rhythmPatternId: "rhythm-waltz-three",
+    targets: rhythmWaltzThreeTargets,
+    tempoPresets: practiceTempoPresets,
+    loopModes: practiceLoopModes,
+    display: {
+      title: "三拍子",
+      subtitle: "练习强弱弱的三拍子，适合慢歌和民谣。",
+      targetLabel: "三拍扫弦"
+    },
+    action: {
+      primaryLabel: "开始三拍子",
+      secondaryLabel: "循环一小节",
+      completionLabel: "完成三拍子"
+    }
+  },
+  {
+    id: "practice-rhythm-ballad-split",
+    type: "rhythm_pattern",
+    instrument: "ukulele",
+    bpm: 65,
+    timeSignature: "4/4",
+    passingScore: 70,
+    rhythmPatternId: "rhythm-ballad-split",
+    targets: rhythmBalladSplitTargets,
+    tempoPresets: practiceTempoPresets,
+    loopModes: practiceLoopModes,
+    display: {
+      title: "民谣切分",
+      subtitle: "带空拍的常用民谣节奏，先慢速熟悉切分感。",
+      targetLabel: "切分扫弦"
+    },
+    action: {
+      primaryLabel: "开始切分",
+      secondaryLabel: "循环一小节",
+      completionLabel: "完成民谣切分"
     }
   },
   {

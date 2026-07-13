@@ -190,6 +190,7 @@ function getStrokeLabel(stroke?: string) {
   if (stroke === "down") return "下扫";
   if (stroke === "up") return "上扫";
   if (stroke === "mute") return "切音";
+  if (stroke === "rest") return "空拍";
   return "扫弦";
 }
 
@@ -197,6 +198,7 @@ function getStrokeArrow(stroke?: string) {
   if (stroke === "down") return "↓";
   if (stroke === "up") return "↑";
   if (stroke === "mute") return "×";
+  if (stroke === "rest") return "•";
   return "•";
 }
 
@@ -207,6 +209,10 @@ function getRhythmAccentLabel(target?: PracticeTarget) {
 function getRhythmTemplateDisplayTitle(template: PracticeTemplate) {
   if (template.id === "practice-rhythm-down-four") return "↓ 四拍";
   if (template.id === "practice-rhythm-down-down-up-up") return "↓ ↓ ↑ ↑";
+  if (template.id === "practice-rhythm-down-up-eight") return "↓↑ 连续";
+  if (template.id === "practice-rhythm-chuck-two-four") return "↓ × ↓ ×";
+  if (template.id === "practice-rhythm-waltz-three") return "3/4 ↓ ↓ ↑";
+  if (template.id === "practice-rhythm-ballad-split") return "↓ • ↑ ↓ ↑";
   return getPracticeTemplateTitle(template);
 }
 
@@ -1839,22 +1845,24 @@ function MetronomeScreen({ onOpenRhythm }: { onOpenRhythm: () => void }) {
 
 function ChordScreen() {
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<"all" | "beginner" | "major" | "minor" | "seventh">("all");
+  const [category, setCategory] = useState<"all" | "beginner" | "major" | "minor" | "seventh" | "accidental">("all");
   const chordCategories = [
     { id: "all" as const, label: "所有" },
     { id: "beginner" as const, label: "入门和弦" },
     { id: "major" as const, label: "大三和弦" },
     { id: "minor" as const, label: "小三和弦" },
-    { id: "seventh" as const, label: "属七和弦" }
+    { id: "seventh" as const, label: "属七和弦" },
+    { id: "accidental" as const, label: "升降和弦" }
   ];
   const visibleChords = beginnerChords.filter((chord) => {
     const name = chord.name.toLowerCase();
     const searchMatch = query.trim().length === 0 || name.includes(query.trim().toLowerCase());
     const categoryMatch = category === "all"
-      || category === "beginner"
-      || (category === "major" && !chord.name.includes("m") && !chord.name.includes("7"))
-      || (category === "minor" && chord.name.includes("m"))
-      || (category === "seventh" && chord.name.includes("7"));
+      || (category === "beginner" && chord.tags.includes("beginner"))
+      || (category === "major" && chord.tags.includes("major"))
+      || (category === "minor" && chord.tags.includes("minor"))
+      || (category === "seventh" && chord.tags.includes("seventh"))
+      || (category === "accidental" && (chord.tags.includes("sharp") || chord.tags.includes("flat")));
     return searchMatch && categoryMatch;
   });
 
@@ -1917,7 +1925,7 @@ function ChordScreen() {
 
       <SectionTitle title="收藏的和弦" detail="MVP 默认收藏" />
       <View style={styles.chordFavoriteRowApp}>
-        {beginnerChords.map((chord) => (
+        {beginnerChords.filter((chord) => chord.tags.includes("beginner")).map((chord) => (
           <View key={`fav-${chord.id}`} style={styles.chordFavoriteCardApp}>
             <ChordDiagram chord={chord} compact />
             <Text style={styles.chordLibraryNameApp}>{chord.name}</Text>
@@ -2053,7 +2061,7 @@ function SongsScreen({
         );
       })}
 
-      <SectionTitle title="和弦大全" detail={`${beginnerChords.length} 个入门和弦`} />
+      <SectionTitle title="和弦大全" detail={`${beginnerChords.length} 个常用和弦`} />
       <View style={styles.chordLibraryGrid}>
         {beginnerChords.map((chord) => (
           <View key={chord.id} style={styles.chordLibraryCard}>
@@ -5692,17 +5700,19 @@ const styles = StyleSheet.create({
   },
   rhythmTemplateGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 6
   },
   rhythmTemplateButton: {
-    flex: 1,
-    minHeight: 46,
+    flexGrow: 1,
+    flexBasis: "31%",
+    minHeight: 40,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: "#F7F1E7",
     justifyContent: "center",
-    paddingHorizontal: 10
+    paddingHorizontal: 6
   },
   rhythmTemplateButtonActive: {
     borderColor: colors.forest,
@@ -5710,13 +5720,13 @@ const styles = StyleSheet.create({
   },
   rhythmTemplateText: {
     color: colors.forest,
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: "900"
   },
   rhythmTemplateMeta: {
-    marginTop: 3,
+    marginTop: 1,
     color: "#756D64",
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: "800"
   },
   rhythmTemplateTextActive: {

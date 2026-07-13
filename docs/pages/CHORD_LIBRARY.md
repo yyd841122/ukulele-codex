@@ -181,7 +181,7 @@
 
 - Preview 可继续使用页面内扩展和弦数据。
 - App 侧先使用 `beginnerChords`，并补充本页展示需要的分类/搜索结构。
-- 后续将扩展和弦库统一迁移到 `packages/shared`。
+- 当前已将用户提供的 7 个调常用和弦表去重后迁移到 `packages/shared`，覆盖 C、D、E、F、G、A、B 调常用 1-7 级和弦。
 
 ## 6. Preview 实现要求
 
@@ -262,7 +262,7 @@ Invoke-WebRequest -Uri http://localhost:8082/preview.html -UseBasicParsing -Time
 
 本页阶段暂不做：
 
-- 全量专业和弦库。
+- 超出当前常用表的全量专业和弦库。
 - 真实音频试听。
 - 收藏持久化。
 - 和弦详情页。
