@@ -146,6 +146,7 @@ const practiceTemplates = (
     ? practiceContent.practiceTemplates
     : mvpPracticeTemplates
 ) as PracticeTemplate[];
+const rhythmPracticeTemplates = practiceTemplates.filter((template) => template.type === "rhythm_pattern");
 const defaultPracticeTemplate = chordLoopPractice as PracticeTemplate;
 type CourseCatalogItem = typeof practiceContent.courses[number];
 type SongPracticeLine = {
@@ -2183,6 +2184,9 @@ function PracticeScreen({
   const activeTemplate = useMemo(() => getPracticeTemplateById(activeTemplateId), [activeTemplateId]);
   const practiceTargets = activeTemplate.targets ?? chordLoopPractice.targets;
   const activeBeatNumbers = useMemo(() => getPracticeBeatNumbers(activeTemplate), [activeTemplate]);
+  const beatCycleLength = activeTemplate.type === "rhythm_pattern"
+    ? Math.max(1, practiceTargets.length)
+    : activeBeatNumbers.length;
   const activeTemplateIndex = Math.max(0, practiceTemplates.findIndex((template) => template.id === activeTemplate.id));
   const activeCourse = getMvpCourseForPracticeTemplate(activeTemplate.id);
   const activeSong = useMemo(() => getSongForPracticeTemplate(activeTemplate), [activeTemplate]);
@@ -2299,9 +2303,11 @@ function PracticeScreen({
 
     const interval = setInterval(() => {
       setPracticeBeat((value) => {
-        const nextBeat = (value + 1) % activeBeatNumbers.length;
+        const nextBeat = (value + 1) % beatCycleLength;
         if (beatSoundEnabled) {
-          void playPracticeBeatClick(nextBeat === 0 ? "accent" : "light");
+          const nextTarget = practiceTargets[nextBeat] ?? practiceTargets[0];
+          const isAccent = activeTemplate.type === "rhythm_pattern" ? Boolean(nextTarget?.accent) : nextBeat === 0;
+          void playPracticeBeatClick(isAccent ? "accent" : "light");
         }
         if (nextBeat === 0) {
           setCurrentStep((step) => {
@@ -2314,7 +2320,7 @@ function PracticeScreen({
     }, 60000 / practiceBpm);
 
     return () => clearInterval(interval);
-  }, [activeBeatNumbers.length, beatSoundEnabled, isRunning, practiceBpm, practiceLoopMode, practiceTargets.length]);
+  }, [activeTemplate.type, beatCycleLength, beatSoundEnabled, isRunning, practiceBpm, practiceLoopMode, practiceTargets]);
 
   async function togglePracticeRunning() {
     if (isRunning) {
@@ -2417,6 +2423,160 @@ function PracticeScreen({
     setPracticeBpm(preset.bpm);
     setPracticeBeat(0);
     recordPracticeEvent("tempo");
+  }
+
+  function completeRhythmGroup() {
+    const events = [
+      ...practiceEvents,
+      ...practiceTargets.map((_, index) => createPracticeEvent("complete", index))
+    ];
+    const steps = practiceTargets.map(() => true);
+    setPracticeEvents(events);
+    setCompletedSteps(steps);
+    setIsRunning(false);
+    setPracticeBeat(0);
+    commitPracticeSession(events, steps);
+  }
+
+  if (activeTemplate.type === "rhythm_pattern") {
+    const activeRhythmTarget = practiceTargets[practiceBeat % practiceTargets.length] ?? activeTarget;
+    const rhythmAction = getPracticeTargetSummary(activeRhythmTarget, activeTemplate);
+    const rhythmDetail = getPracticeTargetDetail(activeRhythmTarget, activeTemplate);
+    const rhythmProgressPercent = Math.round(((practiceBeat + 1) / Math.max(1, practiceTargets.length)) * 100);
+
+    return (
+      <View style={styles.stack}>
+        <SectionTitle title="节奏练习" detail={`${getPracticeTemplateTitle(activeTemplate)} · ${practiceBpm} BPM`} />
+        <View style={styles.rhythmRunner}>
+          <View style={styles.rhythmHeaderRow}>
+            <View>
+              <Text style={styles.sessionEyebrow}>当前节奏型</Text>
+              <Text style={styles.rhythmRunnerTitle}>{getPracticeTemplateTitle(activeTemplate)}</Text>
+            </View>
+            <Text style={styles.sessionPill}>{isRunning ? "进行中" : "待开始"}</Text>
+          </View>
+
+          <View style={styles.rhythmTemplateGrid}>
+            {rhythmPracticeTemplates.map((template) => {
+              const selected = template.id === activeTemplate.id;
+              return (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  key={template.id}
+                  style={[styles.rhythmTemplateButton, selected && styles.rhythmTemplateButtonActive]}
+                  onPress={() => selectPracticeTemplate(template)}
+                >
+                  <Text style={[styles.rhythmTemplateText, selected && styles.rhythmTemplateTextActive]}>
+                    {getPracticeTemplateTitle(template)}
+                  </Text>
+                  <Text style={[styles.rhythmTemplateMeta, selected && styles.rhythmTemplateTextActive]}>
+                    {template.bpm ?? 60} BPM
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.rhythmActionPanel}>
+            <Text style={styles.rhythmActionLabel}>这一拍</Text>
+            <Text style={styles.rhythmActionText}>{rhythmAction}</Text>
+            <Text style={styles.rhythmActionDetail}>{rhythmDetail}</Text>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${rhythmProgressPercent}%` }]} />
+            </View>
+          </View>
+
+          <View style={styles.rhythmDotGrid}>
+            {practiceTargets.map((target, index) => {
+              const active = index === practiceBeat;
+              const accent = Boolean(target.accent) || index === 0;
+              return (
+                <View key={target.id} style={styles.rhythmDotWrap}>
+                  <View
+                    style={[
+                      styles.rhythmDot,
+                      accent ? styles.rhythmDotAccent : styles.rhythmDotLight,
+                      active && styles.rhythmDotActive
+                    ]}
+                  >
+                    <Text style={styles.rhythmDotText}>{getStrokeLabel(target.stroke).slice(0, 1)}</Text>
+                  </View>
+                  <Text style={[styles.practiceBeatText, active && styles.practiceBeatTextActive]}>
+                    {target.beat}{target.subdivision && target.subdivision > 1 ? `.${target.subdivision}` : ""}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+
+          <Text style={styles.practiceBeatHint}>红点是第一拍重音，蓝点是轻拍；当前拍会放大显示。</Text>
+
+          <View style={styles.rhythmControlGrid}>
+            <Pressable
+              accessibilityRole="button"
+              style={styles.bpmStepButton}
+              onPress={() => {
+                setPracticeTempoId("custom");
+                recordPracticeEvent("tempo");
+                setPracticeBpm((value) => Math.max(40, value - 5));
+              }}
+            >
+              <Text style={styles.bpmStepText}>-5</Text>
+            </Pressable>
+            <View style={styles.rhythmBpmBadge}>
+              <Text style={styles.rhythmBpmValue}>{practiceBpm}</Text>
+              <Text style={styles.rhythmBpmUnit}>BPM</Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              style={styles.bpmStepButton}
+              onPress={() => {
+                setPracticeTempoId("custom");
+                recordPracticeEvent("tempo");
+                setPracticeBpm((value) => Math.min(140, value + 5));
+              }}
+            >
+              <Text style={styles.bpmStepText}>+5</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.rhythmControlGrid}>
+            <Pressable
+              accessibilityRole="switch"
+              accessibilityState={{ checked: beatSoundEnabled }}
+              style={[styles.soundToggleButton, beatSoundEnabled && styles.soundToggleButtonActive]}
+              onPress={toggleBeatSound}
+            >
+              <Text style={[styles.soundToggleText, beatSoundEnabled && styles.soundToggleTextActive]}>
+                节拍声 {beatSoundEnabled ? "开" : "关"}
+              </Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" style={styles.primaryMiniButton} onPress={togglePracticeRunning}>
+              <Text style={styles.primaryButtonText}>{isRunning ? "暂停" : "开始"}</Text>
+            </Pressable>
+          </View>
+          <Text style={styles.practiceSoundStatus}>{beatSoundStatus}</Text>
+
+          <View style={styles.rhythmStatsGrid}>
+            <ScoreBox label="已练" value={`${barsPracticed} 小节`} />
+            <ScoreBox label="节奏" value={rhythmScoreLabel} />
+            <ScoreBox label="完成" value={`${completedCount}/${practiceTargets.length}`} />
+          </View>
+
+          <View style={styles.rhythmControlGrid}>
+            <Pressable accessibilityRole="button" style={styles.secondaryMiniButton} onPress={resetPractice}>
+              <Text style={styles.secondaryButtonText}>重置</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" style={styles.secondaryMiniButton} onPress={completeRhythmGroup}>
+              <Text style={styles.secondaryButtonText}>完成本组</Text>
+            </Pressable>
+          </View>
+
+          <Text style={styles.reportLine}>下一步：节奏分达到 70 后，进入和弦转换练习。</Text>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -5497,6 +5657,150 @@ const styles = StyleSheet.create({
     color: "#756D64",
     fontSize: 10,
     lineHeight: 13
+  },
+  rhythmRunner: {
+    borderRadius: 8,
+    padding: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    gap: 10
+  },
+  rhythmHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12
+  },
+  rhythmRunnerTitle: {
+    color: colors.forest,
+    fontSize: 22,
+    fontWeight: "900"
+  },
+  rhythmTemplateGrid: {
+    flexDirection: "row",
+    gap: 8
+  },
+  rhythmTemplateButton: {
+    flex: 1,
+    minHeight: 56,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#F7F1E7",
+    justifyContent: "center",
+    paddingHorizontal: 10
+  },
+  rhythmTemplateButtonActive: {
+    borderColor: colors.forest,
+    backgroundColor: "#DCECE2"
+  },
+  rhythmTemplateText: {
+    color: colors.forest,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  rhythmTemplateMeta: {
+    marginTop: 3,
+    color: "#756D64",
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  rhythmTemplateTextActive: {
+    color: colors.forest
+  },
+  rhythmActionPanel: {
+    borderRadius: 8,
+    backgroundColor: "#F8F3EA",
+    padding: 14,
+    gap: 6,
+    alignItems: "center"
+  },
+  rhythmActionLabel: {
+    color: "#756D64",
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  rhythmActionText: {
+    color: colors.forest,
+    fontSize: 30,
+    fontWeight: "900",
+    textAlign: "center"
+  },
+  rhythmActionDetail: {
+    color: "#756D64",
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 17,
+    textAlign: "center"
+  },
+  rhythmDotGrid: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+    flexWrap: "wrap"
+  },
+  rhythmDotWrap: {
+    minWidth: 42,
+    alignItems: "center",
+    gap: 5
+  },
+  rhythmDot: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    opacity: 0.55
+  },
+  rhythmDotAccent: {
+    backgroundColor: accentBeatRed
+  },
+  rhythmDotLight: {
+    backgroundColor: lightBeatBlue
+  },
+  rhythmDotActive: {
+    width: 46,
+    height: 46,
+    opacity: 1,
+    borderWidth: 4,
+    borderColor: "#FFF8EC"
+  },
+  rhythmDotText: {
+    color: "#FFF8EC",
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  rhythmControlGrid: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  rhythmBpmBadge: {
+    width: 86,
+    minHeight: 48,
+    borderRadius: 8,
+    backgroundColor: "#FFFDF8",
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  rhythmBpmValue: {
+    color: colors.forest,
+    fontSize: 22,
+    fontWeight: "900",
+    lineHeight: 24
+  },
+  rhythmBpmUnit: {
+    color: "#756D64",
+    fontSize: 10,
+    fontWeight: "900"
+  },
+  rhythmStatsGrid: {
+    flexDirection: "row",
+    gap: 8
   },
   songFragmentPanel: {
     marginTop: 2,
