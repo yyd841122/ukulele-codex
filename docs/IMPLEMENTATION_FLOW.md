@@ -104,6 +104,8 @@ Preview 页面验收后，再同步到 `apps/mobile/App.tsx` 和相关模块。
 
 ## 5. 验证规则
 
+继续开发前先查看 `docs/PAGE_ALIGNMENT.md`，确认当前页面在 Preview、Expo App、Shared 数据三侧的状态。若对齐表显示某页为 `Preview 优先` 或 `部分对齐`，优先完成该页同步，再进入新页面。
+
 每页至少完成以下验证：
 
 ```powershell
