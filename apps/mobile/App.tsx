@@ -18,6 +18,7 @@ import {
   designTokens,
   filterBeginnerSongs,
   getMvpCourseForPracticeTemplate,
+  mvpMelodyPracticePhrases,
   mvpPracticeTemplates,
   mvpLesson,
   mvpPracticeContent,
@@ -45,10 +46,10 @@ import { useMicrophoneRecorderMonitor } from "./src/audio/useMicrophoneRecorderM
 import { useRealtimeTunerStream } from "./src/audio/useRealtimeTunerStream";
 import { clearPracticeHistory, loadPracticeHistory, savePracticeHistory } from "./src/storage/practiceHistoryStore";
 
-type Tab = "home" | "practice" | "songs" | "learn" | "me" | "tuner" | "chords" | "metronome" | "practiceRunner";
+type Tab = "home" | "practice" | "songs" | "learn" | "me" | "tuner" | "chords" | "metronome" | "practiceRunner" | "melodyRunner";
 type CourseFilter = "required" | "optional" | "pro";
 
-const tabs: Array<{ id: Exclude<Tab, "tuner" | "chords" | "metronome" | "practiceRunner">; label: string }> = [
+const tabs: Array<{ id: Exclude<Tab, "tuner" | "chords" | "metronome" | "practiceRunner" | "melodyRunner">; label: string }> = [
   { id: "home", label: "首页" },
   { id: "practice", label: "练琴" },
   { id: "songs", label: "曲谱" },
@@ -156,6 +157,16 @@ type SongPracticeLine = {
   chord?: string;
   text?: string;
 };
+type BeginnerSong = typeof practiceContent.songs[number];
+type MelodyPracticeNote = {
+  id: string;
+  note: string;
+  primaryNote?: string;
+  string: string;
+  fret: number;
+  beat: number;
+};
+const melodyPracticePhrases = mvpMelodyPracticePhrases as Record<string, MelodyPracticeNote[]>;
 
 function getPracticeTemplateById(templateId?: string | null): PracticeTemplate {
   return practiceTemplates.find((template) => template.id === templateId) ?? defaultPracticeTemplate;
@@ -293,6 +304,39 @@ function getSongForPracticeTemplate(template: PracticeTemplate) {
 
 function getSongPracticeLines(song: ReturnType<typeof getSongForPracticeTemplate>): SongPracticeLine[] {
   return Array.isArray(song?.practiceLines) ? song.practiceLines : [];
+}
+
+function getSongById(songId?: string | null): BeginnerSong | null {
+  return practiceContent.songs.find((song) => song.id === songId) ?? null;
+}
+
+function getMelodyPhraseForSong(song?: BeginnerSong | null) {
+  const phraseKey = String(song?.key ?? "C");
+  return melodyPracticePhrases[phraseKey] ?? melodyPracticePhrases.C ?? [];
+}
+
+function createMelodyPracticeTemplate(song: BeginnerSong, phrase: MelodyPracticeNote[], bpm: number): PracticeTemplate {
+  return {
+    id: `practice-melody-${song.id}`,
+    type: "melody_practice",
+    instrument: "ukulele",
+    bpm,
+    timeSignature: song.timeSignature ?? "4/4",
+    passingScore: 70,
+    targets: phrase.map((note, index) => ({
+      id: note.id,
+      bar: Math.floor(index / 4) + 1,
+      beat: note.beat,
+      chord: song.chordNames?.[Math.floor(index / 2) % Math.max(1, song.chordNames.length)] ?? "C",
+      primaryNote: note.primaryNote ?? `${note.note}4`,
+      cue: `${note.string} string / fret ${note.fret}`
+    })),
+    display: {
+      title: `${song.title} 单音跟弹`,
+      subtitle: "先按节拍拨出目标单音，再回到歌曲片段跟弹。",
+      targetLabel: "单音目标"
+    }
+  };
 }
 
 function getCourseSegments(course: CourseCatalogItem) {
@@ -1021,6 +1065,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [practiceHistory, setPracticeHistory] = useState<PracticeSessionRecord[]>([]);
   const [practiceLaunchConfig, setPracticeLaunchConfig] = useState<PracticeLaunchConfig | undefined>();
+  const [melodyLaunchSongId, setMelodyLaunchSongId] = useState<string | null>(null);
   const [practiceCompletionNotice, setPracticeCompletionNotice] = useState<PracticeCompletionNotice>(null);
   const latestPracticeSummary = useMemo(() => {
     const latestRecord = practiceHistory[0];
@@ -1121,6 +1166,12 @@ export default function App() {
     });
   }
 
+  function startMelodyPractice(songId: string) {
+    setPracticeCompletionNotice(null);
+    setMelodyLaunchSongId(songId);
+    setActiveTab("melodyRunner");
+  }
+
   function openCourse(courseId: string) {
     const course = practiceContent.courses.find((item) => item.id === courseId);
     if (!course) return;
@@ -1214,7 +1265,22 @@ export default function App() {
         {activeTab === "practiceRunner" && (
           <PracticeScreen launchConfig={practiceLaunchConfig} onPracticeRecord={handlePracticeRecord} />
         )}
-        {activeTab === "songs" && <SongsScreen onStartSongPractice={startPracticeTemplate} />}
+        {activeTab === "melodyRunner" && (
+          <MelodyPracticeScreen
+            songId={melodyLaunchSongId}
+            onBackToSongs={() => setActiveTab("songs")}
+            onPracticeRecord={(record) => {
+              appendPracticeRecord(record);
+              setActiveTab("songs");
+            }}
+          />
+        )}
+        {activeTab === "songs" && (
+          <SongsScreen
+            onStartMelodyPractice={startMelodyPractice}
+            onStartSongPractice={startPracticeTemplate}
+          />
+        )}
         {activeTab === "learn" && (
           <LearnScreen
             coursePathsByFilter={coursePathsByFilter}
@@ -2127,9 +2193,227 @@ function LearnScreen({
   );
 }
 
+const MELODY_SCORE_PATTERN = [92, 86, 78, 95, 72, 88, 81, 96];
+
+function MelodyPracticeScreen({
+  onBackToSongs,
+  onPracticeRecord,
+  songId
+}: {
+  onBackToSongs: () => void;
+  onPracticeRecord: (record: PracticeSessionRecord) => void;
+  songId?: string | null;
+}) {
+  const song = getSongById(songId) ?? practiceContent.songs[0];
+  const phrase = useMemo(() => getMelodyPhraseForSong(song), [song?.id]);
+  const [bpm, setBpm] = useState(song?.bpm ?? 70);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [scores, setScores] = useState<number[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [rounds, setRounds] = useState(0);
+  const [startedAtMs, setStartedAtMs] = useState<number | null>(null);
+  const currentNote = phrase[currentIndex] ?? phrase[0];
+  const melodyTemplate = useMemo(
+    () => createMelodyPracticeTemplate(song, phrase, bpm),
+    [bpm, phrase, song]
+  );
+  const bestScores = phrase.map((_, noteIndex) =>
+    scores.reduce((best, score, scoreIndex) => (
+      scoreIndex % Math.max(1, phrase.length) === noteIndex ? Math.max(best, score) : best
+    ), 0)
+  );
+  const hitCount = bestScores.filter((score) => score >= 70).length;
+  const averageScore = scores.length > 0
+    ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
+    : 0;
+  const progressPercent = phrase.length > 0 ? Math.round((hitCount / phrase.length) * 100) : 0;
+  const latestScore = scores.at(-1);
+
+  useEffect(() => {
+    setBpm(song?.bpm ?? 70);
+    setCurrentIndex(0);
+    setScores([]);
+    setIsRunning(false);
+    setRounds(0);
+    setStartedAtMs(null);
+  }, [song?.id]);
+
+  useEffect(() => {
+    if (!isRunning || phrase.length === 0) return undefined;
+
+    const interval = setInterval(() => {
+      setCurrentIndex((index) => {
+        const score = MELODY_SCORE_PATTERN[scores.length % MELODY_SCORE_PATTERN.length];
+        setScores((items) => [...items, score]);
+        const nextIndex = (index + 1) % phrase.length;
+        if (nextIndex === 0) {
+          setRounds((value) => value + 1);
+        }
+        return nextIndex;
+      });
+    }, 60000 / bpm);
+
+    return () => clearInterval(interval);
+  }, [bpm, isRunning, phrase.length, scores.length]);
+
+  function toggleRunning() {
+    if (isRunning) {
+      setIsRunning(false);
+      return;
+    }
+    setStartedAtMs((value) => value ?? Date.now());
+    setIsRunning(true);
+  }
+
+  function resetMelodyPractice() {
+    setIsRunning(false);
+    setCurrentIndex(0);
+    setScores([]);
+    setRounds(0);
+    setStartedAtMs(null);
+  }
+
+  function completeMelodyPractice() {
+    const start = startedAtMs ?? Date.now();
+    const beatMs = 60000 / bpm;
+    const events: PracticeLogEvent[] = scores.map((score, index) => {
+      const step = phrase.length > 0 ? index % phrase.length : 0;
+      const note = phrase[step] ?? currentNote;
+      return {
+        type: "tap",
+        step,
+        chord: note?.note ?? "C",
+        bpm,
+        loopMode: "auto",
+        timestampMs: Math.round(start + index * beatMs),
+        targetBeatIndex: index,
+        rhythmScore: score,
+        timingStatus: score >= 80 ? "on-time" : score >= 70 ? "late" : "early"
+      };
+    });
+    const endTime = Math.round(start + Math.max(1, scores.length) * beatMs);
+    events.push({
+      type: "complete",
+      step: currentIndex,
+      chord: currentNote?.note ?? "C",
+      bpm,
+      loopMode: "auto",
+      timestampMs: endTime
+    });
+    const completedSteps = phrase.map((_, index) => (bestScores[index] ?? 0) >= 70);
+    const activeCourse = getMvpCourseForPracticeTemplate("practice-song-fragment-four-chord-hum");
+    const record = createPracticeSessionRecord({
+      courseId: activeCourse?.id ?? null,
+      events,
+      completedSteps,
+      bpm,
+      mode: "auto",
+      lessonId: mvpLesson.id,
+      exerciseId: melodyTemplate.id,
+      songId: song.id,
+      template: melodyTemplate,
+      templateId: melodyTemplate.id,
+      rhythmSummary: {
+        averageRhythmScore: averageScore,
+        earlyCount: bestScores.filter((score) => score > 0 && score < 70).length,
+        lateCount: bestScores.filter((score) => score >= 70 && score < 80).length,
+        onTimeCount: bestScores.filter((score) => score >= 80).length,
+        suggestion: averageScore >= 80
+          ? "单音节拍稳定，可以进入歌曲片段跟弹。"
+          : "先放慢 5 BPM，把每个目标音拨清楚。"
+      }
+    });
+    setIsRunning(false);
+    onPracticeRecord(record);
+  }
+
+  return (
+    <View style={styles.stack}>
+      <Pressable accessibilityRole="button" onPress={onBackToSongs} style={styles.songDetailBackButton}>
+        <Text style={styles.songDetailBackText}>返回曲谱库</Text>
+      </Pressable>
+
+      <View style={styles.melodyHeroCard}>
+        <View style={styles.rhythmHeaderRow}>
+          <View>
+            <Text style={styles.sessionEyebrow}>单音跟弹</Text>
+            <Text style={styles.melodySongTitle}>{song.title}</Text>
+          </View>
+          <Text style={styles.sessionPill}>{isRunning ? "进行中" : "待开始"}</Text>
+        </View>
+
+        <View style={styles.melodyTargetPanel}>
+          <Text style={styles.melodyTargetNote}>{currentNote?.note ?? "--"}</Text>
+          <Text style={styles.melodyTargetMeta}>
+            {currentNote ? `${currentNote.string} 弦 · ${currentNote.fret} 品 · 第 ${currentNote.beat} 拍` : "等待目标音"}
+          </Text>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+          </View>
+        </View>
+
+        <View style={styles.melodyPhraseGrid}>
+          {phrase.map((note, index) => {
+            const active = index === currentIndex;
+            const done = (bestScores[index] ?? 0) >= 70;
+            return (
+              <View key={note.id} style={[styles.melodyNoteChip, active && styles.melodyNoteChipActive, done && styles.melodyNoteChipDone]}>
+                <Text style={[styles.melodyNoteIndex, active && styles.melodyNoteTextActive]}>{index + 1}</Text>
+                <Text style={[styles.melodyNoteText, active && styles.melodyNoteTextActive]}>{note.note}</Text>
+                <Text style={[styles.melodyNoteMeta, active && styles.melodyNoteTextActive]}>{note.string}{note.fret}</Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={styles.melodyControlPanel}>
+        <View style={styles.rhythmControlGrid}>
+          <Pressable accessibilityRole="button" style={styles.bpmStepButton} onPress={() => setBpm((value) => Math.max(40, value - 5))}>
+            <Text style={styles.bpmStepText}>-5</Text>
+          </Pressable>
+          <View style={styles.rhythmBpmBadge}>
+            <Text style={styles.rhythmBpmValue}>{bpm}</Text>
+            <Text style={styles.rhythmBpmUnit}>BPM</Text>
+          </View>
+          <Pressable accessibilityRole="button" style={styles.bpmStepButton} onPress={() => setBpm((value) => Math.min(140, value + 5))}>
+            <Text style={styles.bpmStepText}>+5</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.rhythmControlGrid}>
+          <Pressable accessibilityRole="button" style={styles.primaryMiniButton} onPress={toggleRunning}>
+            <Text style={styles.primaryButtonText}>{isRunning ? "暂停" : "开始"}</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" style={styles.secondaryMiniButton} onPress={resetMelodyPractice}>
+            <Text style={styles.secondaryButtonText}>重置</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.rhythmStatsGrid}>
+          <ScoreBox label="命中" value={`${hitCount}/${phrase.length}`} />
+          <ScoreBox label="评分" value={scores.length > 0 ? `${averageScore}` : "--"} />
+          <ScoreBox label="轮次" value={`${rounds}`} />
+        </View>
+        <Text style={styles.melodyFeedbackText}>
+          {scores.length === 0
+            ? "点击开始后会按节拍自动记录本轮单音表现。"
+            : `最近一次 ${latestScore} 分 · ${averageScore >= 80 ? "可以进入歌曲片段" : "建议放慢再练一轮"}`}
+        </Text>
+
+        <Pressable accessibilityRole="button" style={styles.songPracticeButton} onPress={completeMelodyPractice}>
+          <Text style={styles.primaryButtonText}>完成单音练习</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function SongsScreen({
+  onStartMelodyPractice,
   onStartSongPractice
 }: {
+  onStartMelodyPractice: (songId: string) => void;
   onStartSongPractice: (templateId: string) => void;
 }) {
   const songs = practiceContent.songs;
@@ -2222,6 +2506,16 @@ function SongsScreen({
         >
           <Text style={[styles.primaryButtonText, locked && styles.songPracticeButtonTextDisabled]}>
             {locked ? "后续解锁完整曲谱" : "开始歌曲片段跟弹"}
+          </Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          disabled={locked}
+          onPress={() => onStartMelodyPractice(selectedSong.id)}
+          style={[styles.songMelodyButton, locked && styles.songPracticeButtonDisabled]}
+        >
+          <Text style={[styles.songMelodyButtonText, locked && styles.songPracticeButtonTextDisabled]}>
+            {locked ? "解锁后练单音" : "先练单音"}
           </Text>
         </Pressable>
       </View>
@@ -4896,11 +5190,116 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center"
   },
+  songMelodyButton: {
+    minHeight: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.coral,
+    backgroundColor: "#FFF7ED",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  songMelodyButtonText: {
+    color: colors.coral,
+    fontSize: 15,
+    fontWeight: "900"
+  },
   songPracticeButtonDisabled: {
     backgroundColor: "#E6DED0"
   },
   songPracticeButtonTextDisabled: {
     color: "#756D64"
+  },
+  melodyHeroCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    padding: 12,
+    gap: 12
+  },
+  melodySongTitle: {
+    color: colors.forest,
+    fontSize: 20,
+    fontWeight: "900",
+    lineHeight: 25
+  },
+  melodyTargetPanel: {
+    minHeight: 160,
+    borderRadius: 8,
+    backgroundColor: "#F8F3EA",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 14,
+    gap: 8
+  },
+  melodyTargetNote: {
+    color: colors.coral,
+    fontSize: 64,
+    fontWeight: "900",
+    lineHeight: 72
+  },
+  melodyTargetMeta: {
+    color: colors.forest,
+    fontSize: 15,
+    fontWeight: "900",
+    textAlign: "center"
+  },
+  melodyPhraseGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
+  },
+  melodyNoteChip: {
+    width: "22.5%",
+    minHeight: 66,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5DED4",
+    backgroundColor: "#FFFDF8",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2
+  },
+  melodyNoteChipActive: {
+    borderColor: colors.coral,
+    backgroundColor: colors.coral
+  },
+  melodyNoteChipDone: {
+    borderColor: successGreen
+  },
+  melodyNoteIndex: {
+    color: "#9A9288",
+    fontSize: 10,
+    fontWeight: "900"
+  },
+  melodyNoteText: {
+    color: colors.forest,
+    fontSize: 20,
+    fontWeight: "900"
+  },
+  melodyNoteMeta: {
+    color: "#756D64",
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  melodyNoteTextActive: {
+    color: "#FFF8EC"
+  },
+  melodyControlPanel: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    padding: 12,
+    gap: 12
+  },
+  melodyFeedbackText: {
+    color: "#756D64",
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 18,
+    textAlign: "center"
   },
   chordLibraryGrid: {
     flexDirection: "row",

@@ -1,8 +1,8 @@
 # Preview / Expo App 页面能力对齐表
 
-版本：v0.1  
-日期：2026-07-13  
-目的：记录 `apps/mobile/dist-web/preview.html` 与 `apps/mobile/App.tsx` 的页面能力是否一致，作为后续继续开发的任务台账。
+版本：v0.2
+日期：2026-07-14
+目的：记录 `apps/mobile/dist-web/preview.html` 与 `apps/mobile/App.tsx` 的页面能力是否一致，作为后续“文档 -> 开发 -> 验证 -> 提交 -> 下一页”的任务台账。
 
 ## 状态说明
 
@@ -19,56 +19,52 @@
 | --- | --- | --- | --- | --- |
 | 首页 Home | 已完成 | 已同步 | 部分共享 | 已对齐 |
 | 练习入口 Practice Hub | 已完成 | 已同步 | 部分共享 | 已对齐 |
-| 智能调音器 Tuner | 已完成浏览器 PoC | 已有权限、电平、模拟/录音监控管线 | 调弦与 tuner frame 已共享 | 部分对齐 |
-| 节拍器 Metronome | 已完成 | 已同步基础节拍器 | BPM/节奏模板部分共享 | 已对齐 |
-| 和弦库 Chord Library | 已完成常用和弦大全 | 已显示常用和弦与指法图 | 和弦库已共享 | 部分对齐 |
-| 节奏型练习 Rhythm Practice | 已完成多节奏型与自动评分模拟 | 已有节奏模板、节拍声、评分记录 | 模板与评分已共享 | 已对齐 |
-| 和弦转换 Chord Transition | 已完成多组转换与指法图 | 已有转换练习与指法图 | 模板与和弦已共享 | 已对齐 |
-| 曲谱库 Song Library | 已完成筛选、推荐、曲目入口 | 已有搜索、筛选、曲目卡 | 曲目目录已共享 | 部分对齐 |
-| 歌曲详情 Song Detail | 已完成详情 sheet、和弦准备、练习路线 | 已同步歌曲详情层 | 曲目与练习模板已共享 | 已对齐 |
-| 单音跟弹 Melody Practice | 已完成 Preview 交互 | App 尚未单独同步 | 暂未抽共享模型 | Preview 优先 |
-| 和弦跟弹 / 歌曲片段 Follow Practice | 已完成歌曲片段跟弹 | App PracticeScreen 支持 song_fragment | 模板与曲目已共享 | 已对齐 |
-| 学习页 Learn | 已完成学习路径页 | 已同步课程路径页 | 课程路径已共享 | 已对齐 |
-| 我的 / 记录 Me | 已完成复盘页 | 已同步路径、成绩、建议、记录 | 练习历史模型已共享 | 已对齐 |
+| 智能调音器 Tuner | 浏览器 PoC 已完成 | 权限、电平、模拟录音管线已完成 | tuner frame 已共享 | 部分对齐 |
+| 节拍器 Metronome | 已完成 | 基础节拍器已同步 | BPM/节奏模板部分共享 | 已对齐 |
+| 和弦库 Chord Library | 常用和弦大全已完成 | 有指法图与共享和弦数据 | 和弦库已共享 | 部分对齐 |
+| 节奏型练习 Rhythm Practice | 多节奏型与自动评分模拟已完成 | 节拍声、评分记录已同步 | 模板与评分已共享 | 已对齐 |
+| 和弦转换 Chord Transition | 多组转换与指法图已完成 | 转换练习与指法图已同步 | 模板与和弦已共享 | 已对齐 |
+| 曲谱库 Song Library | 筛选、推荐、曲目入口已完成 | 搜索、筛选、曲目卡已同步 | 曲目目录已共享 | 部分对齐 |
+| 歌曲详情 Song Detail | sheet、和弦准备、练习路线已完成 | 歌曲详情层已同步 | 曲目与练习模板已共享 | 已对齐 |
+| 单音跟弹 Melody Practice | 已完成 Preview 交互 | `melodyRunner` 已同步 | 单音短句已共享 | 已对齐 |
+| 和弦跟弹 / 歌曲片段 Follow Practice | 歌曲片段跟弹已完成 | PracticeScreen 支持 song_fragment | 模板与曲目已共享 | 已对齐 |
+| 学习页 Learn | 学习路径页已完成 | 课程路径页已同步 | 课程路径已共享 | 已对齐 |
+| 我的 / 记录 Me | 复盘页已完成 | 路径、成绩、建议、记录已同步 | 练习历史模型已共享 | 已对齐 |
 
 ## 当前主要差距
 
-### 1. 单音跟弹仍是 Preview 优先
+### 1. 和弦库视觉仍可继续对齐
 
-Preview 已有 `melody` sheet。  
-Expo App 端暂未拆出 `MelodyPracticeScreen`，歌曲练习主要走 `song_fragment`。
+Preview 已按用户参考图做了更接近“和弦大全”的网格视觉。
+Expo App 已有指法图和共享和弦数据，但分类筛选、视觉密度、收藏区仍可继续靠近 Preview。
 
 建议下一步：
-- 先把 melody practice 数据结构沉到 `packages/shared`。
-- 再在 App 端增加 `melodyRunner` 内部页面。
-- 复用当前 PracticeRunner 的 BPM、开始/暂停、完成记录能力。
 
-### 2. 调音器真实拾音能力仍是长期差距
+- App 端和弦库增加分类横向筛选。
+- 每张卡继续保持指法图优先，不只显示英文代码。
+- 收藏和弦可以后置。
+
+### 2. 调音器真实拾音仍是长期差距
 
 Preview 浏览器 PoC 已有真实麦克风、噪声门限、拨弦触发、PitchFrame 状态。  
-Expo App 当前仍以权限、录音电平、模拟/监控管线为主，真实 PCM pitch detection 需要 Native/JSI 或可用音频流方案。
+Expo App 当前以权限、录音电平和模拟监控管线为主，真实 PCM pitch detection 需要 Native/JSI 或可用音频流方案。
 
 建议下一步：
-- UI 层继续保持现有三段状态：权限 / 电平 / PitchFrame。
+
+- UI 层继续保持三段状态：权限 / 电平 / PitchFrame。
 - 暂不强行在 Expo JS 里实现真实 PCM。
 - 后续单独开 Native AudioEngine 任务。
 
-### 3. 和弦库视觉仍可继续对齐
+### 3. Shared 常量还可继续沉淀
 
-Preview 已按用户参考图做了更接近“和弦大全”的网格视觉。  
-Expo App 已有指法图和共享和弦数据，但视觉密度与分类体验还可以继续靠近 Preview。
-
-建议下一步：
-- App 端和弦库增加分类横向筛选。
-- 保持每张卡显示指法图，而不是只显示代码。
-- 收藏和弦可以后置。
+本轮已把单音短句沉到 `packages/shared`。
+后续可以继续把 Preview 内仍未共享的页面常量、展示分组、推荐策略逐步沉淀。
 
 ## 推荐继续开发顺序
 
-1. App 端单音跟弹同步。
-2. App 端和弦库分类与视觉密度优化。
-3. 调音器 Native AudioEngine 技术预研。
-4. 将 Preview 内仍未共享的常量继续沉淀到 `packages/shared`。
+1. App 端和弦库分类与视觉密度优化。
+2. 调音器 Native AudioEngine 技术预研。
+3. 继续把 Preview 内仍未共享的常量沉淀到 `packages/shared`。
 
 ## 每轮收尾检查
 

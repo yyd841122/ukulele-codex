@@ -294,6 +294,39 @@ const songFragmentTargets = beginnerSongFragments[0].bars.map((bar) => ({
   primaryNote: bar.chord === "Am" ? "A4" : bar.chord === "F" ? "F4" : bar.chord === "G7" ? "G4" : "C4"
 }));
 
+export const mvpMelodyPracticePhrases = {
+  C: [
+    { id: "melody-c-1", note: "C", primaryNote: "C4", string: "A", fret: 3, beat: 1 },
+    { id: "melody-c-2", note: "E", primaryNote: "E4", string: "E", fret: 0, beat: 2 },
+    { id: "melody-c-3", note: "G", primaryNote: "G4", string: "E", fret: 3, beat: 3 },
+    { id: "melody-c-4", note: "C", primaryNote: "C4", string: "A", fret: 3, beat: 4 },
+    { id: "melody-c-5", note: "A", primaryNote: "A4", string: "A", fret: 0, beat: 1 },
+    { id: "melody-c-6", note: "G", primaryNote: "G4", string: "E", fret: 3, beat: 2 },
+    { id: "melody-c-7", note: "E", primaryNote: "E4", string: "E", fret: 0, beat: 3 },
+    { id: "melody-c-8", note: "C", primaryNote: "C4", string: "A", fret: 3, beat: 4 }
+  ],
+  G: [
+    { id: "melody-g-1", note: "G", primaryNote: "G4", string: "E", fret: 3, beat: 1 },
+    { id: "melody-g-2", note: "B", primaryNote: "B4", string: "A", fret: 2, beat: 2 },
+    { id: "melody-g-3", note: "D", primaryNote: "D4", string: "C", fret: 2, beat: 3 },
+    { id: "melody-g-4", note: "G", primaryNote: "G4", string: "E", fret: 3, beat: 4 },
+    { id: "melody-g-5", note: "E", primaryNote: "E4", string: "E", fret: 0, beat: 1 },
+    { id: "melody-g-6", note: "D", primaryNote: "D4", string: "C", fret: 2, beat: 2 },
+    { id: "melody-g-7", note: "B", primaryNote: "B4", string: "A", fret: 2, beat: 3 },
+    { id: "melody-g-8", note: "G", primaryNote: "G4", string: "E", fret: 3, beat: 4 }
+  ],
+  Am: [
+    { id: "melody-am-1", note: "A", primaryNote: "A4", string: "A", fret: 0, beat: 1 },
+    { id: "melody-am-2", note: "C", primaryNote: "C4", string: "A", fret: 3, beat: 2 },
+    { id: "melody-am-3", note: "E", primaryNote: "E4", string: "E", fret: 0, beat: 3 },
+    { id: "melody-am-4", note: "A", primaryNote: "A4", string: "A", fret: 0, beat: 4 },
+    { id: "melody-am-5", note: "G", primaryNote: "G4", string: "E", fret: 3, beat: 1 },
+    { id: "melody-am-6", note: "E", primaryNote: "E4", string: "E", fret: 0, beat: 2 },
+    { id: "melody-am-7", note: "C", primaryNote: "C4", string: "A", fret: 3, beat: 3 },
+    { id: "melody-am-8", note: "A", primaryNote: "A4", string: "A", fret: 0, beat: 4 }
+  ]
+};
+
 export const practiceTempoPresets = [
   { id: "slow", label: "Slow", bpm: 60 },
   { id: "standard", label: "Standard", bpm: 70 },

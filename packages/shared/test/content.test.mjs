@@ -27,6 +27,7 @@ import {
   beginnerRhythmPatterns,
   beginnerSongFragments,
   chordTransitionExercises,
+  mvpMelodyPracticePhrases,
   mvpContentModules,
   mvpCourseCatalog,
   mvpPracticeContent,
@@ -173,6 +174,22 @@ test("MVP shared content links songs fragments rhythms and templates", () => {
   }
   for (const templateId of song.practiceTemplateIds) {
     assert.ok(getMvpPracticeTemplate(templateId));
+  }
+});
+
+test("MVP melody practice phrases map notes to ukulele positions", () => {
+  assert.deepEqual(Object.keys(mvpMelodyPracticePhrases), ["C", "G", "Am"]);
+
+  for (const phrase of Object.values(mvpMelodyPracticePhrases)) {
+    assert.equal(phrase.length, 8);
+    for (const note of phrase) {
+      assert.ok(note.id);
+      assert.ok(note.note);
+      assert.ok(note.primaryNote);
+      assert.ok(["G", "C", "E", "A"].includes(note.string));
+      assert.equal(Number.isInteger(note.fret), true);
+      assert.ok(note.beat >= 1 && note.beat <= 4);
+    }
   }
 });
 
