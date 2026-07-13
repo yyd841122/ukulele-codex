@@ -922,6 +922,127 @@
   .lyrics { padding: 16px; font-size: 15px; line-height: 2.35; }
   .lyric-line.now { padding-left: 6px; border-radius: 6px; background: linear-gradient(90deg, #FFF3E0, transparent); }
   .chord { display: inline-block; min-width: 20px; text-align: center; margin-right: 4px; padding: 1px 5px; border-radius: 5px; color: #fff; background: var(--orange); font-size: 12px; font-weight: 900; }
+  .song-detail-body {
+    padding: 12px 16px 86px;
+    display: grid;
+    gap: 10px;
+    background: linear-gradient(180deg, #FFFDF8 0%, #F5F0E6 100%);
+  }
+  .song-overview-card {
+    padding: 12px;
+    display: grid;
+    grid-template-columns: 76px 1fr;
+    gap: 12px;
+    align-items: center;
+  }
+  .song-detail-cover {
+    width: 76px;
+    height: 76px;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    font-size: 36px;
+  }
+  .song-overview-copy b {
+    display: block;
+    color: var(--text-1);
+    font-size: 17px;
+  }
+  .song-overview-copy small {
+    display: block;
+    margin-top: 4px;
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 1.45;
+    font-weight: 800;
+  }
+  .song-prep-panel {
+    padding: 12px;
+  }
+  .song-prep-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 850;
+  }
+  .song-prep-head b { color: var(--text-1); font-size: 15px; }
+  .song-route-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .song-route-step {
+    min-height: 72px;
+    padding: 8px;
+    border-radius: 12px;
+    background: #FFFDF8;
+    border: 1px solid var(--line);
+    text-align: center;
+  }
+  .song-route-step span {
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    color: #fff;
+    background: var(--teal);
+    font-size: 11px;
+    font-weight: 950;
+  }
+  .song-route-step b {
+    display: block;
+    margin-top: 5px;
+    color: var(--text-1);
+    font-size: 12px;
+  }
+  .song-route-step small {
+    display: block;
+    margin-top: 3px;
+    color: var(--text-2);
+    font-size: 10px;
+    line-height: 1.3;
+    font-weight: 800;
+  }
+  .song-fragment-list {
+    display: grid;
+    gap: 8px;
+  }
+  .song-fragment-row {
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    gap: 10px;
+    align-items: center;
+    padding: 8px;
+    border-radius: 12px;
+    background: #FFFDF8;
+    border: 1px solid var(--line);
+  }
+  .song-fragment-row .bar {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: var(--orange);
+    font-size: 12px;
+    font-weight: 950;
+  }
+  .song-fragment-row b {
+    color: var(--text-1);
+    font-size: 13px;
+  }
+  .song-fragment-row small {
+    display: block;
+    color: var(--text-2);
+    font-size: 11px;
+    line-height: 1.35;
+    font-weight: 800;
+  }
   .follow-lyrics { margin-top: 12px; padding: 10px 0 0; border-top: 1px solid var(--line); }
   .follow-lyrics .lyric-line { line-height: 2; color: var(--text-2); font-size: 14px; }
   .follow-lyrics .lyric-line.now { color: var(--text-1); font-weight: 850; }
@@ -2109,9 +2230,28 @@
 
     <section class="sheet" id="songDetail">
       <div class="sheet-head"><button class="back" data-close="songDetail">‹</button><h2 id="detailTitle">童年</h2><p id="detailArtist">罗大佑 · 入门弹唱</p><div class="key-row"><span>Key C</span><span>70 BPM</span><span>4/4</span><span>⭐ 入门</span></div></div>
-      <div class="tool-screen"><div class="tool-panel card"><b>滚动播放器</b><div class="beat-dots"><span class="beat-dot active">1</span><span class="beat-dot">2</span><span class="beat-dot">3</span><span class="beat-dot">4</span></div><button class="primary" style="width:100%" id="detailPlay">开始跟弹</button></div></div>
-      <div class="lyrics" id="lyrics"></div>
-      <div class="sticky-actions"><button class="ghost">变速 0.8x</button><button class="primary">跟弹评分</button></div>
+      <div class="song-detail-body">
+        <div class="song-overview-card card">
+          <div class="song-detail-cover" id="detailCover">🌈</div>
+          <div class="song-overview-copy">
+            <b id="detailGoal">先完成 4 小节歌曲片段</b>
+            <small id="detailSummary">看清和弦图，按推荐路径从节奏进入跟弹。</small>
+          </div>
+        </div>
+        <div class="song-prep-panel card">
+          <div class="song-prep-head"><b>和弦准备</b><span id="detailChordMeta">4 个和弦</span></div>
+          <div id="detailChordList"></div>
+        </div>
+        <div class="song-prep-panel card">
+          <div class="song-prep-head"><b>练习路径</b><span>先拆开，再合起来</span></div>
+          <div class="song-route-grid" id="detailRoute"></div>
+        </div>
+        <div class="song-prep-panel card">
+          <div class="song-prep-head"><b>片段预览</b><span id="detailFragmentMeta">4 小节</span></div>
+          <div class="song-fragment-list" id="lyrics"></div>
+        </div>
+      </div>
+      <div class="sticky-actions"><button class="primary" id="detailPlay">开始歌曲片段跟弹</button></div>
     </section>
 
     <section class="sheet tuner-page" id="tuner">
@@ -3706,13 +3846,22 @@ function openSong(title) {
   $("#detailTitle").textContent = song.title;
   $("#detailArtist").textContent = `${song.artist} · ${song.diff}弹唱`;
   $("#songDetail .key-row").innerHTML = `<span>Key ${song.key}</span><span>${song.bpm} BPM</span><span>${starText(song.stars)} ${song.diff}</span>`;
-  const keyRow = $("#songDetail .key-row");
-  const existingChordList = $("#songDetail .mini-chord-list");
-  if (existingChordList) existingChordList.remove();
-  keyRow.insertAdjacentHTML("afterend", renderMiniChordList(song.chords));
+  $("#detailCover").textContent = song.emoji;
+  $("#detailCover").style.background = `linear-gradient(135deg,${song.color},${song.light})`;
+  $("#detailGoal").textContent = song.templateId ? "目标：完成歌曲片段跟弹" : "目标：先完成相关基础练习";
+  $("#detailSummary").textContent = `${song.key} 调 · ${song.bpm} BPM · 用到 ${song.chords.join(" / ")}，先看指法再开始。`;
+  $("#detailChordMeta").textContent = `${song.chords.length} 个和弦`;
+  $("#detailChordList").innerHTML = renderMiniChordList(song.chords);
+  $("#detailRoute").innerHTML = [
+    ["1", "节奏型", `${song.bpm} BPM 先稳右手`],
+    ["2", "和弦转换", `${song.chords.slice(0, 2).join("→")} 起步`],
+    ["3", "歌曲片段", "跟着小节进入弹唱"]
+  ].map(([step, title, detail]) => `<div class="song-route-step"><span>${step}</span><b>${title}</b><small>${detail}</small></div>`).join("");
   $("#detailPlay").textContent = song.templateId ? "开始歌曲片段跟弹" : "先练四和弦";
-  $("#lyrics").innerHTML = song.lyrics
-    .map((line, index) => `<div class="lyric-line ${index === 0 ? "now" : ""}"><span class="chord">${line[0]}</span>${line[1]}${renderMiniChordList([line[0]])}</div>`)
+  const lines = song.lyrics?.length ? song.lyrics : [[song.chords[0] || "C", "当前曲谱先进入基础练习，完整片段后续补充。"]];
+  $("#detailFragmentMeta").textContent = `${lines.length} 小节`;
+  $("#lyrics").innerHTML = lines
+    .map((line, index) => `<div class="song-fragment-row"><span class="bar">${index + 1}</span><div><b>${line[0]}</b><small>${line[1]}</small>${renderMiniChordList([line[0]])}</div></div>`)
     .join("");
   openSheet("songDetail");
 }
