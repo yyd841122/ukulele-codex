@@ -1819,18 +1819,92 @@ function MetronomeScreen({ onOpenRhythm }: { onOpenRhythm: () => void }) {
 }
 
 function ChordScreen() {
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<"all" | "beginner" | "major" | "minor" | "seventh">("all");
+  const chordCategories = [
+    { id: "all" as const, label: "所有" },
+    { id: "beginner" as const, label: "入门和弦" },
+    { id: "major" as const, label: "大三和弦" },
+    { id: "minor" as const, label: "小三和弦" },
+    { id: "seventh" as const, label: "属七和弦" }
+  ];
+  const visibleChords = beginnerChords.filter((chord) => {
+    const name = chord.name.toLowerCase();
+    const searchMatch = query.trim().length === 0 || name.includes(query.trim().toLowerCase());
+    const categoryMatch = category === "all"
+      || category === "beginner"
+      || (category === "major" && !chord.name.includes("m") && !chord.name.includes("7"))
+      || (category === "minor" && chord.name.includes("m"))
+      || (category === "seventh" && chord.name.includes("7"));
+    return searchMatch && categoryMatch;
+  });
+
   return (
     <View style={styles.stack}>
-      <SectionTitle title="基础和弦" detail="入门四组" />
-      {beginnerChords.map((chord) => (
-        <View key={chord.id} style={styles.chordCard}>
-          <View style={styles.chordCardCopy}>
-            <Text style={styles.chordName}>{chord.name}</Text>
-            <Text style={styles.chordMeta}>难度 {chord.difficulty} · {chord.tags.join(" / ")}</Text>
-          </View>
-          <ChordDiagram chord={chord} compact />
+      <View style={styles.chordLibraryHeader}>
+        <View>
+          <Text style={styles.screenTitle}>和弦大全</Text>
+          <Text style={styles.screenSubtitle}>先看指法图，再进入练习</Text>
         </View>
-      ))}
+        <View style={styles.chordLibraryCountBadge}>
+          <Text style={styles.chordLibraryCountText}>{visibleChords.length} 个</Text>
+        </View>
+      </View>
+
+      <View style={styles.chordSearchPanelApp}>
+        <TextInput
+          accessibilityLabel="搜索和弦"
+          autoCapitalize="none"
+          autoCorrect={false}
+          onChangeText={setQuery}
+          placeholder="搜索和弦，例如 C、G7"
+          placeholderTextColor="#9A9288"
+          style={styles.chordSearchInputApp}
+          value={query}
+        />
+      </View>
+
+      <View style={styles.chordCategoryRowApp}>
+        {chordCategories.map((item) => {
+          const selected = item.id === category;
+          return (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              key={item.id}
+              onPress={() => setCategory(item.id)}
+              style={[styles.chordCategoryButtonApp, selected && styles.chordCategoryButtonActiveApp]}
+            >
+              <Text style={[styles.chordCategoryTextApp, selected && styles.chordCategoryTextActiveApp]}>{item.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View style={styles.chordLibraryGridApp}>
+        {visibleChords.length === 0 ? (
+          <View style={styles.emptyPanel}>
+            <Text style={styles.historyEmpty}>没有找到匹配和弦。</Text>
+          </View>
+        ) : null}
+        {visibleChords.map((chord) => (
+          <Pressable accessibilityRole="button" key={chord.id} style={styles.chordLibraryCardApp}>
+            <ChordDiagram chord={chord} compact />
+            <Text style={styles.chordLibraryNameApp}>{chord.name}</Text>
+            <Text style={styles.chordLibraryFingeringApp}>指法 {chord.fingering.join("-")}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <SectionTitle title="收藏的和弦" detail="MVP 默认收藏" />
+      <View style={styles.chordFavoriteRowApp}>
+        {beginnerChords.map((chord) => (
+          <View key={`fav-${chord.id}`} style={styles.chordFavoriteCardApp}>
+            <ChordDiagram chord={chord} compact />
+            <Text style={styles.chordLibraryNameApp}>{chord.name}</Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -3998,6 +4072,107 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: "#FFFDF8",
     padding: 14
+  },
+  chordLibraryHeader: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12
+  },
+  chordLibraryCountBadge: {
+    minWidth: 58,
+    minHeight: 34,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#DCECE2",
+    paddingHorizontal: 10
+  },
+  chordLibraryCountText: {
+    color: colors.forest,
+    fontWeight: "900"
+  },
+  chordSearchPanelApp: {
+    minHeight: 48,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    justifyContent: "center",
+    paddingHorizontal: 12
+  },
+  chordSearchInputApp: {
+    minHeight: 44,
+    color: colors.ink,
+    fontWeight: "800"
+  },
+  chordCategoryRowApp: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
+  },
+  chordCategoryButtonApp: {
+    minHeight: 36,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EEE8DC",
+    paddingHorizontal: 12
+  },
+  chordCategoryButtonActiveApp: {
+    backgroundColor: colors.forest
+  },
+  chordCategoryTextApp: {
+    color: "#756D64",
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  chordCategoryTextActiveApp: {
+    color: "#FFF8EC"
+  },
+  chordLibraryGridApp: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10
+  },
+  chordLibraryCardApp: {
+    flexGrow: 1,
+    flexBasis: "47%",
+    minHeight: 248,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 10,
+    alignItems: "center",
+    gap: 6
+  },
+  chordLibraryNameApp: {
+    color: colors.forest,
+    fontSize: 22,
+    fontWeight: "900"
+  },
+  chordLibraryFingeringApp: {
+    color: "#756D64",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  chordFavoriteRowApp: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
+  },
+  chordFavoriteCardApp: {
+    flexGrow: 1,
+    flexBasis: "47%",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    padding: 8,
+    alignItems: "center",
+    gap: 4
   },
   songDetailHeader: {
     flexDirection: "row",

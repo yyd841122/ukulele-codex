@@ -1384,27 +1384,15 @@
     margin-top: -7.5px;
   }
   .chord-library {
-    color: #111827;
-    background:
-      radial-gradient(circle at 20% 8%, rgba(255,255,255,.96), rgba(255,255,255,0) 26%),
-      linear-gradient(160deg, #F7FBFF 0%, #DCE8F3 48%, #F8FBFF 100%);
-  }
-  .chord-status {
-    height: 38px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 14px;
-    font-size: 13px;
-    font-weight: 800;
-    color: #111827;
+    color: var(--text-1);
+    background: linear-gradient(180deg, #FFFDF8 0%, #F5F0E6 100%);
   }
   .chord-titlebar {
     display: grid;
-    grid-template-columns: 36px 1fr 36px;
+    grid-template-columns: 36px 1fr auto;
     align-items: center;
-    min-height: 44px;
-    padding: 0 16px 8px;
+    min-height: 54px;
+    padding: 10px 16px 6px;
   }
   .chord-titlebar h2 {
     text-align: center;
@@ -1415,14 +1403,26 @@
   .chord-titlebar .back {
     width: 36px;
     height: 36px;
-    color: #111827;
+    margin-bottom: 0;
+    color: var(--text-1);
+  }
+  .chord-count-pill {
+    min-width: 56px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    color: var(--teal);
+    text-align: center;
+    font-size: 12px;
+    font-weight: 950;
+    background: #DCECE2;
   }
   .chord-library-body {
-    margin: 0 18px 24px;
+    margin: 0 14px 18px;
     padding: 12px;
-    border-radius: 32px 32px 24px 24px;
-    background: rgba(231, 239, 247, .82);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 18px 42px rgba(42,73,103,.12);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: rgba(255,255,255,.58);
+    box-shadow: var(--shadow);
   }
   .chord-search {
     height: 46px;
@@ -1432,8 +1432,8 @@
     padding: 0 16px;
     border-radius: 999px;
     color: #94A3B8;
-    background: rgba(255,255,255,.6);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
+    border: 1px solid var(--line);
+    background: #FFFDF8;
   }
   .chord-search span {
     font-size: 20px;
@@ -1454,7 +1454,7 @@
   .chord-category-tabs {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 8px;
     overflow-x: auto;
     padding: 14px 0 12px;
   }
@@ -1466,26 +1466,27 @@
     min-height: 32px;
     padding: 0 12px;
     border-radius: 999px;
-    color: #111827;
+    color: var(--text-1);
     font-size: 15px;
   }
   .chord-category-tab.active {
     color: #fff;
-    background: #4AAAF1;
-    box-shadow: 0 8px 18px rgba(74,170,241,.24);
+    background: var(--teal);
+    box-shadow: none;
   }
   .chord-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
+    gap: 10px;
   }
   .chord-card {
     position: relative;
-    min-height: 163px;
-    padding: 12px 9px 10px;
+    min-height: 178px;
+    padding: 10px 9px 42px;
     border-radius: 12px;
-    background: rgba(255,255,255,.76);
-    box-shadow: 0 10px 26px rgba(86,115,145,.12), inset 0 1px 0 rgba(255,255,255,.88);
+    border: 1px solid rgba(217,209,196,.7);
+    background: #FFFDF8;
+    box-shadow: 0 10px 26px rgba(86,115,145,.10);
   }
   .chord-card-name {
     display: block;
@@ -1495,6 +1496,14 @@
     font-size: 24px;
     font-weight: 500;
     line-height: 1;
+  }
+  .chord-card-fingering {
+    position: absolute;
+    left: 10px;
+    bottom: 12px;
+    color: var(--text-2);
+    font-size: 10px;
+    font-weight: 900;
   }
   .chord-play {
     position: absolute;
@@ -1512,7 +1521,7 @@
   }
   .fret-diagram {
     width: 64px;
-    height: 92px;
+    height: 114px;
     margin: 0 auto;
     position: relative;
   }
@@ -1535,7 +1544,7 @@
     left: 8px;
     right: 8px;
     top: 22px;
-    bottom: 0;
+    bottom: 18px;
   }
   .fret-string,
   .fret-line {
@@ -1559,12 +1568,29 @@
   }
   .fret-dot {
     position: absolute;
-    width: 13px;
-    height: 13px;
-    margin-left: -6.5px;
-    margin-top: -6.5px;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    margin-left: -9px;
+    margin-top: -9px;
     border-radius: 50%;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 950;
     background: #020617;
+  }
+  .fret-string-labels {
+    position: absolute;
+    left: -5px;
+    right: -5px;
+    bottom: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    color: var(--text-3);
+    text-align: center;
+    font-size: 10px;
+    font-weight: 900;
   }
   .chord-section-heading {
     margin: 24px 0 14px;
@@ -1799,11 +1825,10 @@
     <section class="sheet" id="transition"><div class="sheet-head"><button class="back" data-close="transition">‹</button><h2>和弦转换</h2><p>从两个和弦开始练，不直接上整首歌。</p></div><div class="tool-screen"><div class="tool-panel card"><h3>C → Am</h3><p style="color:var(--text-2);font-size:13px">提前准备二指，落在下一小节第一拍。</p><button class="primary" style="width:100%;margin-top:12px">开始转换练习</button></div><div class="tool-panel card"><h3>Am → F</h3><p style="color:var(--text-2);font-size:13px">保留二指，加上一指，减少左手大幅移动。</p></div><div class="tool-panel card"><h3>F → G7</h3><p style="color:var(--text-2);font-size:13px">提前半拍准备，第一拍前落稳。</p></div></div></section>
     <section class="sheet" id="follow"><div class="sheet-head"><button class="back" data-close="follow">‹</button><h2>跟弹评分</h2><p>歌曲片段、节奏、和弦完成度统一反馈。</p></div><div class="tool-screen"><div class="tool-panel card"><h3>《童年》前 4 小节</h3><p style="color:var(--text-2);font-size:13px">C · Am · F · G7</p><div class="beat-dots"><span class="beat-dot active">C</span><span class="beat-dot">Am</span><span class="beat-dot">F</span><span class="beat-dot">G7</span></div><button class="primary" style="width:100%">开始跟弹</button></div></div></section>
     <section class="sheet chord-library" id="chords">
-      <div class="chord-status"><span>10:09</span><span>◔ ◉ 88% ▰</span></div>
       <div class="chord-titlebar">
         <button class="back" data-close="chords">‹</button>
         <h2>和弦大全</h2>
-        <span></span>
+        <span class="chord-count-pill" id="chordCount">12 个</span>
       </div>
       <div class="chord-library-body">
         <label class="chord-search" for="chordSearch">
@@ -1942,6 +1967,7 @@ const courses = [
 ];
 const chordCategories = [
   { id: "all", label: "所有" },
+  { id: "beginner", label: "入门和弦" },
   { id: "major", label: "大三和弦" },
   { id: "minor", label: "小三和弦" },
   { id: "seventh", label: "属七和弦" },
@@ -1949,20 +1975,20 @@ const chordCategories = [
 ];
 let activeChordCategory = "all";
 const chords = [
-  { name: "C", category: "major", frets: [0,0,0,3], markers: ["×","○","",""] },
-  { name: "G", category: "major", frets: [0,2,3,2], markers: ["","○","",""] },
-  { name: "D", category: "major", frets: [2,2,2,0], markers: ["×","","",""] },
-  { name: "Am", category: "minor", frets: [2,0,0,0], markers: ["×","","",""] },
-  { name: "Em", category: "minor", frets: [0,4,3,2], markers: ["×","","",""] },
-  { name: "Bm", category: "minor", frets: [4,2,2,2], markers: ["×","","",""] },
-  { name: "G7", category: "seventh", frets: [0,2,1,2], markers: ["","","",""] },
-  { name: "C7", category: "seventh", frets: [0,0,0,1], markers: ["×","○","",""] },
-  { name: "D7", category: "seventh", frets: [2,0,2,0], markers: ["×","○","",""] },
-  { name: "F", category: "major", frets: [2,0,1,0], markers: ["","","",""] },
-  { name: "E", category: "major", frets: [1,4,0,2], markers: ["","","",""] },
-  { name: "Asus4", category: "suspended", frets: [2,2,0,0], markers: ["","","○","○"] }
+  { name: "C", category: "major", tags: ["beginner"], frets: [0,0,0,3], fingers: [0,0,0,3] },
+  { name: "Am", category: "minor", tags: ["beginner"], frets: [2,0,0,0], fingers: [2,0,0,0] },
+  { name: "F", category: "major", tags: ["beginner"], frets: [2,0,1,0], fingers: [2,0,1,0] },
+  { name: "G7", category: "seventh", tags: ["beginner"], frets: [0,2,1,2], fingers: [0,2,1,3] },
+  { name: "G", category: "major", frets: [0,2,3,2], fingers: [0,1,3,2] },
+  { name: "D", category: "major", frets: [2,2,2,0], fingers: [1,2,3,0] },
+  { name: "Em", category: "minor", frets: [0,4,3,2], fingers: [0,3,2,1] },
+  { name: "Bm", category: "minor", frets: [4,2,2,2], fingers: [3,1,1,1] },
+  { name: "C7", category: "seventh", frets: [0,0,0,1], fingers: [0,0,0,1] },
+  { name: "D7", category: "seventh", frets: [2,0,2,0], fingers: [1,0,2,0] },
+  { name: "E", category: "major", frets: [1,4,0,2], fingers: [1,4,0,2] },
+  { name: "Asus4", category: "suspended", frets: [2,2,0,0], fingers: [1,2,0,0] }
 ];
-const favoriteChordNames = ["F", "E"];
+const favoriteChordNames = ["C", "Am", "F", "G7"];
 function $(sel) { return document.querySelector(sel); }
 function $all(sel) { return [...document.querySelectorAll(sel)]; }
 function toast(msg) {
@@ -2028,10 +2054,12 @@ function renderChordDiagram(chord) {
     if (fret <= 0) return "";
     const left = (stringIndex / 3) * 100;
     const top = ((Math.min(fret, 4) - 0.5) / 4) * 100;
-    return `<span class="fret-dot" style="left:${left}%;top:${top}%"></span>`;
+    const finger = chord.fingers?.[stringIndex] || fret;
+    return `<span class="fret-dot" style="left:${left}%;top:${top}%">${finger}</span>`;
   }).join("");
-  const markers = [0, 1, 2, 3].map(index => `<span>${chord.markers?.[index] || ""}</span>`).join("");
-  return `<div class="fret-diagram"><div class="nut-marker-row">${markers}</div><div class="fret-board">${stringLines}${fretLines}${dots}</div></div>`;
+  const markers = chord.frets.map(fret => `<span>${fret < 0 ? "×" : fret === 0 ? "○" : "●"}</span>`).join("");
+  const labels = ["G", "C", "E", "A"].map(label => `<span>${label}</span>`).join("");
+  return `<div class="fret-diagram"><div class="nut-marker-row">${markers}</div><div class="fret-board">${stringLines}${fretLines}${dots}</div><div class="fret-string-labels">${labels}</div></div>`;
 }
 function chordByName(name) {
   return chords.find(chord => chord.name === name) || null;
@@ -2074,6 +2102,7 @@ function chordCard(chord) {
   return `<button class="chord-card clickable" data-chord="${chord.name}">
     ${renderChordDiagram(chord)}
     <span class="chord-card-name">${chord.name}</span>
+    <span class="chord-card-fingering">${chord.frets.join("-")}</span>
     <span class="chord-play">▶</span>
   </button>`;
 }
@@ -2081,10 +2110,11 @@ function renderChords() {
   const search = ($("#chordSearch")?.value || "").trim().toLowerCase();
   $("#chordCategoryTabs").innerHTML = chordCategories.map(category => `<button class="chord-category-tab ${category.id === activeChordCategory ? "active" : ""}" data-chord-category="${category.id}">${category.label}</button>`).join("");
   const visibleChords = chords.filter(chord => {
-    const categoryMatch = activeChordCategory === "all" || chord.category === activeChordCategory;
+    const categoryMatch = activeChordCategory === "all" || chord.category === activeChordCategory || chord.tags?.includes(activeChordCategory);
     const searchMatch = search.length === 0 || chord.name.toLowerCase().includes(search);
     return categoryMatch && searchMatch;
   });
+  $("#chordCount").textContent = `${visibleChords.length} 个`;
   $("#chordGrid").innerHTML = visibleChords.map(chordCard).join("");
   $("#favoriteChordGrid").innerHTML = favoriteChordNames
     .map(name => chords.find(chord => chord.name === name))
