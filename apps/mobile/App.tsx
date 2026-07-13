@@ -2135,6 +2135,7 @@ function SongsScreen({
   const songs = practiceContent.songs;
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<SongFilter>("all");
+  const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
   const filters: Array<{ id: SongFilter; label: string }> = [
     { id: "all", label: "全部" },
     { id: "entry", label: "入门" },
@@ -2147,6 +2148,85 @@ function SongsScreen({
     maxDifficulty: filter === "entry" ? 1 : undefined,
     minDifficulty: filter === "advanced" ? 2 : undefined
   });
+  const selectedSong = songs.find((song) => song.id === selectedSongId) ?? null;
+
+  if (selectedSong) {
+    const templateId = selectedSong.practiceTemplateIds?.[0] ?? "practice-c-am-f-g7-loop";
+    const locked = selectedSong.access !== "free";
+    const lines = getSongPracticeLines(selectedSong);
+    const chordNames = selectedSong.chordNames ?? ["C", "Am", "F", "G7"];
+    const routeSteps = [
+      { step: "1", title: "节奏型", detail: `${selectedSong.bpm} BPM 先稳住右手` },
+      { step: "2", title: "和弦转换", detail: `${chordNames.slice(0, 2).join(" → ")} 起步` },
+      { step: "3", title: "歌曲片段", detail: "跟着小节进入弹唱" }
+    ];
+
+    return (
+      <View style={styles.stack}>
+        <Pressable accessibilityRole="button" onPress={() => setSelectedSongId(null)} style={styles.songDetailBackButton}>
+          <Text style={styles.songDetailBackText}>‹ 返回曲谱库</Text>
+        </Pressable>
+
+        <View style={styles.songDetailHeroCard}>
+          <View style={styles.songDetailHeader}>
+            <View style={styles.songAvatar}>
+              <Text style={styles.songAvatarText}>♪</Text>
+            </View>
+            <View style={styles.songTitleBlock}>
+              <Text style={styles.songTitle}>{selectedSong.title}</Text>
+              <Text style={styles.songMeta}>
+                {selectedSong.artist} · {selectedSong.level} · {selectedSong.key} 调 · {selectedSong.bpm} BPM
+              </Text>
+              <ChordMiniList chordNames={chordNames} />
+            </View>
+            <Text style={[styles.songAccessBadge, locked && styles.songAccessBadgeLocked]}>
+              {locked ? "Pro" : "免费"}
+            </Text>
+          </View>
+          <Text style={styles.songDetailGoal}>
+            目标：先看清和弦图，再完成 {lines.length || 4} 小节歌曲片段。
+          </Text>
+        </View>
+
+        <SectionTitle title="和弦准备" detail={`${chordNames.length} 个和弦 · 看图换指`} />
+        <View style={styles.songPrepPanel}>
+          <ChordMiniList chordNames={chordNames} />
+        </View>
+
+        <SectionTitle title="练习路线" detail="先拆开，再合起来" />
+        <View style={styles.songRouteGrid}>
+          {routeSteps.map((item) => (
+            <View key={item.step} style={styles.songRouteStep}>
+              <Text style={styles.songRouteIndex}>{item.step}</Text>
+              <Text style={styles.songRouteTitle}>{item.title}</Text>
+              <Text style={styles.songRouteDetail}>{item.detail}</Text>
+            </View>
+          ))}
+        </View>
+
+        <SectionTitle title="片段预览" detail={`${lines.length || 1} 小节`} />
+        <View style={styles.songLineList}>
+          {(lines.length > 0 ? lines : [{ bar: 1, chord: chordNames[0], text: "先完成相关基础练习，再补充完整片段。" }]).map((line, index) => (
+            <View key={`${selectedSong.id}-${line.bar ?? index}`} style={styles.songPreviewLine}>
+              <ChordMiniCard chordName={line.chord ?? chordNames[0]} />
+              <Text style={styles.songPreviewText}>{line.text}</Text>
+            </View>
+          ))}
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          disabled={locked}
+          onPress={() => onStartSongPractice(templateId)}
+          style={[styles.songPracticeButton, locked && styles.songPracticeButtonDisabled]}
+        >
+          <Text style={[styles.primaryButtonText, locked && styles.songPracticeButtonTextDisabled]}>
+            {locked ? "后续解锁完整曲谱" : "开始歌曲片段跟弹"}
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.stack}>
@@ -2187,10 +2267,15 @@ function SongsScreen({
       ) : null}
 
       {visibleSongs.map((song) => {
-        const templateId = song.practiceTemplateIds?.[0] ?? "practice-c-am-f-g7-loop";
         const locked = song.access !== "free";
         return (
-          <View key={song.id} style={styles.songDetailCard}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={locked}
+            key={song.id}
+            onPress={() => setSelectedSongId(song.id)}
+            style={[styles.songDetailCard, locked && styles.songDetailCardLocked]}
+          >
             <View style={styles.songDetailHeader}>
               <View style={styles.songAvatar}>
                 <Text style={styles.songAvatarText}>♪</Text>
@@ -2204,25 +2289,12 @@ function SongsScreen({
                 {locked ? "Pro" : "免费"}
               </Text>
             </View>
-            <View style={styles.songLineList}>
-              {getSongPracticeLines(song).map((line) => (
-                <View key={`${song.id}-${line.bar}`} style={styles.songPreviewLine}>
-                  <ChordMiniCard chordName={line.chord ?? "C"} />
-                  <Text style={styles.songPreviewText}>{line.text}</Text>
-                </View>
-              ))}
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              disabled={locked}
-              onPress={() => onStartSongPractice(templateId)}
-              style={[styles.songPracticeButton, locked && styles.songPracticeButtonDisabled]}
-            >
+            <View style={[styles.songPracticeButton, locked && styles.songPracticeButtonDisabled]}>
               <Text style={[styles.primaryButtonText, locked && styles.songPracticeButtonTextDisabled]}>
-                {locked ? "后续解锁完整曲谱" : "开始歌曲片段跟弹"}
+                {locked ? "后续解锁完整曲谱" : "查看详情"}
               </Text>
-            </Pressable>
-          </View>
+            </View>
+          </Pressable>
         );
       })}
 
@@ -4518,6 +4590,80 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFDF8",
     padding: 12,
     gap: 12
+  },
+  songDetailCardLocked: {
+    opacity: 0.72
+  },
+  songDetailBackButton: {
+    alignSelf: "flex-start",
+    minHeight: 36,
+    borderRadius: 999,
+    backgroundColor: "#EEE8DC",
+    justifyContent: "center",
+    paddingHorizontal: 12
+  },
+  songDetailBackText: {
+    color: colors.forest,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  songDetailHeroCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    padding: 12,
+    gap: 12
+  },
+  songDetailGoal: {
+    color: "#756D64",
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: "700"
+  },
+  songPrepPanel: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    padding: 10
+  },
+  songRouteGrid: {
+    flexDirection: "row",
+    gap: 8
+  },
+  songRouteStep: {
+    flex: 1,
+    minHeight: 96,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: "#FFFDF8",
+    padding: 10,
+    gap: 5
+  },
+  songRouteIndex: {
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    overflow: "hidden",
+    color: "#FFF8EC",
+    backgroundColor: colors.forest,
+    textAlign: "center",
+    lineHeight: 24,
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  songRouteTitle: {
+    color: colors.forest,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  songRouteDetail: {
+    color: "#756D64",
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: "700"
   },
   songSearchPanel: {
     borderRadius: 8,

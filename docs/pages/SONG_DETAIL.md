@@ -1,7 +1,7 @@
 # 歌曲详情页开发文档
 
 页面：Song Detail / 歌曲详情页
-状态：开发中
+状态：Preview 已完成，Expo App 已同步
 
 ## 1. 页面目标
 
@@ -122,12 +122,12 @@ Pro 曲谱不进入详情，仍由曲谱库打开锁定提示。
 
 ## 6. App 同步要求
 
-后续 `apps/mobile/App.tsx` 需要：
+`apps/mobile/App.tsx` 需要：
 - 从曲谱库进入详情页，而不是直接只显示列表。
 - 详情页复用 ChordMiniList / ChordDiagram。
 - 主按钮进入 PracticeScreen 的 song fragment template。
-
-本轮优先完成 Preview。
+- 曲谱库列表只展示歌曲摘要和“查看详情”入口。
+- Pro 歌曲保持锁定，不进入详情层。
 
 ## 7. 验收标准
 
