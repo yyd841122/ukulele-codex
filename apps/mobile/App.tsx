@@ -30,7 +30,9 @@ import {
   midiToFrequency,
   noteNameToMidi,
   scorePitchEvent,
-  scoreRhythmTimeline
+  scoreRhythmEvent,
+  scoreRhythmTimeline,
+  summarizeRhythmEvents
 } from "@ukulele/audio-core";
 import {
   ensureMicrophoneAccess,
@@ -216,6 +218,30 @@ function getRhythmTemplateDisplayTitle(template: PracticeTemplate) {
   return getPracticeTemplateTitle(template);
 }
 
+function getBeatsPerBar(template: PracticeTemplate) {
+  const beatsPerBar = Number(String(template.timeSignature ?? "4/4").split("/")[0]);
+  return Number.isFinite(beatsPerBar) ? Math.max(1, Math.round(beatsPerBar)) : 4;
+}
+
+function getRhythmStepDurationMs(template: PracticeTemplate, bpm: number) {
+  const targetCount = Math.max(1, template.targets?.length ?? getBeatsPerBar(template));
+  return (60000 / bpm) * (getBeatsPerBar(template) / targetCount);
+}
+
+function getRhythmScoringBpm(template: PracticeTemplate, bpm: number) {
+  return 60000 / getRhythmStepDurationMs(template, bpm);
+}
+
+function rhythmTimingFeedback(event?: Pick<PracticeLogEvent, "timingOffsetMs" | "rhythmScore" | "timingStatus"> | null) {
+  if (!event || event.rhythmScore == null || event.timingOffsetMs == null) {
+    return "点击“记录扫弦”获得本拍反馈";
+  }
+  const offset = Math.round(event.timingOffsetMs);
+  if (event.timingStatus === "on-time") return `准 · ${event.rhythmScore} 分 · 偏差 ${Math.abs(offset)}ms`;
+  if (event.timingStatus === "early") return `偏早 ${Math.abs(offset)}ms · ${event.rhythmScore} 分`;
+  return `偏晚 ${Math.abs(offset)}ms · ${event.rhythmScore} 分`;
+}
+
 function getPracticeTargetSummary(target: PracticeTarget | undefined, template: PracticeTemplate) {
   const chord = getPracticeTargetChord(target);
   if (template.type === "rhythm_pattern") {
@@ -325,12 +351,16 @@ function getPracticeBeatNumbers(template: PracticeTemplate) {
 }
 
 type PracticeLogEvent = {
-  type: "start" | "bar" | "complete" | "reset" | "tempo" | "mode" | "end";
+  type: "start" | "bar" | "complete" | "reset" | "tempo" | "mode" | "end" | "tap";
   step: number;
   chord: string;
   bpm: number;
   loopMode: PracticeLoopMode;
   timestampMs: number;
+  targetBeatIndex?: number;
+  timingOffsetMs?: number;
+  rhythmScore?: number;
+  timingStatus?: "early" | "late" | "on-time";
 };
 
 type PracticeSessionInput = {
@@ -631,6 +661,10 @@ function translateRhythmSuggestion(summary: RhythmPracticeSummary) {
 
 function summarizePracticeRhythm(events: PracticeLogEvent[], bpm: number): RhythmPracticeSummary {
   const startEvent = events.find((event) => event.type === "start");
+  const tapEvents = events.filter((event) => event.type === "tap" && event.rhythmScore != null && event.timingOffsetMs != null);
+  if (tapEvents.length > 0) {
+    return summarizeRhythmEvents(tapEvents) as RhythmPracticeSummary;
+  }
   if (!startEvent) {
     return {
       averageRhythmScore: 0,
@@ -2203,6 +2237,8 @@ function PracticeScreen({
   const [isRunning, setIsRunning] = useState(false);
   const [beatSoundEnabled, setBeatSoundEnabled] = useState(true);
   const [beatSoundStatus, setBeatSoundStatus] = useState("节拍声已开启");
+  const [rhythmStartedAtMs, setRhythmStartedAtMs] = useState<number | null>(null);
+  const [latestRhythmTap, setLatestRhythmTap] = useState<PracticeLogEvent | null>(null);
   const [practiceMicAccess, setPracticeMicAccess] = useState(initialMicrophoneAccessState);
   const [practiceMicBusy, setPracticeMicBusy] = useState(false);
   const [practiceEvents, setPracticeEvents] = useState<PracticeLogEvent[]>([]);
@@ -2250,6 +2286,7 @@ function PracticeScreen({
   const progressPercent = Math.round((completedCount / practiceTargets.length) * 100);
   const barsPracticed = practiceEvents.filter((event) => event.type === "bar").length;
   const completedClicks = practiceEvents.filter((event) => event.type === "complete").length;
+  const rhythmTapCount = practiceEvents.filter((event) => event.type === "tap").length;
   const firstEventAt = practiceEvents[0]?.timestampMs;
   const lastEventAt = practiceEvents[practiceEvents.length - 1]?.timestampMs;
   const practiceDurationSec = firstEventAt && lastEventAt ? Math.max(0, Math.round((lastEventAt - firstEventAt) / 1000)) : 0;
@@ -2257,8 +2294,8 @@ function PracticeScreen({
     () => summarizePracticeRhythm(practiceEvents, practiceBpm),
     [practiceEvents, practiceBpm]
   );
-  const rhythmScoreLabel = completedClicks > 0 ? `${rhythmSummary.averageRhythmScore}` : "--";
-  const rhythmTimingLabel = completedClicks > 0
+  const rhythmScoreLabel = completedClicks > 0 || rhythmTapCount > 0 ? `${rhythmSummary.averageRhythmScore}` : "--";
+  const rhythmTimingLabel = completedClicks > 0 || rhythmTapCount > 0
     ? `准 ${rhythmSummary.onTimeCount} · 早 ${rhythmSummary.earlyCount} · 晚 ${rhythmSummary.lateCount}`
     : "完成一次小节后生成节奏参考";
   const practiceAdvice = practiceLoopMode === "single"
@@ -2278,6 +2315,8 @@ function PracticeScreen({
     setCurrentStep(findPracticeStepByChord(launchConfig.focusChord, nextTemplate));
     setPracticeBeat(0);
     setPracticeEvents([]);
+    setRhythmStartedAtMs(null);
+    setLatestRhythmTap(null);
     setCompletedSteps(nextTemplate.targets.map(() => false));
     setSessionClosed(false);
   }, [launchConfig?.token]);
@@ -2301,7 +2340,7 @@ function PracticeScreen({
   }
 
   function commitPracticeSession(events: PracticeLogEvent[], steps: boolean[]) {
-    const hasPracticeActivity = events.some((event) => event.type === "start" || event.type === "bar" || event.type === "complete")
+    const hasPracticeActivity = events.some((event) => event.type === "start" || event.type === "bar" || event.type === "complete" || event.type === "tap")
       || steps.some(Boolean);
     if (!hasPracticeActivity) {
       return;
@@ -2343,10 +2382,10 @@ function PracticeScreen({
         }
         return nextBeat;
       });
-    }, 60000 / practiceBpm);
+    }, activeTemplate.type === "rhythm_pattern" ? getRhythmStepDurationMs(activeTemplate, practiceBpm) : 60000 / practiceBpm);
 
     return () => clearInterval(interval);
-  }, [activeTemplate.type, beatCycleLength, beatSoundEnabled, isRunning, practiceBpm, practiceLoopMode, practiceTargets]);
+  }, [activeTemplate, beatCycleLength, beatSoundEnabled, isRunning, practiceBpm, practiceLoopMode, practiceTargets]);
 
   async function togglePracticeRunning() {
     if (isRunning) {
@@ -2367,8 +2406,18 @@ function PracticeScreen({
       setCompletedSteps(practiceTargets.map(() => false));
       setCurrentStep(0);
       setPracticeBeat(0);
+      setLatestRhythmTap(null);
     }
-    recordPracticeEvent("start");
+    const startTime = Date.now();
+    setRhythmStartedAtMs(startTime);
+    setPracticeEvents((events) => [...events, {
+      type: "start",
+      step: currentStep,
+      chord: getPracticeTargetChord(activeTarget),
+      bpm: practiceBpm,
+      loopMode: practiceLoopMode,
+      timestampMs: startTime
+    }]);
     setSessionClosed(false);
     setIsRunning(true);
   }
@@ -2422,6 +2471,8 @@ function PracticeScreen({
     setCurrentStep(0);
     setPracticeBeat(0);
     setPracticeEvents([]);
+    setRhythmStartedAtMs(null);
+    setLatestRhythmTap(null);
     setSessionClosed(false);
     setCompletedSteps(practiceTargets.map(() => false));
   }
@@ -2440,6 +2491,8 @@ function PracticeScreen({
     setCurrentStep(0);
     setPracticeBeat(0);
     setPracticeEvents([]);
+    setRhythmStartedAtMs(null);
+    setLatestRhythmTap(null);
     setCompletedSteps(template.targets.map(() => false));
     setSessionClosed(false);
   }
@@ -2464,11 +2517,42 @@ function PracticeScreen({
     commitPracticeSession(events, steps);
   }
 
+  function recordRhythmTap() {
+    if (!isRunning || activeTemplate.type !== "rhythm_pattern") return;
+    const now = Date.now();
+    const startedAtMs = rhythmStartedAtMs ?? now;
+    const stepDurationMs = getRhythmStepDurationMs(activeTemplate, practiceBpm);
+    const targetBeatIndex = Math.max(0, Math.round((now - startedAtMs) / stepDurationMs));
+    const scored = scoreRhythmEvent({
+      eventTimeMs: now,
+      startedAtMs,
+      bpm: getRhythmScoringBpm(activeTemplate, practiceBpm),
+      beatIndex: targetBeatIndex
+    });
+    const step = targetBeatIndex % practiceTargets.length;
+    const event: PracticeLogEvent = {
+      type: "tap",
+      step,
+      chord: getPracticeTargetChord(practiceTargets[step]),
+      bpm: practiceBpm,
+      loopMode: practiceLoopMode,
+      timestampMs: now,
+      targetBeatIndex,
+      timingOffsetMs: scored.timingOffsetMs,
+      rhythmScore: scored.rhythmScore,
+      timingStatus: scored.timingStatus as PracticeLogEvent["timingStatus"]
+    };
+    setPracticeEvents((events) => [...events, event]);
+    setCompletedSteps((steps) => steps.map((done, index) => done || index === step));
+    setLatestRhythmTap(event);
+  }
+
   if (activeTemplate.type === "rhythm_pattern") {
     const activeRhythmTarget = practiceTargets[practiceBeat % practiceTargets.length] ?? activeTarget;
     const rhythmAction = getStrokeArrow(activeRhythmTarget.stroke);
     const rhythmDetail = `第 ${activeRhythmTarget?.beat ?? 1}${activeRhythmTarget?.subdivision && activeRhythmTarget.subdivision > 1 ? `.${activeRhythmTarget.subdivision}` : ""} 拍 · ${getRhythmAccentLabel(activeRhythmTarget)}`;
     const rhythmProgressPercent = Math.round(((practiceBeat + 1) / Math.max(1, practiceTargets.length)) * 100);
+    const rhythmFeedback = rhythmTimingFeedback(latestRhythmTap);
 
     return (
       <View style={styles.stack}>
@@ -2580,6 +2664,18 @@ function PracticeScreen({
             </Pressable>
           </View>
           <Text style={styles.practiceSoundStatus}>{beatSoundStatus}</Text>
+
+          <View style={styles.rhythmScorePanel}>
+            <Pressable
+              accessibilityRole="button"
+              disabled={!isRunning}
+              style={[styles.rhythmTapButton, !isRunning && styles.disabledButton]}
+              onPress={recordRhythmTap}
+            >
+              <Text style={styles.rhythmTapButtonText}>记录扫弦</Text>
+            </Pressable>
+            <Text style={styles.rhythmFeedbackText}>{rhythmFeedback}</Text>
+          </View>
 
           <View style={styles.rhythmStatsGrid}>
             <ScoreBox label="已练" value={`${barsPracticed} 小节`} />
@@ -5825,6 +5921,36 @@ const styles = StyleSheet.create({
   rhythmStatsGrid: {
     flexDirection: "row",
     gap: 6
+  },
+  rhythmScorePanel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 8,
+    backgroundColor: "#FFFDF8",
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 6
+  },
+  rhythmTapButton: {
+    minWidth: 94,
+    minHeight: 36,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.amber
+  },
+  rhythmTapButtonText: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  rhythmFeedbackText: {
+    flex: 1,
+    color: colors.forest,
+    fontSize: 12,
+    fontWeight: "900",
+    lineHeight: 16
   },
   songFragmentPanel: {
     marginTop: 2,

@@ -1187,6 +1187,19 @@
   .rhythm-stat { padding: 7px; border-radius: 10px; border: 1px solid var(--line); background: #FFFDF8; text-align: center; }
   .rhythm-stat b { display: block; color: var(--teal); font-size: 18px; }
   .rhythm-stat small { color: var(--text-2); font-weight: 850; }
+  .rhythm-score-panel {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    gap: 8px;
+    align-items: center;
+    padding: 6px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #FFFDF8;
+  }
+  .rhythm-score-panel .primary { min-height: 36px; border-radius: 10px; font-size: 13px; box-shadow: none; }
+  .rhythm-score-panel .primary:disabled { opacity: .55; }
+  .rhythm-feedback { color: var(--teal); font-size: 12px; line-height: 1.35; font-weight: 900; }
   .metro-page {
     overflow: hidden;
     color: var(--text-1);
@@ -2570,7 +2583,7 @@ const transitionPairs = [
   { from: "G7", to: "C", tip: "松开后只留下 A 弦 3 品，动作越小越稳。" }
 ];
 const followChords = ["C", "Am", "F", "G7"];
-const rhythmState = { pattern: 0, beat: 0, bars: 0, running: false, timer: null, score: 62, sound: true };
+const rhythmState = { pattern: 0, beat: 0, bars: 0, running: false, timer: null, score: 0, sound: true, startedAt: 0, taps: [], feedback: "点击开始后，用“记录扫弦”获得反馈" };
 const transitionState = { index: 0, reps: 0, running: false, timer: null, score: 58 };
 const followState = { beat: 0, bars: 0, running: false, timer: null, score: 60 };
 function saveAppState() {
@@ -2891,7 +2904,7 @@ function setupExtraSheets() {
 function setupPracticeSheets() {
   const rhythm = $("#rhythm");
   if (rhythm) {
-    rhythm.innerHTML = `<div class="sheet-head"><button class="back" data-close="rhythm">‹</button><h2>节奏练习</h2><p>右手节奏型</p></div><div class="rhythm-page"><div class="rhythm-runner card"><div class="module-row"><div><small class="eyebrow">当前节奏型</small><h3 id="rhythmName">↓ 四拍</h3></div><b id="rhythmStateLabel">待开始</b></div><div class="rhythm-template-tabs" id="rhythmTabs"></div><div class="rhythm-action"><h3 id="rhythmAction">↓</h3><p id="rhythmHint"></p><div class="rhythm-progress"><i id="rhythmProgress" style="width:25%"></i></div></div><div class="rhythm-dot-grid" id="rhythmDots"></div><div class="rhythm-controls"><button class="ghost" id="rhythmBpmDown">-5</button><div class="rhythm-bpm-badge"><span id="rhythmBpm">60</span><small>BPM</small></div><button class="ghost" id="rhythmBpmUp">+5</button></div><div class="rhythm-controls two"><button class="ghost" id="rhythmSound">节拍声 开</button><button class="primary" id="rhythmToggle">开始</button></div><div class="rhythm-stats"><div class="rhythm-stat"><small>已练</small><b id="rhythmBars">0</b></div><div class="rhythm-stat"><small>节奏</small><b id="rhythmScore">62</b></div><div class="rhythm-stat"><small>完成</small><b id="rhythmCompleteCount">0/4</b></div></div><div class="rhythm-controls two"><button class="ghost" id="rhythmReset">重置</button><button class="ghost" id="rhythmComplete">完成本组</button></div></div></div>`;
+    rhythm.innerHTML = `<div class="sheet-head"><button class="back" data-close="rhythm">‹</button><h2>节奏练习</h2><p>右手节奏型</p></div><div class="rhythm-page"><div class="rhythm-runner card"><div class="module-row"><div><small class="eyebrow">当前节奏型</small><h3 id="rhythmName">↓ 四拍</h3></div><b id="rhythmStateLabel">待开始</b></div><div class="rhythm-template-tabs" id="rhythmTabs"></div><div class="rhythm-action"><h3 id="rhythmAction">↓</h3><p id="rhythmHint"></p><div class="rhythm-progress"><i id="rhythmProgress" style="width:25%"></i></div></div><div class="rhythm-dot-grid" id="rhythmDots"></div><div class="rhythm-controls"><button class="ghost" id="rhythmBpmDown">-5</button><div class="rhythm-bpm-badge"><span id="rhythmBpm">60</span><small>BPM</small></div><button class="ghost" id="rhythmBpmUp">+5</button></div><div class="rhythm-controls two"><button class="ghost" id="rhythmSound">节拍声 开</button><button class="primary" id="rhythmToggle">开始</button></div><div class="rhythm-score-panel"><button class="primary" id="rhythmTap" disabled>记录扫弦</button><span class="rhythm-feedback" id="rhythmFeedback">点击开始后，用“记录扫弦”获得反馈</span></div><div class="rhythm-stats"><div class="rhythm-stat"><small>已练</small><b id="rhythmBars">0</b></div><div class="rhythm-stat"><small>节奏</small><b id="rhythmScore">--</b></div><div class="rhythm-stat"><small>记录</small><b id="rhythmCompleteCount">0/4</b></div></div><div class="rhythm-controls two"><button class="ghost" id="rhythmReset">重置</button><button class="ghost" id="rhythmComplete">完成本组</button></div></div></div>`;
   }
   const transition = $("#transition");
   if (transition) {
@@ -2912,6 +2925,31 @@ function renderScoreBars(target, score) {
   ];
   node.innerHTML = values.map(([label, value]) => `<div class="score-line"><span>${label}</span><div class="score-track"><i style="width:${value}%"></i></div><b>${value}</b></div>`).join("");
 }
+function scoreRhythmOffset(offsetMs) {
+  const abs = Math.abs(offsetMs);
+  if (abs <= 60) return 100;
+  if (abs <= 120) return Math.round(100 - ((abs - 60) / 60) * 50);
+  return Math.max(0, Math.round(50 - Math.min(50, (abs - 120) / 3)));
+}
+function timingStatus(offsetMs) {
+  if (Math.abs(offsetMs) <= 60) return "on-time";
+  return offsetMs < 0 ? "early" : "late";
+}
+function rhythmStepDuration(pattern) {
+  const beatsPerBar = pattern.id === "waltz-three" ? 3 : 4;
+  return (60000 / pattern.bpm) * (beatsPerBar / pattern.beats.length);
+}
+function rhythmAverageScore() {
+  if (!rhythmState.taps.length) return "--";
+  return Math.round(rhythmState.taps.reduce((sum, tap) => sum + tap.score, 0) / rhythmState.taps.length);
+}
+function rhythmFeedbackText(tap) {
+  if (!tap) return rhythmState.feedback;
+  const offset = Math.round(tap.offset);
+  if (tap.status === "on-time") return `准 · ${tap.score} 分 · 偏差 ${Math.abs(offset)}ms`;
+  if (tap.status === "early") return `偏早 ${Math.abs(offset)}ms · ${tap.score} 分`;
+  return `偏晚 ${Math.abs(offset)}ms · ${tap.score} 分`;
+}
 function renderRhythm() {
   const pattern = rhythmPatterns[rhythmState.pattern];
   const template = activeRhythmTemplate();
@@ -2922,10 +2960,12 @@ function renderRhythm() {
   $("#rhythmAction").textContent = activeBeat.action;
   $("#rhythmHint").textContent = `${activeBeat.beat} 拍 · ${activeBeat.accent ? "重音" : "轻拍"}`;
   $("#rhythmBars").textContent = rhythmState.bars;
-  $("#rhythmScore").textContent = rhythmState.score;
-  $("#rhythmCompleteCount").textContent = `${rhythmState.bars > 0 ? pattern.beats.length : rhythmState.beat}/${pattern.beats.length}`;
+  $("#rhythmScore").textContent = rhythmAverageScore();
+  $("#rhythmCompleteCount").textContent = `${rhythmState.taps.length}/${pattern.beats.length}`;
   $("#rhythmToggle").textContent = rhythmState.running ? "暂停" : "开始";
   $("#rhythmSound").textContent = `节拍声 ${rhythmState.sound ? "开" : "关"}`;
+  $("#rhythmTap").disabled = !rhythmState.running;
+  $("#rhythmFeedback").textContent = rhythmFeedbackText(rhythmState.taps[rhythmState.taps.length - 1]);
   $("#rhythmProgress").style.width = `${Math.round(((rhythmState.beat + 1) / pattern.beats.length) * 100)}%`;
   $("#rhythmTabs").innerHTML = rhythmPatterns.map((item, index) => `<button class="rhythm-template-tab ${index === rhythmState.pattern ? "active" : ""}" data-rhythm-pattern="${index}">${item.name}<br><small>${item.bpm} BPM</small></button>`).join("");
   $("#rhythmDots").innerHTML = pattern.beats.map((beat, index) => `<div class="rhythm-dot-wrap"><i class="rhythm-dot ${beat.accent ? "accent" : "light"} ${index === rhythmState.beat ? "active" : ""}">${beat.label}</i><span>${beat.beat}</span></div>`).join("");
@@ -2937,7 +2977,6 @@ function tickRhythm() {
   rhythmState.beat = (rhythmState.beat + 1) % pattern.beats.length;
   if (rhythmState.beat === 0) {
     rhythmState.bars += 1;
-    rhythmState.score = Math.min(96, rhythmState.score + 3);
   }
   renderRhythm();
 }
@@ -2945,9 +2984,9 @@ function toggleRhythm() {
   rhythmState.running = !rhythmState.running;
   clearInterval(rhythmState.timer);
   if (rhythmState.running) {
-    tickRhythm();
+    if (!rhythmState.startedAt) rhythmState.startedAt = Date.now();
     const pattern = rhythmPatterns[rhythmState.pattern];
-    rhythmState.timer = setInterval(tickRhythm, (60000 / pattern.bpm) * (4 / pattern.beats.length));
+    rhythmState.timer = setInterval(tickRhythm, rhythmStepDuration(pattern));
   }
   renderRhythm();
 }
@@ -2956,7 +2995,27 @@ function resetRhythm() {
   clearInterval(rhythmState.timer);
   rhythmState.beat = 0;
   rhythmState.bars = 0;
-  rhythmState.score = 62;
+  rhythmState.score = 0;
+  rhythmState.startedAt = 0;
+  rhythmState.taps = [];
+  rhythmState.feedback = "点击开始后，用“记录扫弦”获得反馈";
+  renderRhythm();
+}
+function recordRhythmTap() {
+  if (!rhythmState.running) return;
+  const pattern = rhythmPatterns[rhythmState.pattern];
+  const now = Date.now();
+  const startedAt = rhythmState.startedAt || now;
+  rhythmState.startedAt = startedAt;
+  const stepDuration = rhythmStepDuration(pattern);
+  const targetIndex = Math.max(0, Math.round((now - startedAt) / stepDuration));
+  const expected = startedAt + targetIndex * stepDuration;
+  const offset = now - expected;
+  const score = scoreRhythmOffset(offset);
+  const tap = { offset, score, status: timingStatus(offset), targetIndex };
+  rhythmState.taps.push(tap);
+  rhythmState.score = rhythmAverageScore() === "--" ? 0 : Number(rhythmAverageScore());
+  rhythmState.feedback = rhythmFeedbackText(tap);
   renderRhythm();
 }
 function completeRhythm() {
@@ -2965,19 +3024,20 @@ function completeRhythm() {
   const template = activeRhythmTemplate();
   const course = allCourses().find(item => item.order === template?.courseOrder);
   const courseOrder = template?.courseOrder ?? 3;
-  appState.courseProgress[courseOrder] = Math.max(appState.courseProgress[courseOrder] || 0, rhythmState.score >= 70 ? 100 : 75);
+  const averageScore = rhythmAverageScore() === "--" ? 0 : Number(rhythmAverageScore());
+  appState.courseProgress[courseOrder] = Math.max(appState.courseProgress[courseOrder] || 0, averageScore >= 70 ? 100 : 75);
   addSession({
     type: "节奏",
     title: rhythmPatterns[rhythmState.pattern].name,
     templateId: template?.id ?? "practice-rhythm-down-four",
     courseId: course?.id ?? "course-rhythm-down-four",
-    score: rhythmState.score,
+    score: averageScore,
     minutes: Math.max(2, rhythmState.bars),
     completedCount: rhythmPatterns[rhythmState.pattern].beats.length,
     totalSteps: rhythmPatterns[rhythmState.pattern].beats.length
   });
   renderRhythm();
-  advanceAfterPracticeComplete("rhythm", courseOrder, rhythmState.score);
+  advanceAfterPracticeComplete("rhythm", courseOrder, averageScore);
 }
 function renderTransition() {
   const pair = transitionPairs[transitionState.index];
@@ -3317,6 +3377,7 @@ function bindEnhancedPreview() {
       startSongPractice();
     }
     if (event.target.id === "rhythmToggle") toggleRhythm();
+    if (event.target.id === "rhythmTap") recordRhythmTap();
     if (event.target.id === "rhythmComplete") completeRhythm();
     if (event.target.id === "rhythmReset") resetRhythm();
     if (event.target.id === "rhythmSound") {
@@ -3328,7 +3389,8 @@ function bindEnhancedPreview() {
       clearInterval(rhythmState.timer);
       if (rhythmState.running) {
         const pattern = rhythmPatterns[rhythmState.pattern];
-        rhythmState.timer = setInterval(tickRhythm, (60000 / pattern.bpm) * (4 / pattern.beats.length));
+        rhythmState.startedAt = Date.now();
+        rhythmState.timer = setInterval(tickRhythm, rhythmStepDuration(pattern));
       }
       renderRhythm();
     }
@@ -3337,7 +3399,8 @@ function bindEnhancedPreview() {
       clearInterval(rhythmState.timer);
       if (rhythmState.running) {
         const pattern = rhythmPatterns[rhythmState.pattern];
-        rhythmState.timer = setInterval(tickRhythm, (60000 / pattern.bpm) * (4 / pattern.beats.length));
+        rhythmState.startedAt = Date.now();
+        rhythmState.timer = setInterval(tickRhythm, rhythmStepDuration(pattern));
       }
       renderRhythm();
     }
@@ -3347,7 +3410,10 @@ function bindEnhancedPreview() {
       clearInterval(rhythmState.timer);
       rhythmState.beat = 0;
       rhythmState.bars = 0;
-      rhythmState.score = 62;
+      rhythmState.score = 0;
+      rhythmState.startedAt = 0;
+      rhythmState.taps = [];
+      rhythmState.feedback = "点击开始后，用“记录扫弦”获得反馈";
       renderRhythm();
     }
     if (event.target.id === "transitionToggle") toggleTransition();
