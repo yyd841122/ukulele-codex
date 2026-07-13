@@ -644,6 +644,147 @@
   .course-meta { display: flex; align-items: center; gap: 10px; margin-top: 8px; color: var(--text-3); font-size: 11px; }
   .mini-progress { width: 62px; height: 6px; overflow: hidden; border-radius: 999px; background: #F3F4F6; }
   .mini-progress i { display: block; height: 100%; border-radius: 999px; background: var(--grad); }
+  .learn-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 0 16px 10px;
+  }
+  .learn-summary-card {
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: rgba(255,255,255,.86);
+    box-shadow: var(--shadow);
+  }
+  .learn-summary-card span {
+    display: block;
+    color: var(--text-3);
+    font-size: 10px;
+    font-weight: 800;
+  }
+  .learn-summary-card b {
+    display: block;
+    margin-top: 4px;
+    color: var(--teal);
+    font-size: 18px;
+    line-height: 1;
+  }
+  .learn-current-card {
+    display: grid;
+    grid-template-columns: 52px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    margin: 0 16px 10px;
+    padding: 12px;
+    text-align: left;
+    border: 1px solid rgba(255,138,61,.25);
+    border-radius: 18px;
+    background: linear-gradient(135deg,#FFF7ED,#FFFFFF);
+    box-shadow: var(--shadow);
+  }
+  .learn-current-icon {
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    background: #FFE4D6;
+    font-size: 26px;
+  }
+  .learn-current-card small,
+  .learn-path-node small,
+  .learn-topic-card small {
+    display: block;
+    color: var(--text-2);
+    font-size: 11px;
+    line-height: 1.35;
+  }
+  .learn-current-card b {
+    display: block;
+    margin: 2px 0 4px;
+    color: var(--text);
+    font-size: 15px;
+  }
+  .learn-current-action {
+    padding: 8px 10px;
+    border-radius: 999px;
+    color: #fff;
+    background: var(--teal);
+    font-size: 11px;
+    font-weight: 900;
+  }
+  .learn-path-map {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0 16px 10px;
+  }
+  .learn-path-node {
+    min-height: 86px;
+    padding: 9px 6px;
+    border: 1px solid var(--line);
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+  .learn-path-dot {
+    width: 25px;
+    height: 25px;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 6px;
+    border-radius: 999px;
+    color: #fff;
+    background: #CBD5E1;
+    font-size: 11px;
+    font-weight: 900;
+  }
+  .learn-path-node.done .learn-path-dot { background: #16A34A; }
+  .learn-path-node.current {
+    border-color: rgba(255,138,61,.52);
+    background: #FFF7ED;
+  }
+  .learn-path-node.current .learn-path-dot { background: var(--orange); }
+  .learn-path-node b {
+    display: block;
+    color: var(--text);
+    font-size: 11px;
+    line-height: 1.25;
+  }
+  .learn-topic-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin: 0 16px 2px;
+  }
+  .learn-topic-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    text-align: left;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: rgba(255,255,255,.9);
+    box-shadow: var(--shadow);
+  }
+  .learn-topic-icon {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 12px;
+    background: #E6F6F2;
+    font-size: 18px;
+  }
+  .learn-topic-card b {
+    display: block;
+    color: var(--text);
+    font-size: 13px;
+  }
   .practice-hero { padding: 14px 16px 60px; color: #fff; background: var(--grad); }
   .practice-hero h1 { font-size: 20px; }
   .practice-hero p { margin-top: 4px; font-size: 13px; opacity: .9; }
@@ -2336,6 +2477,10 @@
 
       <section class="page" id="page-learn">
         <div class="hero tight"><div class="eyebrow">🎓 互动课程</div><h1>从零开始弹唱第一首歌</h1><p>按调音、节奏、换和弦、歌曲片段逐步推进。</p></div>
+        <div class="learn-summary-grid" id="learnSummary"></div>
+        <div id="learnCurrent"></div>
+        <div class="learn-path-map" id="learnPathMap"></div>
+        <div class="learn-topic-grid" id="learnTopics"></div>
         <div class="course-tabs"><button class="pill-tab active">必修</button><button class="pill-tab">选修</button><button class="pill-tab">Pro</button></div>
         <div id="courseList"></div>
       </section>
@@ -2779,6 +2924,12 @@ const homeHotSongs = [
   { title: "四和弦海风", diff: "入门", bpm: 70, chords: "C Am F G7", minutes: 8 },
   { title: "晚安分解练习", diff: "入门", bpm: 60, chords: "C G Am F", minutes: 6 },
   { title: "小岛下扫歌", diff: "进阶", bpm: 85, chords: "F G7 C", minutes: 10 }
+];
+const learnTopics = [
+  { icon: "🎙️", title: "调音基础", detail: "先把 G-C-E-A 调准", open: "tuner" },
+  { icon: "🥁", title: "节奏型", detail: "从下扫四拍开始", open: "rhythm" },
+  { icon: "🔁", title: "和弦转换", detail: "C-Am-F-G7 循环", open: "transition" },
+  { icon: "🎵", title: "歌曲片段", detail: "从第一首歌进入", tab: "songs" }
 ];
 function renderHomeStaticFallback() {
   $("#homeCheckinGrid").innerHTML = homeCheckinDays.map(minutes => {
@@ -3443,6 +3594,48 @@ function nextRequiredCourse() {
     .sort((a, b) => a.order - b.order);
   return required.find(course => course.progress < 100) || required[required.length - 1];
 }
+function renderLearnDashboard() {
+  const summary = $("#learnSummary");
+  const currentNode = $("#learnCurrent");
+  const pathMap = $("#learnPathMap");
+  const topics = $("#learnTopics");
+  if (!summary || !currentNode || !pathMap || !topics) return;
+  const required = allCourses()
+    .filter(course => course.type === "required")
+    .sort((a, b) => a.order - b.order);
+  const doneCount = required.filter(course => course.progress >= 100).length;
+  const totalProgress = Math.round(required.reduce((sum, course) => sum + Math.min(course.progress, 100), 0) / Math.max(1, required.length));
+  const current = nextRequiredCourse();
+  summary.innerHTML = [
+    ["必修进度", `${totalProgress}%`],
+    ["已完成", `${doneCount}/${required.length}`],
+    ["当前课", `第 ${current.order} 课`]
+  ].map(([label, value]) => `<div class="learn-summary-card"><span>${label}</span><b>${value}</b></div>`).join("");
+  currentNode.innerHTML = `<button class="learn-current-card clickable" data-course="${current.order}">
+    <span class="learn-current-icon">${current.emoji}</span>
+    <span>
+      <small>下一步 · ${courseMeta(current)}</small>
+      <b>${current.title}</b>
+      <small>${current.subtitle}</small>
+    </span>
+    <span class="learn-current-action">${courseActionText(current)}</span>
+  </button>`;
+  pathMap.innerHTML = required.map(course => {
+    const state = course.order === current.order && course.progress < 100 ? "current" : courseState(course);
+    return `<button class="learn-path-node clickable ${state}" data-course="${course.order}">
+      <span class="learn-path-dot">${course.progress >= 100 ? "✓" : course.order}</span>
+      <b>${course.title.replace(/^第.+?课[：: ]*/, "")}</b>
+      <small>${course.progress}%</small>
+    </button>`;
+  }).join("");
+  topics.innerHTML = learnTopics.map(topic => {
+    const nav = topic.open ? `data-open="${topic.open}"` : `data-tab-go="${topic.tab}"`;
+    return `<button class="learn-topic-card clickable" ${nav}>
+      <span class="learn-topic-icon">${topic.icon}</span>
+      <span><b>${topic.title}</b><small>${topic.detail}</small></span>
+    </button>`;
+  }).join("");
+}
 function nextRequiredCourseAfter(order) {
   return allCourses()
     .filter(course => course.type === "required" && course.access === "free" && course.order > Number(order))
@@ -4065,6 +4258,7 @@ function renderHome() {
 }
 function renderCourses() {
   setupEnhancedPreview();
+  renderLearnDashboard();
   const visible = allCourses().filter(course => course.type === activeCourseTab);
   $("#courseList").innerHTML = visible.map(course => {
     const state = courseState(course);
