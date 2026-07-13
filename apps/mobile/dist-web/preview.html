@@ -1044,6 +1044,101 @@
   }
   .badge.lock .medal { color: var(--text-3); background: #E5E7EB; filter: grayscale(1); }
   .badge small { display: block; margin-top: 4px; color: var(--text-2); font-size: 11px; }
+  .me-progress-card {
+    margin: 12px 16px 10px;
+    padding: 14px;
+  }
+  .me-progress-head,
+  .me-advice-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .me-progress-head b,
+  .me-advice-card b {
+    display: block;
+    color: var(--text);
+    font-size: 15px;
+  }
+  .me-progress-head small,
+  .me-advice-card small,
+  .me-score-card span {
+    display: block;
+    color: var(--text-2);
+    font-size: 11px;
+    line-height: 1.4;
+  }
+  .me-progress-pill {
+    padding: 5px 9px;
+    border-radius: 999px;
+    color: #0F766E;
+    background: #DDF8EE;
+    font-size: 11px;
+    font-weight: 900;
+  }
+  .me-course-strip {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    margin-top: 12px;
+  }
+  .me-course-step {
+    height: 8px;
+    border-radius: 999px;
+    background: #E5E7EB;
+  }
+  .me-course-step.done { background: #16A34A; }
+  .me-course-step.current { background: var(--orange); }
+  .me-score-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 0 16px 10px;
+  }
+  .me-score-card {
+    padding: 12px 8px;
+    text-align: center;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: rgba(255,255,255,.92);
+    box-shadow: var(--shadow);
+  }
+  .me-score-card b {
+    display: block;
+    color: var(--teal);
+    font-size: 20px;
+    line-height: 1;
+  }
+  .me-advice-card {
+    width: calc(100% - 32px);
+    margin: 0 16px 10px;
+    padding: 13px 14px;
+    text-align: left;
+  }
+  .me-advice-arrow {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    color: #fff;
+    background: var(--teal);
+    font-weight: 900;
+  }
+  .filter.tiny {
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    box-shadow: none;
+  }
+  #recentSessions .segment-item {
+    margin-bottom: 8px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #fff;
+  }
   .sheet {
     position: absolute;
     inset: 0;
@@ -2549,8 +2644,12 @@
       <section class="page" id="page-me">
         <div class="me-hero"><div class="avatar">🧑</div><h1>尤克里里练习生</h1><div class="level">Lv.4 · 海岛节奏</div><div class="exp"><i></i></div></div>
         <div class="stat-grid"><div class="stat card"><div class="n">7</div><div class="l">连续天数</div></div><div class="stat card"><div class="n">126</div><div class="l">练习分钟</div></div><div class="stat card"><div class="n">8</div><div class="l">掌握和弦</div></div></div>
+        <div class="me-progress-card card" id="meProgress"></div>
+        <div class="me-score-grid" id="meScores"></div>
+        <button class="me-advice-card card clickable" id="meAdvice" data-tab-go="learn"></button>
         <div class="calendar card"><div class="calendar-head"><b>打卡日历</b><span>本月 21 天</span></div><div class="cal-grid" id="calendar"></div></div>
-        <div class="achievements"><div class="section-title" style="margin-left:0;margin-right:0"><h2>成就墙</h2><span>7/18</span></div><div class="achievement-row" id="badges"></div></div>
+        <div class="achievements"><div class="section-title" style="margin-left:0;margin-right:0"><h2>成就墙</h2><span id="badgeCount">7/18</span></div><div class="achievement-row" id="badges"></div></div>
+        <div class="achievements" id="recentSessionsWrap"><div class="section-title" style="margin-left:0;margin-right:0"><h2>最近练习</h2><button class="filter tiny" id="clearSessions">清空</button></div><div class="segment-list" id="recentSessions"></div></div>
       </section>
     </main>
 
@@ -4318,16 +4417,51 @@ function renderMe() {
   if (stats) {
     stats.innerHTML = `<div class="stat card"><div class="n">${appState.streak}</div><div class="l">连续天数</div></div><div class="stat card"><div class="n">${appState.todayMinutes}</div><div class="l">练习分钟</div></div><div class="stat card"><div class="n">${appState.masteredChords}</div><div class="l">掌握和弦</div></div>`;
   }
+  const sessions = appState.sessions.map(normalizeSession);
+  const scores = sessions.map(item => Number(item.score || 0)).filter(Boolean);
+  const bestScore = Math.max(appState.lastScore || 0, ...scores);
+  const required = allCourses().filter(course => course.type === "required").sort((a, b) => a.order - b.order);
+  const doneCount = required.filter(course => course.progress >= 100).length;
+  const totalProgress = Math.round(required.reduce((sum, course) => sum + Math.min(course.progress, 100), 0) / Math.max(1, required.length));
+  const currentCourse = nextRequiredCourse();
+  const progressCard = $("#meProgress");
+  if (progressCard) {
+    progressCard.innerHTML = `<div class="me-progress-head">
+      <span><b>第一课路径</b><small>${doneCount}/${required.length} 个必修节点完成 · 当前第 ${currentCourse.order} 课</small></span>
+      <span class="me-progress-pill">${totalProgress}%</span>
+    </div>
+    <div class="mini-progress" style="width:100%;margin-top:12px"><i style="width:${totalProgress}%"></i></div>
+    <div class="me-course-strip">${required.map(course => {
+      const state = course.progress >= 100 ? "done" : course.order === currentCourse.order ? "current" : "";
+      return `<span class="me-course-step ${state}" title="${course.title}"></span>`;
+    }).join("")}</div>`;
+  }
+  const scoreGrid = $("#meScores");
+  if (scoreGrid) {
+    scoreGrid.innerHTML = [
+      ["最近得分", appState.lastScore || "--"],
+      ["最高分", bestScore || "--"],
+      ["练习次数", sessions.length]
+    ].map(([label, value]) => `<div class="me-score-card"><b>${value}</b><span>${label}</span></div>`).join("");
+  }
+  const advice = $("#meAdvice");
+  if (advice) {
+    const adviceText = totalProgress >= 100
+      ? "第一课路径已完成，可以去曲谱库挑一首歌继续跟弹。"
+      : `${courseActionText(currentCourse)} · ${currentCourse.subtitle}`;
+    advice.innerHTML = `<span><b>下一步建议</b><small>${adviceText}</small></span><span class="me-advice-arrow">›</span>`;
+  }
   const pattern = [1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,0,1,1,0,1];
   $("#calendar").innerHTML = pattern.map((on, i) => `<span class="cal-day ${on ? "on" : ""} ${i === 26 ? "today" : ""}">${i + 1}</span>`).join("");
-  const badges = [["🔥","连续7天",1],["🎼","掌握8和弦",1],["🥁","节奏70分",appState.lastScore >= 70],["🎤","首段跟弹",appState.sessions.some(item => item.type === "跟弹")],["🏆","连续30天",0],["⭐","满分曲目",0]];
+  const badges = [["🔥","连续7天",1],["🎼","掌握8和弦",1],["🥁","节奏70分",bestScore >= 70],["🎤","首段跟弹",sessions.some(item => item.type === "跟弹")],["🏆","连续30天",0],["⭐","满分曲目",bestScore >= 95]];
   $("#badges").innerHTML = badges.map(([emoji, label, on]) => `<div class="badge ${on ? "" : "lock"}"><div class="medal">${emoji}</div><small>${label}</small></div>`).join("");
+  const badgeCount = $("#badgeCount");
+  if (badgeCount) badgeCount.textContent = `${badges.filter(item => item[2]).length}/${badges.length}`;
   const hero = document.querySelector("#page-me .me-hero .level");
   if (hero) hero.textContent = `Lv.4 · 最近得分 ${appState.lastScore}`;
   const recent = $("#recentSessions");
   if (recent) {
-    recent.innerHTML = appState.sessions.map((rawItem, index) => {
-      const item = normalizeSession(rawItem);
+    recent.innerHTML = sessions.map((item, index) => {
       return `<div class="segment-item"><span class="segment-index">${index + 1}</span><b>${item.type} · ${item.title}</b><small>${item.contentLabel} · ${item.completedCount}/${item.totalSteps} · ${item.at} · ${item.minutes} 分钟 · ${item.score} 分</small></div>`;
     }).join("") || `<div class="empty-state">完成一次练习后，这里会出现本地记录。</div>`;
   }
@@ -4462,6 +4596,13 @@ function bindEnhancedPreview() {
       renderHome();
       renderMe();
       toast("今日打卡完成");
+    }
+    if (event.target.id === "clearSessions") {
+      appState.sessions = [];
+      saveAppState();
+      renderMe();
+      renderHome();
+      toast("最近练习已清空");
     }
     if (course) openCourse(course.dataset.course);
     if (practiceTemplate) openPracticeTemplate(practiceTemplate.dataset.practiceTemplate);
