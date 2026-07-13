@@ -26,6 +26,8 @@
 - 必修路径当前节点和课程列表当前节点一致。
 - 点击路径节点能打开课程详情。
 - 点击“节奏型 / 和弦转换 / 歌曲片段”主题入口能进入对应练习或页面。
+- Expo App 学习页消费 `practiceContent.courses` 和 `buildMvpCourseProgressPath`，而不是写死静态知识卡。
+- Expo App 学习页课程主按钮复用根组件 `openCourse`：调音课进入调音器，练习课进入对应 PracticeRunner，歌曲课进入曲谱页。
 - `npm.cmd test`、`npx.cmd tsc -p apps/mobile --noEmit`、preview script syntax、`git diff --check` 通过。
 
 ## 后续迭代

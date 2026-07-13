@@ -1050,6 +1050,14 @@ export default function App() {
     () => evaluateLocalLessonPathProgress(practiceHistory, practiceMilestone),
     [practiceHistory, practiceMilestone]
   );
+  const coursePathsByFilter = useMemo<Record<CourseFilter, CoursePathItem[]>>(
+    () => ({
+      required: buildCoursePath(practiceHistory, "required"),
+      optional: buildCoursePath(practiceHistory, "optional"),
+      pro: buildCoursePath(practiceHistory, "pro")
+    }),
+    [practiceHistory]
+  );
   const activePracticeRunnerTemplate = getPracticeTemplateById(practiceLaunchConfig?.templateId);
   const fixedScreen = activeTab === "home" || activeTab === "practice" || (activeTab === "practiceRunner" && activePracticeRunnerTemplate.type === "rhythm_pattern");
 
@@ -1207,7 +1215,15 @@ export default function App() {
           <PracticeScreen launchConfig={practiceLaunchConfig} onPracticeRecord={handlePracticeRecord} />
         )}
         {activeTab === "songs" && <SongsScreen onStartSongPractice={startPracticeTemplate} />}
-        {activeTab === "learn" && <LearnScreen />}
+        {activeTab === "learn" && (
+          <LearnScreen
+            coursePathsByFilter={coursePathsByFilter}
+            onOpenCourse={openCourse}
+            onOpenSongs={() => setActiveTab("songs")}
+            onOpenTuner={() => setActiveTab("tuner")}
+            onStartPracticeTemplate={startPracticeTemplate}
+          />
+        )}
         {activeTab === "me" && (
           <ProfileScreen
             latestPracticeSummary={latestPracticeSummary}
@@ -1972,28 +1988,138 @@ function ChordScreen() {
   );
 }
 
-function LearnScreen() {
-  const topics = [
-    { title: "认识四根弦", detail: "G C E A 的顺序、音高和空弦发声。" },
-    { title: "怎么看和弦图", detail: "从上到下看品格，从左到右看 G C E A。" },
-    { title: "右手节奏", detail: "先练第一拍重音，再保持轻拍稳定。" }
+function LearnScreen({
+  coursePathsByFilter,
+  onOpenCourse,
+  onOpenSongs,
+  onOpenTuner,
+  onStartPracticeTemplate
+}: {
+  coursePathsByFilter: Record<CourseFilter, CoursePathItem[]>;
+  onOpenCourse: (courseId: string) => void;
+  onOpenSongs: () => void;
+  onOpenTuner: () => void;
+  onStartPracticeTemplate: (templateId: string) => void;
+}) {
+  const [activeFilter, setActiveFilter] = useState<CourseFilter>("required");
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const pathItems = coursePathsByFilter[activeFilter] ?? [];
+  const currentPathItem =
+    pathItems.find((item) => item.status === "current") ??
+    pathItems.find((item) => item.status !== "done") ??
+    pathItems[pathItems.length - 1];
+  const selectedPathItem = pathItems.find((item) => item.id === selectedCourseId) ?? currentPathItem;
+  const selectedCourse = practiceContent.courses.find((course) => course.id === selectedPathItem?.id) ?? null;
+  const selectedIndex = selectedPathItem ? pathItems.findIndex((item) => item.id === selectedPathItem.id) : -1;
+  const nextPathItem = selectedIndex >= 0 ? pathItems[selectedIndex + 1] ?? null : null;
+  const completedCount = pathItems.filter((item) => item.status === "done").length;
+  const totalProgress = pathItems.length === 0
+    ? 0
+    : Math.round(pathItems.reduce((sum, item) => sum + Math.min(item.progress, 100), 0) / pathItems.length);
+  const topicEntrances = [
+    { title: "调音基础", detail: "先把 G-C-E-A 调准", icon: "🎙️", action: onOpenTuner },
+    { title: "节奏型", detail: "从下扫四拍开始", icon: "🥁", action: () => onStartPracticeTemplate("practice-rhythm-down-four") },
+    { title: "和弦转换", detail: "C-Am-F-G7 循环", icon: "🔁", action: () => onStartPracticeTemplate("practice-c-am-f-g7-loop") },
+    { title: "歌曲片段", detail: "从曲谱库进入第一首歌", icon: "🎵", action: onOpenSongs }
   ];
 
   return (
     <View style={styles.stack}>
-      <SectionTitle title="学习" detail="图文基础知识 · 后续展开" />
+      <SectionTitle title="学习" detail="从调音到第一首弹唱" />
       <View style={styles.learnHero}>
-        <Text style={styles.learnHeroTitle}>先看懂，再开练</Text>
+        <Text style={styles.learnHeroTitle}>从零开始弹唱第一首歌</Text>
         <Text style={styles.learnHeroCopy}>
-          学习页后续会用图文解释调音、指法、节拍和弹唱技巧，并跳转到对应练习。
+          按调音、节奏型、和弦转换、歌曲片段逐步推进，每节课都连接到对应练习。
         </Text>
-      </View>
-      {topics.map((topic) => (
-        <View key={topic.title} style={styles.learnTopicCard}>
-          <Text style={styles.learnTopicTitle}>{topic.title}</Text>
-          <Text style={styles.learnTopicDetail}>{topic.detail}</Text>
+        <View style={styles.learnSummaryGrid}>
+          <ScoreBox label="路径进度" value={`${totalProgress}%`} />
+          <ScoreBox label="已完成" value={`${completedCount}/${pathItems.length}`} />
+          <ScoreBox label="当前课" value={selectedCourse ? `第 ${selectedCourse.order} 课` : "--"} />
         </View>
-      ))}
+      </View>
+
+      <View style={styles.courseFilterRow}>
+        {courseFilters.map((filter) => {
+          const selected = filter.id === activeFilter;
+          return (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              key={filter.id}
+              onPress={() => {
+                setActiveFilter(filter.id);
+                setSelectedCourseId(null);
+              }}
+              style={[styles.courseFilterButton, selected && styles.courseFilterButtonActive]}
+            >
+              <Text style={[styles.courseFilterText, selected && styles.courseFilterTextActive]}>{filter.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View style={styles.lessonPathPanel}>
+        {pathItems.map((item, index) => {
+          const selected = selectedPathItem?.id === item.id;
+          const done = item.status === "done";
+          const current = item.status === "current";
+          const locked = item.status === "locked";
+          return (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              key={item.id}
+              onPress={() => setSelectedCourseId(item.id)}
+              style={[styles.lessonPathNodeWrap, selected && styles.lessonPathNodeSelected]}
+            >
+              <View
+                style={[
+                  styles.lessonPathDot,
+                  done && styles.lessonPathDotDone,
+                  current && styles.lessonPathDotCurrent,
+                  locked && styles.lessonPathDotLocked
+                ]}
+              >
+                <Text style={[styles.lessonPathDotText, (done || current) && styles.lessonPathDotTextActive]}>
+                  {done ? "✓" : index + 1}
+                </Text>
+              </View>
+              <Text style={styles.lessonPathTitle} numberOfLines={2}>{item.title}</Text>
+              <Text style={[styles.lessonPathStatus, done && styles.lessonPathStatusDone]}>
+                {getCoursePathStatusText(item.status)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {selectedCourse && selectedPathItem ? (
+        <CourseDetailPanel
+          course={selectedCourse}
+          nextPathItem={nextPathItem}
+          onOpenCourse={() => onOpenCourse(selectedCourse.id)}
+          onOpenNextCourse={nextPathItem ? () => setSelectedCourseId(nextPathItem.id) : undefined}
+          onStartPracticeTemplate={onStartPracticeTemplate}
+          pathItem={selectedPathItem}
+        />
+      ) : (
+        <View style={styles.emptyPanel}>
+          <Text style={styles.historyEmpty}>这个分类暂时没有课程。</Text>
+        </View>
+      )}
+
+      <SectionTitle title="专项入口" detail="按当前目标直接开练" />
+      <View style={styles.learnTopicGrid}>
+        {topicEntrances.map((topic) => (
+          <Pressable accessibilityRole="button" key={topic.title} onPress={topic.action} style={styles.learnTopicCard}>
+            <Text style={styles.learnTopicIcon}>{topic.icon}</Text>
+            <View style={styles.learnTopicCopy}>
+              <Text style={styles.learnTopicTitle}>{topic.title}</Text>
+              <Text style={styles.learnTopicDetail}>{topic.detail}</Text>
+            </View>
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
 }
@@ -4602,12 +4728,36 @@ const styles = StyleSheet.create({
     color: "#64748B",
     lineHeight: 20
   },
+  learnSummaryGrid: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 14
+  },
+  learnTopicGrid: {
+    gap: 10
+  },
   learnTopicCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
     borderRadius: 12,
     padding: 14,
     backgroundColor: "#FFFDF8",
     borderWidth: 1,
     borderColor: colors.line
+  },
+  learnTopicIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    overflow: "hidden",
+    textAlign: "center",
+    textAlignVertical: "center",
+    backgroundColor: "#E6F7F4",
+    fontSize: 19
+  },
+  learnTopicCopy: {
+    flex: 1
   },
   learnTopicTitle: {
     color: colors.forest,
