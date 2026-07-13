@@ -1213,6 +1213,169 @@
     outline: 1px solid var(--green);
   }
   .rhythm-feedback { color: var(--teal); font-size: 12px; line-height: 1.35; font-weight: 900; }
+  #transition { overflow: hidden; }
+  #transition .sheet-head { padding: 10px 16px 12px; }
+  #transition .sheet-head .back { margin-bottom: 2px; }
+  #transition .sheet-head p { display: none; }
+  .transition-page {
+    padding: 10px 14px;
+    display: grid;
+    gap: 8px;
+  }
+  .transition-runner {
+    padding: 10px;
+    display: grid;
+    gap: 8px;
+  }
+  .transition-pair-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .transition-pair-tab {
+    min-height: 38px;
+    border-radius: 10px;
+    background: #EEE8DC;
+    color: var(--text-2);
+    font-size: 11px;
+    font-weight: 950;
+  }
+  .transition-pair-tab.active {
+    color: #FFF8EC;
+    background: var(--teal);
+  }
+  .transition-runner .focus-chord-panel {
+    margin: 0;
+    padding: 8px;
+    border-radius: 12px;
+  }
+  .transition-runner .focus-chord-head {
+    margin-bottom: 6px;
+    font-size: 11px;
+  }
+  .transition-runner .focus-chord-grid {
+    gap: 7px;
+  }
+  .transition-runner .focus-chord-card {
+    padding: 7px;
+    border-radius: 12px;
+  }
+  .transition-runner .focus-chord-card .role {
+    margin-bottom: 4px;
+    font-size: 10px;
+  }
+  .transition-runner .focus-chord-card .name {
+    margin-top: 4px;
+    font-size: 17px;
+  }
+  .transition-runner .focus-chord-card .fret-diagram {
+    width: 68px;
+    height: 96px;
+  }
+  .transition-cue-card {
+    display: grid;
+    grid-template-columns: 78px 1fr;
+    gap: 10px;
+    align-items: center;
+    padding: 9px 10px;
+    border-radius: 14px;
+    background: #F8F3EA;
+  }
+  .transition-cue-card b {
+    color: var(--teal);
+    font-size: 34px;
+    line-height: 1;
+    text-align: center;
+  }
+  .transition-cue-card span {
+    display: block;
+    color: var(--text-1);
+    font-size: 14px;
+    font-weight: 950;
+  }
+  .transition-cue-card small {
+    display: block;
+    margin-top: 3px;
+    color: var(--text-2);
+    font-size: 11px;
+    line-height: 1.35;
+    font-weight: 800;
+  }
+  .transition-beat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .transition-beat {
+    min-height: 46px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    background: #EEE8DC;
+    color: var(--text-2);
+    font-size: 11px;
+    font-weight: 900;
+  }
+  .transition-beat b {
+    display: block;
+    color: var(--text-1);
+    font-size: 15px;
+  }
+  .transition-beat.active {
+    background: #DDF5E9;
+    outline: 2px solid var(--green);
+    color: var(--teal);
+  }
+  .transition-beat.switch {
+    background: #FFF1E6;
+  }
+  .transition-controls {
+    display: grid;
+    grid-template-columns: 1fr 86px 1fr;
+    gap: 8px;
+    align-items: center;
+  }
+  .transition-controls.two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .transition-controls .primary { min-height: 42px; font-size: 15px; }
+  .transition-controls .ghost { min-height: 38px; }
+  .transition-bpm-badge {
+    min-height: 40px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    background: #FFFDF8;
+    color: var(--teal);
+    font-size: 22px;
+    font-weight: 950;
+  }
+  .transition-bpm-badge small { display: block; color: var(--text-2); font-size: 10px; line-height: 1; }
+  .transition-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .transition-stat {
+    padding: 7px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: #FFFDF8;
+    text-align: center;
+  }
+  .transition-stat b { display: block; color: var(--teal); font-size: 18px; }
+  .transition-stat small { color: var(--text-2); font-weight: 850; }
+  .transition-feedback {
+    min-height: 34px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    color: var(--teal);
+    background: #DDF5E9;
+    font-size: 12px;
+    line-height: 1.35;
+    font-weight: 900;
+  }
   .metro-page {
     overflow: hidden;
     color: var(--text-1);
@@ -2598,7 +2761,8 @@ const transitionPairs = [
 const followChords = ["C", "Am", "F", "G7"];
 const rhythmAutoOffsets = [-28, 42, 18, -64, 75, 8, -35, 55];
 const rhythmState = { pattern: 0, beat: 0, bars: 0, running: false, timer: null, score: 0, sound: true, startedAt: 0, taps: [], feedback: "点击开始后自动记录扫弦节奏，结束后生成评分" };
-const transitionState = { index: 0, reps: 0, running: false, timer: null, score: 58 };
+const transitionAutoOffsets = [-44, 32, 18, 86, -72, 12, 48, -26];
+const transitionState = { index: 0, beat: 0, reps: 0, stable: 0, running: false, timer: null, bpm: 60, score: 0, scores: [], feedback: "点击开始后，第 4 拍会自动记录一次换指尝试。" };
 const followState = { beat: 0, bars: 0, running: false, timer: null, score: 60 };
 function saveAppState() {
   localStorage.setItem("ukulelePreviewState", JSON.stringify(appState));
@@ -2834,7 +2998,7 @@ function openPracticeTemplate(templateId) {
   if (template.sheet === "transition") {
     transitionState.index = template.id === "practice-transition-c-am" ? 0 : transitionState.index;
     openSheet("transition");
-    renderTransition();
+    resetTransitionStats(true);
     return;
   }
   if (template.sheet === "follow") {
@@ -2922,7 +3086,7 @@ function setupPracticeSheets() {
   }
   const transition = $("#transition");
   if (transition) {
-    transition.innerHTML = `<div class="sheet-head"><button class="back" data-close="transition">‹</button><h2>和弦转换</h2><p>两个和弦一组，练稳后再进入歌曲。</p></div><div class="tool-screen"><div class="tool-panel card"><div class="module-row"><h3 id="transitionTitle">C → Am</h3><b id="transitionReps">0 次</b></div><p class="module-note" id="transitionTip"></p><div id="transitionChordFocus"></div><div class="target-insight" id="transitionInsight"></div><div class="segment-list" id="transitionList"></div><div class="module-row"><button class="mini-button" id="transitionNext">下一组</button><button class="mini-button" id="transitionComplete">完成本组</button></div><button class="primary" id="transitionToggle" style="width:100%;margin-top:10px">开始转换练习</button></div><div class="tool-panel card"><div class="module-row"><b>转换稳定度</b><span id="transitionScore">58</span></div><div class="score-bars" id="transitionScoreBars"></div></div></div>`;
+    transition.innerHTML = `<div class="sheet-head"><button class="back" data-close="transition">‹</button><h2>和弦转换</h2><p>两个和弦一组，练稳后再进入歌曲。</p></div><div class="transition-page"><div class="transition-runner card"><div class="module-row"><div><small class="eyebrow">当前转换</small><h3 id="transitionTitle">C → Am</h3></div><b id="transitionStateLabel">待开始</b></div><div class="transition-pair-tabs" id="transitionList"></div><div id="transitionChordFocus"></div><div class="transition-cue-card"><b id="transitionCueChord">C</b><div><span id="transitionCueTitle">稳住起始和弦</span><small id="transitionTip">保留手型，只移动到 G 弦 2 品。</small></div></div><div class="transition-beat-grid" id="transitionBeats"></div><div class="transition-controls"><button class="ghost" id="transitionBpmDown">-5</button><div class="transition-bpm-badge"><span id="transitionBpm">60</span><small>BPM</small></div><button class="ghost" id="transitionBpmUp">+5</button></div><div class="transition-controls two"><button class="ghost" id="transitionNext">下一组</button><button class="primary" id="transitionToggle">开始</button></div><div class="transition-stats"><div class="transition-stat"><small>尝试</small><b id="transitionReps">0</b></div><div class="transition-stat"><small>稳定</small><b id="transitionStable">0</b></div><div class="transition-stat"><small>分数</small><b id="transitionScore">--</b></div></div><div class="transition-feedback" id="transitionFeedback">点击开始后，第 4 拍会自动记录一次换指尝试。</div><div class="transition-controls two"><button class="ghost" id="transitionReset">重置</button><button class="ghost" id="transitionComplete">完成本组</button></div></div></div>`;
   }
   const follow = $("#follow");
   if (follow) {
@@ -3055,53 +3219,101 @@ function completeRhythm() {
   renderRhythm();
   advanceAfterPracticeComplete("rhythm", courseOrder, averageScore);
 }
+function transitionAverageScore() {
+  if (!transitionState.scores.length) return "--";
+  return Math.round(transitionState.scores.reduce((sum, item) => sum + item.score, 0) / transitionState.scores.length);
+}
+function transitionScoreValue() {
+  const average = transitionAverageScore();
+  return average === "--" ? 0 : Number(average);
+}
+function transitionFeedbackText(score, offsetMs) {
+  const abs = Math.abs(Math.round(offsetMs));
+  if (abs <= 60) return `准时换指 · ${score} 分 · 偏差 ${abs}ms`;
+  if (offsetMs < 0) return `偏早换指 ${abs}ms · ${score} 分，先听稳第 3 拍再动。`;
+  return `偏晚换指 ${abs}ms · ${score} 分，目标手指要提前准备。`;
+}
+function recordTransitionAttempt() {
+  const offset = transitionAutoOffsets[transitionState.scores.length % transitionAutoOffsets.length];
+  const score = scoreRhythmOffset(offset);
+  transitionState.reps += 1;
+  if (score >= 70) transitionState.stable += 1;
+  transitionState.scores.push({ score, offset });
+  transitionState.score = transitionScoreValue();
+  transitionState.feedback = transitionFeedbackText(score, offset);
+  if (transitionState.reps > 0 && transitionState.reps % 4 === 0) {
+    transitionState.index = (transitionState.index + 1) % transitionPairs.length;
+  }
+}
 function renderTransition() {
   const pair = transitionPairs[transitionState.index];
-  const template = transitionState.index === 0
-    ? templateById("practice-transition-c-am")
-    : templateById("practice-c-am-f-g7-loop");
-  const activeTargetIndex = template?.id === "practice-transition-c-am"
-    ? Math.min(1, transitionState.reps % 2)
-    : transitionState.index % (template?.targets.length || 1);
+  const activeTargetIndex = transitionState.beat === 3 ? 1 : 0;
+  const cueTitles = [
+    `稳住 ${pair.from}`,
+    "保持手型",
+    `提前准备 ${pair.to}`,
+    `换到 ${pair.to}`
+  ];
   $("#transitionTitle").textContent = `${pair.from} → ${pair.to}`;
+  $("#transitionStateLabel").textContent = transitionState.running ? "进行中" : "待开始";
   $("#transitionTip").textContent = pair.tip;
-  $("#transitionReps").textContent = `${transitionState.reps} 次`;
-  $("#transitionScore").textContent = transitionState.score;
-  $("#transitionToggle").textContent = transitionState.running ? "暂停转换练习" : "开始转换练习";
+  $("#transitionCueChord").textContent = transitionState.beat === 3 ? pair.to : pair.from;
+  $("#transitionCueTitle").textContent = cueTitles[transitionState.beat] || cueTitles[0];
+  $("#transitionReps").textContent = transitionState.reps;
+  $("#transitionStable").textContent = transitionState.stable;
+  $("#transitionScore").textContent = transitionAverageScore();
+  $("#transitionBpm").textContent = transitionState.bpm;
+  $("#transitionFeedback").textContent = transitionState.feedback;
+  $("#transitionToggle").textContent = transitionState.running ? "暂停" : "开始";
   $("#transitionChordFocus").innerHTML = renderTransitionChordFocus(pair, activeTargetIndex === 0 ? pair.from : pair.to);
-  renderTargetInsight("#transitionInsight", template, activeTargetIndex);
-  $("#transitionList").innerHTML = transitionPairs.map((item, index) => `<button class="segment-item ${index === transitionState.index ? "active" : ""}" data-transition-index="${index}"><span class="segment-index">${index + 1}</span><div><b>${item.from} → ${item.to}</b><small>${item.tip}</small>${renderMiniChordList([item.from, item.to])}</div></button>`).join("");
-  renderScoreBars("#transitionScoreBars", transitionState.score);
+  $("#transitionList").innerHTML = transitionPairs.map((item, index) => `<button class="transition-pair-tab ${index === transitionState.index ? "active" : ""}" data-transition-index="${index}">${item.from}<br>→ ${item.to}</button>`).join("");
+  $("#transitionBeats").innerHTML = ["稳住", "保持", "预备", "换"].map((label, index) => `<div class="transition-beat ${index === transitionState.beat ? "active" : ""} ${index === 3 ? "switch" : ""}"><b>${index + 1}</b>${label}</div>`).join("");
 }
 function tickTransition() {
-  transitionState.reps += 1;
-  if (transitionState.reps % 4 === 0) transitionState.index = (transitionState.index + 1) % transitionPairs.length;
-  transitionState.score = Math.min(94, transitionState.score + 2);
-  playClick(transitionState.reps % 4 === 1);
+  playClick(transitionState.beat === 0);
+  if (transitionState.beat === 3) recordTransitionAttempt();
+  transitionState.beat = (transitionState.beat + 1) % 4;
   renderTransition();
 }
 function toggleTransition() {
   transitionState.running = !transitionState.running;
   clearInterval(transitionState.timer);
-  if (transitionState.running) transitionState.timer = setInterval(tickTransition, 1800);
+  if (transitionState.running) transitionState.timer = setInterval(tickTransition, 60000 / transitionState.bpm);
+  renderTransition();
+}
+function restartTransitionTimer() {
+  clearInterval(transitionState.timer);
+  if (transitionState.running) transitionState.timer = setInterval(tickTransition, 60000 / transitionState.bpm);
+}
+function resetTransitionStats(keepPair = true) {
+  transitionState.running = false;
+  clearInterval(transitionState.timer);
+  transitionState.beat = 0;
+  transitionState.reps = 0;
+  transitionState.stable = 0;
+  transitionState.score = 0;
+  transitionState.scores = [];
+  transitionState.feedback = "点击开始后，第 4 拍会自动记录一次换指尝试。";
+  if (!keepPair) transitionState.index = 0;
   renderTransition();
 }
 function completeTransition() {
   transitionState.running = false;
   clearInterval(transitionState.timer);
-  appState.courseProgress[4] = Math.max(appState.courseProgress[4] || 0, transitionState.score >= 70 ? 100 : 65);
+  const finalScore = transitionScoreValue();
+  appState.courseProgress[4] = Math.max(appState.courseProgress[4] || 0, finalScore >= 70 ? 100 : 65);
   addSession({
     type: "换和弦",
     title: transitionPairs[transitionState.index].from + " → " + transitionPairs[transitionState.index].to,
     templateId: transitionState.index === 0 ? "practice-transition-c-am" : "practice-c-am-f-g7-loop",
     courseId: "course-c-am-transition",
-    score: transitionState.score,
-    minutes: 3,
-    completedCount: Math.min(transitionPairs.length, transitionState.reps),
-    totalSteps: transitionState.index === 0 ? 2 : 4
+    score: finalScore,
+    minutes: Math.max(1, Math.ceil(transitionState.reps / 4)),
+    completedCount: transitionState.stable,
+    totalSteps: Math.max(4, transitionState.reps)
   });
   renderTransition();
-  advanceAfterPracticeComplete("transition", 4, transitionState.score);
+  advanceAfterPracticeComplete("transition", 4, finalScore);
 }
 function activeSong() {
   return songs.find(item => item.title === activeSongTitle) || songs[0];
@@ -3374,8 +3586,7 @@ function bindEnhancedPreview() {
     if (practiceTemplate) openPracticeTemplate(practiceTemplate.dataset.practiceTemplate);
     if (transitionPick) {
       transitionState.index = Number(transitionPick.dataset.transitionIndex);
-      transitionState.reps = 0;
-      renderTransition();
+      resetTransitionStats(true);
     }
   });
   document.addEventListener("input", event => {
@@ -3434,7 +3645,17 @@ function bindEnhancedPreview() {
     if (event.target.id === "transitionToggle") toggleTransition();
     if (event.target.id === "transitionNext") {
       transitionState.index = (transitionState.index + 1) % transitionPairs.length;
-      transitionState.reps = 0;
+      resetTransitionStats(true);
+    }
+    if (event.target.id === "transitionReset") resetTransitionStats(true);
+    if (event.target.id === "transitionBpmDown") {
+      transitionState.bpm = Math.max(40, transitionState.bpm - 5);
+      restartTransitionTimer();
+      renderTransition();
+    }
+    if (event.target.id === "transitionBpmUp") {
+      transitionState.bpm = Math.min(140, transitionState.bpm + 5);
+      restartTransitionTimer();
       renderTransition();
     }
     if (event.target.id === "transitionComplete") completeTransition();
