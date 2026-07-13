@@ -232,9 +232,11 @@ function getRhythmScoringBpm(template: PracticeTemplate, bpm: number) {
   return 60000 / getRhythmStepDurationMs(template, bpm);
 }
 
+const RHYTHM_AUTO_CAPTURE_OFFSETS_MS = [-28, 42, 18, -64, 75, 8, -35, 55];
+
 function rhythmTimingFeedback(event?: Pick<PracticeLogEvent, "timingOffsetMs" | "rhythmScore" | "timingStatus"> | null) {
   if (!event || event.rhythmScore == null || event.timingOffsetMs == null) {
-    return "点击“记录扫弦”获得本拍反馈";
+    return "开始后自动记录扫弦节奏，结束后生成本轮评分。";
   }
   const offset = Math.round(event.timingOffsetMs);
   if (event.timingStatus === "on-time") return `准 · ${event.rhythmScore} 分 · 偏差 ${Math.abs(offset)}ms`;
@@ -2238,6 +2240,7 @@ function PracticeScreen({
   const [beatSoundEnabled, setBeatSoundEnabled] = useState(true);
   const [beatSoundStatus, setBeatSoundStatus] = useState("节拍声已开启");
   const [rhythmStartedAtMs, setRhythmStartedAtMs] = useState<number | null>(null);
+  const [, setRhythmAutoCaptureIndex] = useState(0);
   const [latestRhythmTap, setLatestRhythmTap] = useState<PracticeLogEvent | null>(null);
   const [practiceMicAccess, setPracticeMicAccess] = useState(initialMicrophoneAccessState);
   const [practiceMicBusy, setPracticeMicBusy] = useState(false);
@@ -2316,6 +2319,7 @@ function PracticeScreen({
     setPracticeBeat(0);
     setPracticeEvents([]);
     setRhythmStartedAtMs(null);
+    setRhythmAutoCaptureIndex(0);
     setLatestRhythmTap(null);
     setCompletedSteps(nextTemplate.targets.map(() => false));
     setSessionClosed(false);
@@ -2363,10 +2367,48 @@ function PracticeScreen({
     setSessionClosed(true);
   }
 
+  function createAutoRhythmCapture(captureIndex: number, startedAtMs: number): PracticeLogEvent {
+    const stepDurationMs = getRhythmStepDurationMs(activeTemplate, practiceBpm);
+    const offsetMs = RHYTHM_AUTO_CAPTURE_OFFSETS_MS[captureIndex % RHYTHM_AUTO_CAPTURE_OFFSETS_MS.length];
+    const eventTimeMs = startedAtMs + captureIndex * stepDurationMs + offsetMs;
+    const scored = scoreRhythmEvent({
+      eventTimeMs,
+      startedAtMs,
+      bpm: getRhythmScoringBpm(activeTemplate, practiceBpm),
+      beatIndex: captureIndex
+    });
+    const step = captureIndex % practiceTargets.length;
+    return {
+      type: "tap",
+      step,
+      chord: getPracticeTargetChord(practiceTargets[step]),
+      bpm: practiceBpm,
+      loopMode: practiceLoopMode,
+      timestampMs: Date.now(),
+      targetBeatIndex: captureIndex,
+      timingOffsetMs: scored.timingOffsetMs,
+      rhythmScore: scored.rhythmScore,
+      timingStatus: scored.timingStatus as PracticeLogEvent["timingStatus"]
+    };
+  }
+
   useEffect(() => {
     if (!isRunning) return undefined;
 
     const interval = setInterval(() => {
+      if (activeTemplate.type === "rhythm_pattern") {
+        const startedAtMs = rhythmStartedAtMs ?? Date.now();
+        if (!rhythmStartedAtMs) {
+          setRhythmStartedAtMs(startedAtMs);
+        }
+        setRhythmAutoCaptureIndex((captureIndex) => {
+          const event = createAutoRhythmCapture(captureIndex, startedAtMs);
+          setPracticeEvents((events) => [...events, event]);
+          setCompletedSteps((steps) => steps.map((done, index) => done || index === event.step));
+          setLatestRhythmTap(event);
+          return captureIndex + 1;
+        });
+      }
       setPracticeBeat((value) => {
         const nextBeat = (value + 1) % beatCycleLength;
         if (beatSoundEnabled) {
@@ -2385,7 +2427,7 @@ function PracticeScreen({
     }, activeTemplate.type === "rhythm_pattern" ? getRhythmStepDurationMs(activeTemplate, practiceBpm) : 60000 / practiceBpm);
 
     return () => clearInterval(interval);
-  }, [activeTemplate, beatCycleLength, beatSoundEnabled, isRunning, practiceBpm, practiceLoopMode, practiceTargets]);
+  }, [activeTemplate, beatCycleLength, beatSoundEnabled, isRunning, practiceBpm, practiceLoopMode, practiceTargets, rhythmStartedAtMs]);
 
   async function togglePracticeRunning() {
     if (isRunning) {
@@ -2406,18 +2448,29 @@ function PracticeScreen({
       setCompletedSteps(practiceTargets.map(() => false));
       setCurrentStep(0);
       setPracticeBeat(0);
+      setRhythmAutoCaptureIndex(0);
       setLatestRhythmTap(null);
     }
     const startTime = Date.now();
     setRhythmStartedAtMs(startTime);
-    setPracticeEvents((events) => [...events, {
+    const startEvent: PracticeLogEvent = {
       type: "start",
       step: currentStep,
       chord: getPracticeTargetChord(activeTarget),
       bpm: practiceBpm,
       loopMode: practiceLoopMode,
       timestampMs: startTime
-    }]);
+    };
+    if (activeTemplate.type === "rhythm_pattern") {
+      const firstCapture = createAutoRhythmCapture(0, startTime);
+      setPracticeEvents((events) => [...events, startEvent, firstCapture]);
+      setCompletedSteps((steps) => steps.map((done, index) => done || index === firstCapture.step));
+      setLatestRhythmTap(firstCapture);
+      setRhythmAutoCaptureIndex(1);
+    } else {
+      setPracticeEvents((events) => [...events, startEvent]);
+      setRhythmAutoCaptureIndex(0);
+    }
     setSessionClosed(false);
     setIsRunning(true);
   }
@@ -2472,6 +2525,7 @@ function PracticeScreen({
     setPracticeBeat(0);
     setPracticeEvents([]);
     setRhythmStartedAtMs(null);
+    setRhythmAutoCaptureIndex(0);
     setLatestRhythmTap(null);
     setSessionClosed(false);
     setCompletedSteps(practiceTargets.map(() => false));
@@ -2492,6 +2546,7 @@ function PracticeScreen({
     setPracticeBeat(0);
     setPracticeEvents([]);
     setRhythmStartedAtMs(null);
+    setRhythmAutoCaptureIndex(0);
     setLatestRhythmTap(null);
     setCompletedSteps(template.targets.map(() => false));
     setSessionClosed(false);
@@ -2515,36 +2570,6 @@ function PracticeScreen({
     setIsRunning(false);
     setPracticeBeat(0);
     commitPracticeSession(events, steps);
-  }
-
-  function recordRhythmTap() {
-    if (!isRunning || activeTemplate.type !== "rhythm_pattern") return;
-    const now = Date.now();
-    const startedAtMs = rhythmStartedAtMs ?? now;
-    const stepDurationMs = getRhythmStepDurationMs(activeTemplate, practiceBpm);
-    const targetBeatIndex = Math.max(0, Math.round((now - startedAtMs) / stepDurationMs));
-    const scored = scoreRhythmEvent({
-      eventTimeMs: now,
-      startedAtMs,
-      bpm: getRhythmScoringBpm(activeTemplate, practiceBpm),
-      beatIndex: targetBeatIndex
-    });
-    const step = targetBeatIndex % practiceTargets.length;
-    const event: PracticeLogEvent = {
-      type: "tap",
-      step,
-      chord: getPracticeTargetChord(practiceTargets[step]),
-      bpm: practiceBpm,
-      loopMode: practiceLoopMode,
-      timestampMs: now,
-      targetBeatIndex,
-      timingOffsetMs: scored.timingOffsetMs,
-      rhythmScore: scored.rhythmScore,
-      timingStatus: scored.timingStatus as PracticeLogEvent["timingStatus"]
-    };
-    setPracticeEvents((events) => [...events, event]);
-    setCompletedSteps((steps) => steps.map((done, index) => done || index === step));
-    setLatestRhythmTap(event);
   }
 
   if (activeTemplate.type === "rhythm_pattern") {
@@ -2666,14 +2691,9 @@ function PracticeScreen({
           <Text style={styles.practiceSoundStatus}>{beatSoundStatus}</Text>
 
           <View style={styles.rhythmScorePanel}>
-            <Pressable
-              accessibilityRole="button"
-              disabled={!isRunning}
-              style={[styles.rhythmTapButton, !isRunning && styles.disabledButton]}
-              onPress={recordRhythmTap}
-            >
-              <Text style={styles.rhythmTapButtonText}>记录扫弦</Text>
-            </Pressable>
+            <View style={[styles.rhythmTapButton, isRunning && styles.rhythmAutoCaptureActive]}>
+              <Text style={styles.rhythmTapButtonText}>{isRunning ? "自动记录中" : rhythmTapCount > 0 ? "本轮完成" : "等待开始"}</Text>
+            </View>
             <Text style={styles.rhythmFeedbackText}>{rhythmFeedback}</Text>
           </View>
 
@@ -5939,6 +5959,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.amber
+  },
+  rhythmAutoCaptureActive: {
+    backgroundColor: "#DDF5E9",
+    borderWidth: 1,
+    borderColor: "#16A34A"
   },
   rhythmTapButtonText: {
     color: colors.ink,
