@@ -193,6 +193,23 @@ function getStrokeLabel(stroke?: string) {
   return "扫弦";
 }
 
+function getStrokeArrow(stroke?: string) {
+  if (stroke === "down") return "↓";
+  if (stroke === "up") return "↑";
+  if (stroke === "mute") return "×";
+  return "•";
+}
+
+function getRhythmAccentLabel(target?: PracticeTarget) {
+  return target?.accent ? "重音" : "轻拍";
+}
+
+function getRhythmTemplateDisplayTitle(template: PracticeTemplate) {
+  if (template.id === "practice-rhythm-down-four") return "↓ 四拍";
+  if (template.id === "practice-rhythm-down-down-up-up") return "↓ ↓ ↑ ↑";
+  return getPracticeTemplateTitle(template);
+}
+
 function getPracticeTargetSummary(target: PracticeTarget | undefined, template: PracticeTemplate) {
   const chord = getPracticeTargetChord(target);
   if (template.type === "rhythm_pattern") {
@@ -991,7 +1008,8 @@ export default function App() {
     () => evaluateLocalLessonPathProgress(practiceHistory, practiceMilestone),
     [practiceHistory, practiceMilestone]
   );
-  const fixedScreen = activeTab === "home" || activeTab === "practice";
+  const activePracticeRunnerTemplate = getPracticeTemplateById(practiceLaunchConfig?.templateId);
+  const fixedScreen = activeTab === "home" || activeTab === "practice" || (activeTab === "practiceRunner" && activePracticeRunnerTemplate.type === "rhythm_pattern");
 
   useEffect(() => {
     let mounted = true;
@@ -2440,18 +2458,18 @@ function PracticeScreen({
 
   if (activeTemplate.type === "rhythm_pattern") {
     const activeRhythmTarget = practiceTargets[practiceBeat % practiceTargets.length] ?? activeTarget;
-    const rhythmAction = getPracticeTargetSummary(activeRhythmTarget, activeTemplate);
-    const rhythmDetail = getPracticeTargetDetail(activeRhythmTarget, activeTemplate);
+    const rhythmAction = getStrokeArrow(activeRhythmTarget.stroke);
+    const rhythmDetail = `第 ${activeRhythmTarget?.beat ?? 1}${activeRhythmTarget?.subdivision && activeRhythmTarget.subdivision > 1 ? `.${activeRhythmTarget.subdivision}` : ""} 拍 · ${getRhythmAccentLabel(activeRhythmTarget)}`;
     const rhythmProgressPercent = Math.round(((practiceBeat + 1) / Math.max(1, practiceTargets.length)) * 100);
 
     return (
       <View style={styles.stack}>
-        <SectionTitle title="节奏练习" detail={`${getPracticeTemplateTitle(activeTemplate)} · ${practiceBpm} BPM`} />
+        <SectionTitle title="节奏练习" detail={`${getRhythmTemplateDisplayTitle(activeTemplate)} · ${practiceBpm} BPM`} />
         <View style={styles.rhythmRunner}>
           <View style={styles.rhythmHeaderRow}>
             <View>
               <Text style={styles.sessionEyebrow}>当前节奏型</Text>
-              <Text style={styles.rhythmRunnerTitle}>{getPracticeTemplateTitle(activeTemplate)}</Text>
+              <Text style={styles.rhythmRunnerTitle}>{getRhythmTemplateDisplayTitle(activeTemplate)}</Text>
             </View>
             <Text style={styles.sessionPill}>{isRunning ? "进行中" : "待开始"}</Text>
           </View>
@@ -2468,7 +2486,7 @@ function PracticeScreen({
                   onPress={() => selectPracticeTemplate(template)}
                 >
                   <Text style={[styles.rhythmTemplateText, selected && styles.rhythmTemplateTextActive]}>
-                    {getPracticeTemplateTitle(template)}
+                    {getRhythmTemplateDisplayTitle(template)}
                   </Text>
                   <Text style={[styles.rhythmTemplateMeta, selected && styles.rhythmTemplateTextActive]}>
                     {template.bpm ?? 60} BPM
@@ -2479,7 +2497,6 @@ function PracticeScreen({
           </View>
 
           <View style={styles.rhythmActionPanel}>
-            <Text style={styles.rhythmActionLabel}>这一拍</Text>
             <Text style={styles.rhythmActionText}>{rhythmAction}</Text>
             <Text style={styles.rhythmActionDetail}>{rhythmDetail}</Text>
             <View style={styles.progressTrack}>
@@ -2500,7 +2517,7 @@ function PracticeScreen({
                       active && styles.rhythmDotActive
                     ]}
                   >
-                    <Text style={styles.rhythmDotText}>{getStrokeLabel(target.stroke).slice(0, 1)}</Text>
+                    <Text style={styles.rhythmDotText}>{getStrokeArrow(target.stroke)}</Text>
                   </View>
                   <Text style={[styles.practiceBeatText, active && styles.practiceBeatTextActive]}>
                     {target.beat}{target.subdivision && target.subdivision > 1 ? `.${target.subdivision}` : ""}
@@ -2509,8 +2526,6 @@ function PracticeScreen({
               );
             })}
           </View>
-
-          <Text style={styles.practiceBeatHint}>红点是第一拍重音，蓝点是轻拍；当前拍会放大显示。</Text>
 
           <View style={styles.rhythmControlGrid}>
             <Pressable
@@ -2572,8 +2587,6 @@ function PracticeScreen({
               <Text style={styles.secondaryButtonText}>完成本组</Text>
             </Pressable>
           </View>
-
-          <Text style={styles.reportLine}>下一步：节奏分达到 70 后，进入和弦转换练习。</Text>
         </View>
       </View>
     );
@@ -5660,11 +5673,11 @@ const styles = StyleSheet.create({
   },
   rhythmRunner: {
     borderRadius: 8,
-    padding: 12,
+    padding: 10,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
-    gap: 10
+    gap: 8
   },
   rhythmHeaderRow: {
     flexDirection: "row",
@@ -5674,16 +5687,16 @@ const styles = StyleSheet.create({
   },
   rhythmRunnerTitle: {
     color: colors.forest,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "900"
   },
   rhythmTemplateGrid: {
     flexDirection: "row",
-    gap: 8
+    gap: 6
   },
   rhythmTemplateButton: {
     flex: 1,
-    minHeight: 56,
+    minHeight: 46,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.line,
@@ -5697,7 +5710,7 @@ const styles = StyleSheet.create({
   },
   rhythmTemplateText: {
     color: colors.forest,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "900"
   },
   rhythmTemplateMeta: {
@@ -5712,8 +5725,8 @@ const styles = StyleSheet.create({
   rhythmActionPanel: {
     borderRadius: 8,
     backgroundColor: "#F8F3EA",
-    padding: 14,
-    gap: 6,
+    padding: 10,
+    gap: 4,
     alignItems: "center"
   },
   rhythmActionLabel: {
@@ -5723,8 +5736,9 @@ const styles = StyleSheet.create({
   },
   rhythmActionText: {
     color: colors.forest,
-    fontSize: 30,
+    fontSize: 56,
     fontWeight: "900",
+    lineHeight: 60,
     textAlign: "center"
   },
   rhythmActionDetail: {
@@ -5738,17 +5752,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 9,
+    gap: 6,
     flexWrap: "wrap"
   },
   rhythmDotWrap: {
-    minWidth: 42,
+    minWidth: 38,
     alignItems: "center",
-    gap: 5
+    gap: 3
   },
   rhythmDot: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
@@ -5761,15 +5775,15 @@ const styles = StyleSheet.create({
     backgroundColor: lightBeatBlue
   },
   rhythmDotActive: {
-    width: 46,
-    height: 46,
+    width: 42,
+    height: 42,
     opacity: 1,
     borderWidth: 4,
     borderColor: "#FFF8EC"
   },
   rhythmDotText: {
     color: "#FFF8EC",
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: "900"
   },
   rhythmControlGrid: {
@@ -5779,7 +5793,7 @@ const styles = StyleSheet.create({
   },
   rhythmBpmBadge: {
     width: 86,
-    minHeight: 48,
+    minHeight: 42,
     borderRadius: 8,
     backgroundColor: "#FFFDF8",
     borderWidth: 1,
@@ -5789,7 +5803,7 @@ const styles = StyleSheet.create({
   },
   rhythmBpmValue: {
     color: colors.forest,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "900",
     lineHeight: 24
   },
@@ -5800,7 +5814,7 @@ const styles = StyleSheet.create({
   },
   rhythmStatsGrid: {
     flexDirection: "row",
-    gap: 8
+    gap: 6
   },
   songFragmentPanel: {
     marginTop: 2,

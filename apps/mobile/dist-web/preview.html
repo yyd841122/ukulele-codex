@@ -1111,50 +1111,55 @@
   .beat-dots { display: flex; justify-content: space-between; margin: 14px 0; }
   .beat-dot { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; color: #fff; font-weight: 900; background: #9CA3AF; }
   .beat-dot.active { background: var(--orange); transform: scale(1.08); }
-  .rhythm-page { padding: 14px; display: grid; gap: 10px; }
-  .rhythm-runner { padding: 14px; display: grid; gap: 10px; }
-  .rhythm-template-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  #rhythm { overflow: hidden; }
+  #rhythm .sheet-head { padding: 10px 16px 12px; }
+  #rhythm .sheet-head .back { margin-bottom: 2px; }
+  #rhythm .sheet-head p { display: none; }
+  .rhythm-page { padding: 10px 14px; display: grid; gap: 8px; }
+  .rhythm-runner { padding: 10px; display: grid; gap: 8px; }
+  .rhythm-template-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
   .rhythm-template-tab {
-    min-height: 52px;
-    border-radius: 12px;
+    min-height: 44px;
+    border-radius: 10px;
     background: #EEE8DC;
     color: var(--text-2);
     font-weight: 950;
   }
   .rhythm-template-tab.active { background: var(--teal); color: #FFF8EC; }
   .rhythm-action {
-    padding: 16px;
-    border-radius: 18px;
+    padding: 10px;
+    border-radius: 14px;
     text-align: center;
     background: #F8F3EA;
   }
   .rhythm-action small { color: var(--text-2); font-weight: 900; }
   .rhythm-action h3 {
-    margin: 4px 0;
+    margin: 0;
     color: var(--teal);
-    font-size: 34px;
-    line-height: 1.05;
+    font-size: 58px;
+    line-height: .98;
   }
-  .rhythm-action p { color: var(--text-2); font-size: 12px; line-height: 1.5; }
-  .rhythm-progress { height: 7px; border-radius: 999px; background: #E9DFD1; overflow: hidden; margin-top: 10px; }
+  .rhythm-action p { color: var(--text-2); font-size: 12px; line-height: 1.35; font-weight: 850; }
+  .rhythm-progress { height: 6px; border-radius: 999px; background: #E9DFD1; overflow: hidden; margin-top: 8px; }
   .rhythm-progress i { display: block; height: 100%; border-radius: inherit; background: var(--green); }
-  .rhythm-dot-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-  .rhythm-dot-wrap { display: grid; justify-items: center; gap: 5px; min-width: 42px; }
+  .rhythm-dot-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .rhythm-dot-wrap { display: grid; justify-items: center; gap: 3px; min-width: 38px; }
   .rhythm-dot {
     display: grid;
     place-items: center;
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     color: #fff;
+    font-size: 18px;
     font-weight: 950;
     opacity: .55;
   }
   .rhythm-dot.accent { background: #DC2626; }
   .rhythm-dot.light { background: #2F7A9A; }
   .rhythm-dot.active {
-    width: 46px;
-    height: 46px;
+    width: 42px;
+    height: 42px;
     opacity: 1;
     border: 4px solid #FFF8EC;
     box-shadow: 0 8px 18px rgba(37, 58, 51, .14);
@@ -1162,8 +1167,10 @@
   .rhythm-dot-wrap span { color: var(--text-2); font-size: 11px; font-weight: 900; }
   .rhythm-controls { display: grid; grid-template-columns: 1fr 86px 1fr; gap: 8px; align-items: center; }
   .rhythm-controls.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rhythm-controls .primary { min-height: 42px; font-size: 15px; }
+  .rhythm-controls .ghost { min-height: 38px; }
   .rhythm-bpm-badge {
-    min-height: 48px;
+    min-height: 40px;
     border: 1px solid var(--line);
     border-radius: 12px;
     display: grid;
@@ -1175,8 +1182,8 @@
   }
   .rhythm-bpm-badge small { display: block; color: var(--text-2); font-size: 10px; line-height: 1; }
   .rhythm-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-  .rhythm-stat { padding: 10px; border-radius: 12px; border: 1px solid var(--line); background: #FFFDF8; text-align: center; }
-  .rhythm-stat b { display: block; color: var(--teal); font-size: 20px; }
+  .rhythm-stat { padding: 7px; border-radius: 10px; border: 1px solid var(--line); background: #FFFDF8; text-align: center; }
+  .rhythm-stat b { display: block; color: var(--teal); font-size: 18px; }
   .rhythm-stat small { color: var(--text-2); font-weight: 850; }
   .metro-page {
     overflow: hidden;
@@ -2453,30 +2460,30 @@ const rhythmPatterns = [
   {
     id: "down4",
     templateId: "practice-rhythm-down-four",
-    name: "下扫四拍",
+    name: "↓ 四拍",
     bpm: 60,
     beats: [
-      { label: "下", beat: "1", action: "重下扫", accent: true },
-      { label: "下", beat: "2", action: "轻下扫", accent: false },
-      { label: "下", beat: "3", action: "轻下扫", accent: false },
-      { label: "下", beat: "4", action: "轻下扫", accent: false }
+      { label: "↓", beat: "1", action: "↓", accent: true },
+      { label: "↓", beat: "2", action: "↓", accent: false },
+      { label: "↓", beat: "3", action: "↓", accent: false },
+      { label: "↓", beat: "4", action: "↓", accent: false }
     ],
-    hint: "第一拍重音，后三拍轻扫，先让右手稳定。"
+    hint: "第 1 拍 · 重音"
   },
   {
     id: "down-down-up-up",
     templateId: "practice-rhythm-down-down-up-up",
-    name: "下下上上",
+    name: "↓ ↓ ↑ ↑",
     bpm: 60,
     beats: [
-      { label: "下", beat: "1", action: "重下扫", accent: true },
-      { label: "下", beat: "2", action: "下扫", accent: false },
-      { label: "上", beat: "2.2", action: "上扫", accent: false },
-      { label: "上", beat: "3.2", action: "上扫", accent: false },
-      { label: "下", beat: "4", action: "下扫", accent: false },
-      { label: "上", beat: "4.2", action: "上扫", accent: false }
+      { label: "↓", beat: "1", action: "↓", accent: true },
+      { label: "↓", beat: "2", action: "↓", accent: false },
+      { label: "↑", beat: "2.2", action: "↑", accent: false },
+      { label: "↑", beat: "3.2", action: "↑", accent: false },
+      { label: "↓", beat: "4", action: "↓", accent: false },
+      { label: "↑", beat: "4.2", action: "↑", accent: false }
     ],
-    hint: "常见弹唱扫弦方向，先慢速熟悉下、下上、上、下上。"
+    hint: "第 1 拍 · 重音"
   }
 ];
 const transitionPairs = [
@@ -2807,7 +2814,7 @@ function setupExtraSheets() {
 function setupPracticeSheets() {
   const rhythm = $("#rhythm");
   if (rhythm) {
-    rhythm.innerHTML = `<div class="sheet-head"><button class="back" data-close="rhythm">‹</button><h2>节奏练习</h2><p>先把右手稳定下来，再进入和弦转换。</p></div><div class="rhythm-page"><div class="rhythm-runner card"><div class="module-row"><div><small class="eyebrow">当前节奏型</small><h3 id="rhythmName">下扫四拍</h3></div><b id="rhythmStateLabel">待开始</b></div><div class="rhythm-template-tabs" id="rhythmTabs"></div><div class="rhythm-action"><small>这一拍</small><h3 id="rhythmAction">重下扫</h3><p id="rhythmHint"></p><div class="rhythm-progress"><i id="rhythmProgress" style="width:25%"></i></div></div><div class="rhythm-dot-grid" id="rhythmDots"></div><p class="module-note">红点是第一拍重音，蓝点是轻拍；当前拍会放大显示。</p><div class="rhythm-controls"><button class="ghost" id="rhythmBpmDown">-5</button><div class="rhythm-bpm-badge"><span id="rhythmBpm">60</span><small>BPM</small></div><button class="ghost" id="rhythmBpmUp">+5</button></div><div class="rhythm-controls two"><button class="ghost" id="rhythmSound">节拍声 开</button><button class="primary" id="rhythmToggle">开始</button></div><div class="rhythm-stats"><div class="rhythm-stat"><small>已练</small><b id="rhythmBars">0</b></div><div class="rhythm-stat"><small>节奏</small><b id="rhythmScore">62</b></div><div class="rhythm-stat"><small>完成</small><b id="rhythmCompleteCount">0/4</b></div></div><div class="rhythm-controls two"><button class="ghost" id="rhythmReset">重置</button><button class="ghost" id="rhythmComplete">完成本组</button></div></div></div>`;
+    rhythm.innerHTML = `<div class="sheet-head"><button class="back" data-close="rhythm">‹</button><h2>节奏练习</h2><p>右手节奏型</p></div><div class="rhythm-page"><div class="rhythm-runner card"><div class="module-row"><div><small class="eyebrow">当前节奏型</small><h3 id="rhythmName">↓ 四拍</h3></div><b id="rhythmStateLabel">待开始</b></div><div class="rhythm-template-tabs" id="rhythmTabs"></div><div class="rhythm-action"><h3 id="rhythmAction">↓</h3><p id="rhythmHint"></p><div class="rhythm-progress"><i id="rhythmProgress" style="width:25%"></i></div></div><div class="rhythm-dot-grid" id="rhythmDots"></div><div class="rhythm-controls"><button class="ghost" id="rhythmBpmDown">-5</button><div class="rhythm-bpm-badge"><span id="rhythmBpm">60</span><small>BPM</small></div><button class="ghost" id="rhythmBpmUp">+5</button></div><div class="rhythm-controls two"><button class="ghost" id="rhythmSound">节拍声 开</button><button class="primary" id="rhythmToggle">开始</button></div><div class="rhythm-stats"><div class="rhythm-stat"><small>已练</small><b id="rhythmBars">0</b></div><div class="rhythm-stat"><small>节奏</small><b id="rhythmScore">62</b></div><div class="rhythm-stat"><small>完成</small><b id="rhythmCompleteCount">0/4</b></div></div><div class="rhythm-controls two"><button class="ghost" id="rhythmReset">重置</button><button class="ghost" id="rhythmComplete">完成本组</button></div></div></div>`;
   }
   const transition = $("#transition");
   if (transition) {
@@ -2836,7 +2843,7 @@ function renderRhythm() {
   $("#rhythmBpm").textContent = pattern.bpm;
   $("#rhythmStateLabel").textContent = rhythmState.running ? "进行中" : "待开始";
   $("#rhythmAction").textContent = activeBeat.action;
-  $("#rhythmHint").textContent = pattern.hint;
+  $("#rhythmHint").textContent = `${activeBeat.beat} 拍 · ${activeBeat.accent ? "重音" : "轻拍"}`;
   $("#rhythmBars").textContent = rhythmState.bars;
   $("#rhythmScore").textContent = rhythmState.score;
   $("#rhythmCompleteCount").textContent = `${rhythmState.bars > 0 ? pattern.beats.length : rhythmState.beat}/${pattern.beats.length}`;
