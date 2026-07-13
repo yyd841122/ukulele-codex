@@ -1230,15 +1230,16 @@
   .transition-pair-tabs {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 5px;
+    gap: 4px;
   }
   .transition-pair-tab {
-    min-height: 38px;
+    min-height: 30px;
     border-radius: 10px;
     background: #EEE8DC;
     color: var(--text-2);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 950;
+    white-space: nowrap;
   }
   .transition-pair-tab.active {
     color: #FFF8EC;
@@ -1993,7 +1994,7 @@
               </button>
               <button class="practice-tool-card card clickable" data-open="transition">
                 <span class="practice-tool-icon">🔁</span>
-                <span><b>和弦转换</b><small>C-Am · Am-F · F-G7</small></span>
+                <span><b>和弦转换</b><small>12 组常用换指</small></span>
               </button>
             </div>
           </section>
@@ -2756,7 +2757,15 @@ const transitionPairs = [
   { from: "C", to: "Am", tip: "保留手型，只移动到 G 弦 2 品。" },
   { from: "Am", to: "F", tip: "二指不离弦，加一指到 E 弦 1 品。" },
   { from: "F", to: "G7", tip: "提前半拍摆好三指，第一拍前落稳。" },
-  { from: "G7", to: "C", tip: "松开后只留下 A 弦 3 品，动作越小越稳。" }
+  { from: "G7", to: "C", tip: "松开后只留下 A 弦 3 品，动作越小越稳。" },
+  { from: "C", to: "G", tip: "C 到 G 要提前摆三指，目标是第一拍前同时落下。" },
+  { from: "G", to: "Am", tip: "从 G 收回到 Am，先找 G 弦 2 品的二指。" },
+  { from: "Am", to: "G", tip: "Am 到 G 手指跨度变大，先慢速摆出三角手型。" },
+  { from: "C", to: "F", tip: "C 到 F 加上 G 弦 2 品和 E 弦 1 品，手腕保持放松。" },
+  { from: "G", to: "D", tip: "G 到 D 三指都要移位，先看清 D 的三根 2 品。" },
+  { from: "D", to: "Em", tip: "D 到 Em 从整排 2 品换到 C/E/A 三根弦。" },
+  { from: "Em", to: "C", tip: "Em 回 C 时动作收小，只留下 A 弦 3 品。" },
+  { from: "D", to: "G", tip: "D 回 G 时先释放 A 弦，再落到 C/E/A 三根弦。" }
 ];
 const followChords = ["C", "Am", "F", "G7"];
 const rhythmAutoOffsets = [-28, 42, 18, -64, 75, 8, -35, 55];
@@ -3266,7 +3275,7 @@ function renderTransition() {
   $("#transitionFeedback").textContent = transitionState.feedback;
   $("#transitionToggle").textContent = transitionState.running ? "暂停" : "开始";
   $("#transitionChordFocus").innerHTML = renderTransitionChordFocus(pair, activeTargetIndex === 0 ? pair.from : pair.to);
-  $("#transitionList").innerHTML = transitionPairs.map((item, index) => `<button class="transition-pair-tab ${index === transitionState.index ? "active" : ""}" data-transition-index="${index}">${item.from}<br>→ ${item.to}</button>`).join("");
+  $("#transitionList").innerHTML = transitionPairs.map((item, index) => `<button class="transition-pair-tab ${index === transitionState.index ? "active" : ""}" data-transition-index="${index}">${item.from}→${item.to}</button>`).join("");
   $("#transitionBeats").innerHTML = ["稳住", "保持", "预备", "换"].map((label, index) => `<div class="transition-beat ${index === transitionState.beat ? "active" : ""} ${index === 3 ? "switch" : ""}"><b>${index + 1}</b>${label}</div>`).join("");
 }
 function tickTransition() {
