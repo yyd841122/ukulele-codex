@@ -1149,6 +1149,89 @@
     line-height: 1.35;
     font-weight: 900;
   }
+  #follow { overflow: hidden; }
+  #follow .sheet-head { padding: 10px 16px 12px; }
+  #follow .sheet-head .back { margin-bottom: 2px; }
+  .follow-page {
+    padding: 10px 14px;
+    display: grid;
+    gap: 8px;
+    background: linear-gradient(180deg, #FFFDF8 0%, #F5F0E6 100%);
+  }
+  .follow-runner {
+    padding: 10px;
+    display: grid;
+    gap: 8px;
+  }
+  .follow-next-card {
+    padding: 9px 10px;
+    border-radius: 12px;
+    background: #F8F3EA;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 850;
+  }
+  .follow-next-card b { color: var(--teal); font-size: 16px; }
+  .follow-beat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .follow-beat {
+    min-height: 44px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    background: #EEE8DC;
+    color: var(--text-2);
+    font-size: 11px;
+    font-weight: 900;
+  }
+  .follow-beat b {
+    display: block;
+    color: var(--text-1);
+    font-size: 15px;
+  }
+  .follow-beat.active {
+    background: #DDF5E9;
+    outline: 2px solid var(--green);
+    color: var(--teal);
+  }
+  .follow-beat.switch { background: #FFF1E6; }
+  .follow-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .follow-stat {
+    padding: 7px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: #FFFDF8;
+    text-align: center;
+  }
+  .follow-stat b { display: block; color: var(--teal); font-size: 18px; }
+  .follow-stat small { color: var(--text-2); font-weight: 850; }
+  .follow-feedback {
+    min-height: 34px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    color: var(--teal);
+    background: #DDF5E9;
+    font-size: 12px;
+    line-height: 1.35;
+    font-weight: 900;
+  }
+  .follow-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .follow-controls .primary { min-height: 42px; font-size: 15px; }
+  .follow-controls .ghost { min-height: 38px; }
   .follow-lyrics { margin-top: 12px; padding: 10px 0 0; border-top: 1px solid var(--line); }
   .follow-lyrics .lyric-line { line-height: 2; color: var(--text-2); font-size: 14px; }
   .follow-lyrics .lyric-line.now { color: var(--text-1); font-weight: 850; }
@@ -3172,7 +3255,8 @@ const rhythmAutoOffsets = [-28, 42, 18, -64, 75, 8, -35, 55];
 const rhythmState = { pattern: 0, beat: 0, bars: 0, running: false, timer: null, score: 0, sound: true, startedAt: 0, taps: [], feedback: "点击开始后自动记录扫弦节奏，结束后生成评分" };
 const transitionAutoOffsets = [-44, 32, 18, 86, -72, 12, 48, -26];
 const transitionState = { index: 0, beat: 0, reps: 0, stable: 0, running: false, timer: null, bpm: 60, score: 0, scores: [], feedback: "点击开始后，第 4 拍会自动记录一次换指尝试。" };
-const followState = { beat: 0, bars: 0, running: false, timer: null, score: 60 };
+const followScorePattern = [86, 74, 92, 68, 88, 95, 79, 91];
+const followState = { chordIndex: 0, beat: 0, bars: 0, stable: 0, running: false, timer: null, score: 0, scores: [], feedback: "点击开始后，每 4 拍进入下一和弦。" };
 const melodyHitPattern = [92, 86, 78, 95, 72, 88, 81, 96];
 const melodyState = { index: 0, rounds: 0, hits: 0, running: false, timer: null, bpm: 70, scores: [], feedback: "点击开始后，按提示弦和品位逐拍练单音。" };
 const melodyPhrases = {
@@ -3448,7 +3532,7 @@ function openPracticeTemplate(templateId) {
     if (activeSong().templateId !== template.id) {
       activeSongTitle = songs.find(song => song.templateId === template.id)?.title || activeSongTitle;
     }
-    followState.beat = 0;
+    resetFollow();
     openSheet("follow");
     renderFollow();
   }
@@ -3533,7 +3617,7 @@ function setupPracticeSheets() {
   }
   const follow = $("#follow");
   if (follow) {
-    follow.innerHTML = `<div class="sheet-head"><button class="back" data-close="follow">‹</button><h2>歌曲片段跟弹</h2><p>把节奏型和和弦转换放回真实歌曲。</p></div><div class="tool-screen"><div class="tool-panel card"><div class="module-row"><h3 id="followSongTitle">《童年》前 4 小节</h3><b id="followSongBpm">70 BPM</b></div><div class="beat-dots" id="followDots"></div><p class="module-note" id="followHint">跟着红点进第一拍，蓝点切换和弦。</p><div id="followChordFocus"></div><div class="target-insight" id="followInsight"></div><div class="follow-lyrics" id="followLyrics"></div><button class="primary" id="followToggle" style="width:100%">开始跟弹</button><button class="ghost" id="followComplete" style="width:100%;margin-top:10px">提交本段</button></div><div class="tool-panel card"><div class="module-row"><b>模拟评分</b><span id="followScore">60</span></div><div class="score-bars" id="followScoreBars"></div></div></div>`;
+    follow.innerHTML = `<div class="sheet-head"><button class="back" data-close="follow">‹</button><h2>歌曲片段跟弹</h2><p>把节奏型和和弦转换放回真实歌曲。</p></div><div class="follow-page"><div class="follow-runner card"><div class="module-row"><div><small class="eyebrow">当前片段</small><h3 id="followSongTitle">《童年》前 4 小节</h3></div><b id="followSongBpm">70 BPM</b></div><div id="followChordFocus"></div><div class="follow-next-card"><span id="followHint">第 1 小节 · 当前和弦 C</span><b id="followNextChord">下一和弦 Am</b></div><div class="follow-beat-grid" id="followDots"></div><div class="follow-lyrics" id="followLyrics"></div><div class="follow-controls"><button class="ghost" id="followReset">重置</button><button class="primary" id="followToggle">开始</button></div><div class="follow-stats"><div class="follow-stat"><small>小节</small><b id="followBars">0</b></div><div class="follow-stat"><small>稳定</small><b id="followStable">0</b></div><div class="follow-stat"><small>分数</small><b id="followScore">--</b></div></div><div class="follow-feedback" id="followFeedback">点击开始后，每 4 拍进入下一和弦。</div><div class="follow-controls"><button class="ghost" id="followBackToSong">返回歌曲</button><button class="ghost" id="followComplete">提交本段</button></div></div></div>`;
   }
 }
 function renderScoreBars(target, score) {
@@ -3854,30 +3938,56 @@ function completeMelody() {
   melodyState.feedback = score >= 70 ? "本组已记录，可以回到歌曲片段跟弹。" : "本组已记录，建议降速再练一轮。";
   renderMelody();
 }
+function followAverageScore() {
+  if (!followState.scores.length) return "--";
+  return Math.round(followState.scores.reduce((sum, score) => sum + score, 0) / followState.scores.length);
+}
+function followScoreValue() {
+  const average = followAverageScore();
+  return average === "--" ? 0 : Number(average);
+}
+function recordFollowBar() {
+  const score = followScorePattern[followState.scores.length % followScorePattern.length];
+  followState.scores.push(score);
+  if (score >= 70) followState.stable += 1;
+  followState.score = followScoreValue();
+  followState.feedback = score >= 85
+    ? `本小节 ${score} 分 · 和弦和节拍都比较稳。`
+    : score >= 70
+      ? `本小节 ${score} 分 · 基本跟上，换和弦再提前一点。`
+      : `本小节 ${score} 分 · 先放慢速度，确认第 1 拍落稳。`;
+}
 function renderFollow() {
   const song = activeSong();
   const chords = song.chords?.length ? song.chords : followChords;
   const template = templateById("practice-song-fragment-four-chord-hum");
-  const activeIndex = followState.beat % chords.length;
+  const activeIndex = followState.chordIndex % chords.length;
+  const nextChord = chords[(activeIndex + 1) % chords.length];
   $("#followSongTitle").textContent = `《${song.title}》前 ${chords.length} 小节`;
   $("#followSongBpm").textContent = `${song.bpm} BPM`;
-  $("#followDots").innerHTML = chords.map((chord, index) => `<span class="beat-dot ${index === activeIndex ? "active" : ""}">${chord}</span>`).join("");
-  $("#followScore").textContent = followState.score;
-  $("#followHint").textContent = `第 ${followState.bars + 1} 轮 · 当前和弦 ${chords[activeIndex]}`;
+  $("#followDots").innerHTML = ["重音", "保持", "保持", "换"].map((label, index) => `<div class="follow-beat ${index === followState.beat ? "active" : ""} ${index === 3 ? "switch" : ""}"><b>${index + 1}</b>${label}</div>`).join("");
+  $("#followScore").textContent = followAverageScore();
+  $("#followBars").textContent = followState.bars;
+  $("#followStable").textContent = followState.stable;
+  $("#followHint").textContent = `第 ${followState.bars + 1} 小节 · 当前和弦 ${chords[activeIndex]}`;
+  $("#followNextChord").textContent = `下一和弦 ${nextChord}`;
+  $("#followFeedback").textContent = followState.feedback;
   $("#followChordFocus").innerHTML = renderCurrentChordFocus(chords[activeIndex], "当前和弦指法");
   renderTargetInsight("#followInsight", template, activeIndex);
   $("#followLyrics").innerHTML = (song.lyrics || []).map((line, index) => `<div class="lyric-line ${index === activeIndex ? "now" : ""}"><span class="chord">${line[0]}</span>${line[1]}</div>`).join("");
-  $("#followToggle").textContent = followState.running ? "暂停跟弹" : "开始跟弹";
-  renderScoreBars("#followScoreBars", followState.score);
+  $("#followToggle").textContent = followState.running ? "暂停" : "开始";
 }
 function tickFollow() {
   const song = activeSong();
   const chords = song.chords?.length ? song.chords : followChords;
   playClick(followState.beat === 0);
-  followState.beat = (followState.beat + 1) % chords.length;
+  if (followState.beat === 3) {
+    recordFollowBar();
+  }
+  followState.beat = (followState.beat + 1) % 4;
   if (followState.beat === 0) {
+    followState.chordIndex = (followState.chordIndex + 1) % chords.length;
     followState.bars += 1;
-    followState.score = Math.min(98, followState.score + 4);
   }
   renderFollow();
 }
@@ -3890,23 +4000,37 @@ function toggleFollow() {
   }
   renderFollow();
 }
+function resetFollow() {
+  followState.running = false;
+  clearInterval(followState.timer);
+  followState.chordIndex = 0;
+  followState.beat = 0;
+  followState.bars = 0;
+  followState.stable = 0;
+  followState.score = 0;
+  followState.scores = [];
+  followState.feedback = "点击开始后，每 4 拍进入下一和弦。";
+  renderFollow();
+}
 function completeFollow() {
   followState.running = false;
   clearInterval(followState.timer);
-  appState.courseProgress[5] = Math.max(appState.courseProgress[5] || 0, followState.score >= 70 ? 100 : 50);
+  const finalScore = followScoreValue();
+  appState.courseProgress[5] = Math.max(appState.courseProgress[5] || 0, finalScore >= 70 ? 100 : 50);
   addSession({
     type: "跟弹",
     title: `${activeSong().title}前 4 小节`,
     templateId: "practice-song-fragment-four-chord-hum",
     courseId: "course-first-song-fragment",
     songId: "song-four-chord-hum",
-    score: followState.score,
+    score: finalScore,
     minutes: Math.max(3, followState.bars * 2),
-    completedCount: 4,
-    totalSteps: 4
+    completedCount: followState.stable,
+    totalSteps: Math.max(1, followState.bars)
   });
+  followState.feedback = finalScore >= 70 ? "本段已记录，可以继续练下一首或提高 BPM。" : "本段已记录，建议回到和弦转换再稳一轮。";
   renderFollow();
-  advanceAfterPracticeComplete("follow", 5, followState.score);
+  advanceAfterPracticeComplete("follow", 5, finalScore);
 }
 function renderHome() {
   const streakNumber = document.querySelector(".home-streak-badge b");
@@ -4116,9 +4240,10 @@ function openSong(title) {
   openSheet("songDetail");
 }
 function startSongPractice() {
-  const song = songs.find(item => item.title === activeSongTitle) || songs[0];
   closeSheet("songDetail");
-  openPracticeTemplate(song.templateId || "practice-c-am-f-g7-loop");
+  resetFollow();
+  openSheet("follow");
+  renderFollow();
 }
 function bindEnhancedPreview() {
   document.addEventListener("click", event => {
@@ -4242,6 +4367,11 @@ function bindEnhancedPreview() {
     }
     if (event.target.id === "transitionComplete") completeTransition();
     if (event.target.id === "followToggle") toggleFollow();
+    if (event.target.id === "followReset") resetFollow();
+    if (event.target.id === "followBackToSong") {
+      closeSheet("follow");
+      openSheet("songDetail");
+    }
     if (event.target.id === "followComplete") completeFollow();
   });
 }
