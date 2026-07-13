@@ -1111,6 +1111,101 @@
   .beat-dots { display: flex; justify-content: space-between; margin: 14px 0; }
   .beat-dot { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; color: #fff; font-weight: 900; background: #9CA3AF; }
   .beat-dot.active { background: var(--orange); transform: scale(1.08); }
+  .metro-page {
+    overflow: hidden;
+    color: var(--text-1);
+    background: linear-gradient(180deg, #FFFDF8 0%, #F5F0E6 100%);
+  }
+  .metro-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px 6px;
+  }
+  .metro-head .back { margin-bottom: 0; color: var(--text-1); }
+  .metro-head b { font-size: 20px; }
+  .metro-body { display: grid; gap: 10px; padding: 0 16px 16px; }
+  .metro-hero {
+    padding: 14px;
+    text-align: center;
+  }
+  .metro-bpm {
+    color: var(--teal);
+    font-size: 64px;
+    line-height: 1;
+    font-weight: 950;
+  }
+  .metro-label { color: var(--text-2); font-size: 12px; font-weight: 900; }
+  .metro-presets {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .metro-preset {
+    min-height: 42px;
+    border-radius: 12px;
+    color: var(--text-2);
+    background: #EEE8DC;
+    font-weight: 950;
+  }
+  .metro-preset.active { color: #FFF8EC; background: var(--teal); }
+  .metro-beat-card { padding: 14px; }
+  .metro-beat-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin: 14px 0 8px;
+  }
+  .metro-beat {
+    display: grid;
+    place-items: center;
+    gap: 5px;
+    min-height: 76px;
+    border-radius: 18px;
+    background: #F7F1E7;
+  }
+  .metro-beat i {
+    display: block;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: #9BC2CF;
+  }
+  .metro-beat.accent i { background: #E02A2A; }
+  .metro-beat.active {
+    outline: 3px solid #F4B942;
+    background: #FFF8EC;
+  }
+  .metro-beat.active i {
+    width: 34px;
+    height: 34px;
+    box-shadow: 0 0 0 6px rgba(244,185,66,.22);
+  }
+  .metro-beat b { font-size: 13px; }
+  .metro-beat span { color: var(--text-2); font-size: 10px; font-weight: 900; }
+  .metro-control-grid {
+    display: grid;
+    grid-template-columns: 70px 1fr 70px;
+    gap: 8px;
+  }
+  .metro-status-card { padding: 12px; }
+  .metro-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .metro-status-row + .metro-status-row { margin-top: 8px; }
+  .metro-status-row b { color: var(--text-1); }
+  .metro-status-row span { color: var(--text-2); font-size: 12px; font-weight: 800; }
+  .metro-sound-toggle {
+    min-height: 40px;
+    border-radius: 12px;
+    color: var(--teal);
+    background: #DCECE2;
+    font-weight: 950;
+  }
   .target-insight {
     display: grid;
     gap: 8px;
@@ -1661,7 +1756,45 @@
       </div>
     </section>
 
-    <section class="sheet" id="metronome"><div class="sheet-head"><button class="back" data-close="metronome">‹</button><h2>节拍器</h2><p>第一拍重音，后面轻拍。</p></div><div class="tool-screen"><div class="tool-panel card"><h3><span id="bpm">70</span> BPM</h3><div class="beat-dots" id="metroDots"><span class="beat-dot active">1</span><span class="beat-dot">2</span><span class="beat-dot">3</span><span class="beat-dot">4</span></div><div style="display:flex;gap:10px"><button class="ghost" id="bpmDown">-5</button><button class="primary" id="metroToggle" style="flex:1">开始</button><button class="ghost" id="bpmUp">+5</button></div></div></div></section>
+    <section class="sheet metro-page" id="metronome">
+      <div class="metro-head">
+        <button class="back" data-close="metronome">‹</button>
+        <b>节拍器</b>
+        <button class="mode-chip">4/4</button>
+      </div>
+      <div class="metro-body">
+        <div class="metro-hero card">
+          <div class="metro-label">当前速度</div>
+          <div class="metro-bpm"><span id="bpm">70</span></div>
+          <div class="metro-label" id="metroBeatMs">每拍 857 ms</div>
+          <div class="metro-presets">
+            <button class="metro-preset" data-metro-preset="60">慢速 60</button>
+            <button class="metro-preset active" data-metro-preset="70">标准 70</button>
+            <button class="metro-preset" data-metro-preset="85">进阶 85</button>
+          </div>
+        </div>
+        <div class="metro-beat-card card">
+          <div class="module-row"><b>四拍循环</b><span id="metroBarCount">第 1 小节</span></div>
+          <div class="metro-beat-row" id="metroDots">
+            <div class="metro-beat accent active"><i></i><b>1</b><span>重音</span></div>
+            <div class="metro-beat"><i></i><b>2</b><span>轻拍</span></div>
+            <div class="metro-beat"><i></i><b>3</b><span>轻拍</span></div>
+            <div class="metro-beat"><i></i><b>4</b><span>轻拍</span></div>
+          </div>
+          <p class="module-note">红点是第一拍重音，蓝点跟轻拍。先听两小节，再进入右手节奏型。</p>
+          <div class="metro-control-grid">
+            <button class="ghost" id="bpmDown">-5</button>
+            <button class="primary" id="metroToggle">开始</button>
+            <button class="ghost" id="bpmUp">+5</button>
+          </div>
+        </div>
+        <div class="metro-status-card card">
+          <div class="metro-status-row"><b>节拍声</b><button class="metro-sound-toggle" id="metroSoundToggle">开</button></div>
+          <div class="metro-status-row"><b>状态</b><span id="metroSoundStatus">节拍声已开启</span></div>
+          <button class="primary" style="width:100%;margin-top:10px" data-open="rhythm">去练节奏型</button>
+        </div>
+      </div>
+    </section>
     <section class="sheet" id="rhythm"><div class="sheet-head"><button class="back" data-close="rhythm">‹</button><h2>节奏型练习</h2><p>先把右手稳定下来，再换和弦。</p></div><div class="tool-screen"><div class="tool-panel card"><h3>下扫四拍</h3><div class="beat-dots"><span class="beat-dot active">强</span><span class="beat-dot">轻</span><span class="beat-dot">轻</span><span class="beat-dot">轻</span></div><button class="primary" style="width:100%">开始 60 BPM</button></div><div class="tool-panel card"><h3>下 下 上 上 下 上</h3><p style="color:var(--text-2);font-size:13px;line-height:1.6">后续歌曲常用节奏型，先慢速熟悉扫弦方向。</p></div></div></section>
     <section class="sheet" id="transition"><div class="sheet-head"><button class="back" data-close="transition">‹</button><h2>和弦转换</h2><p>从两个和弦开始练，不直接上整首歌。</p></div><div class="tool-screen"><div class="tool-panel card"><h3>C → Am</h3><p style="color:var(--text-2);font-size:13px">提前准备二指，落在下一小节第一拍。</p><button class="primary" style="width:100%;margin-top:12px">开始转换练习</button></div><div class="tool-panel card"><h3>Am → F</h3><p style="color:var(--text-2);font-size:13px">保留二指，加上一指，减少左手大幅移动。</p></div><div class="tool-panel card"><h3>F → G7</h3><p style="color:var(--text-2);font-size:13px">提前半拍准备，第一拍前落稳。</p></div></div></section>
     <section class="sheet" id="follow"><div class="sheet-head"><button class="back" data-close="follow">‹</button><h2>跟弹评分</h2><p>歌曲片段、节奏、和弦完成度统一反馈。</p></div><div class="tool-screen"><div class="tool-panel card"><h3>《童年》前 4 小节</h3><p style="color:var(--text-2);font-size:13px">C · Am · F · G7</p><div class="beat-dots"><span class="beat-dot active">C</span><span class="beat-dot">Am</span><span class="beat-dot">F</span><span class="beat-dot">G7</span></div><button class="primary" style="width:100%">开始跟弹</button></div></div></section>
@@ -2059,22 +2192,41 @@ function toggleTuner() {
 let metroTimer = null;
 let beat = 0;
 let bpm = 70;
+let metroBars = 1;
+let metroSoundEnabled = true;
+const metroPresets = [60, 70, 85];
 function renderMetro() {
   $("#bpm").textContent = bpm;
-  $all("#metroDots .beat-dot").forEach((node, index) => node.classList.toggle("active", index === beat));
+  $("#metroBeatMs").textContent = `每拍 ${Math.round(60000 / bpm)} ms`;
+  $("#metroBarCount").textContent = `第 ${metroBars} 小节`;
+  $all("#metroDots .metro-beat").forEach((node, index) => node.classList.toggle("active", index === beat));
+  $all("[data-metro-preset]").forEach((node) => node.classList.toggle("active", Number(node.dataset.metroPreset) === bpm));
+  $("#metroSoundToggle").textContent = metroSoundEnabled ? "开" : "关";
+  $("#metroSoundStatus").textContent = metroSoundEnabled ? "节拍声已开启" : "节拍声已关闭";
+}
+function restartMetroTimer() {
+  if (!metroTimer) return;
+  clearInterval(metroTimer);
+  metroTimer = setInterval(tickMetro, 60000 / bpm);
+}
+function tickMetro() {
+  if (metroSoundEnabled) playClick(beat === 0);
+  beat = (beat + 1) % 4;
+  if (beat === 0) metroBars += 1;
+  renderMetro();
 }
 function toggleMetro() {
   if (metroTimer) {
     clearInterval(metroTimer);
     metroTimer = null;
     $("#metroToggle").textContent = "开始";
+    beat = 0;
+    renderMetro();
     return;
   }
   $("#metroToggle").textContent = "暂停";
-  metroTimer = setInterval(() => {
-    beat = (beat + 1) % 4;
-    renderMetro();
-  }, 60000 / bpm);
+  tickMetro();
+  metroTimer = setInterval(tickMetro, 60000 / bpm);
 }
 $all(".tab").forEach(node => node.addEventListener("click", () => go(node.dataset.tab)));
 document.addEventListener("click", event => {
@@ -2156,8 +2308,18 @@ $("#tunerCalibrate").addEventListener("click", () => {
   toast("环境噪声已校准");
 });
 $("#metroToggle").addEventListener("click", toggleMetro);
-$("#bpmDown").addEventListener("click", () => { bpm = Math.max(40, bpm - 5); renderMetro(); });
-$("#bpmUp").addEventListener("click", () => { bpm = Math.min(240, bpm + 5); renderMetro(); });
+$("#bpmDown").addEventListener("click", () => { bpm = Math.max(40, bpm - 5); renderMetro(); restartMetroTimer(); });
+$("#bpmUp").addEventListener("click", () => { bpm = Math.min(180, bpm + 5); renderMetro(); restartMetroTimer(); });
+$("#metroSoundToggle").addEventListener("click", () => {
+  metroSoundEnabled = !metroSoundEnabled;
+  renderMetro();
+});
+$all("[data-metro-preset]").forEach((node) => node.addEventListener("click", () => {
+  bpm = Number(node.dataset.metroPreset);
+  renderMetro();
+  restartMetroTimer();
+}));
+renderMetro();
 const defaultAppState = {
   todayMinutes: 12,
   streak: 7,

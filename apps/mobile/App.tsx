@@ -1132,7 +1132,7 @@ export default function App() {
         )}
         {activeTab === "tuner" && <TunerScreen />}
         {activeTab === "chords" && <ChordScreen />}
-        {activeTab === "metronome" && <MetronomeScreen />}
+        {activeTab === "metronome" && <MetronomeScreen onOpenRhythm={() => startPracticeTemplate("practice-rhythm-down-four")} />}
         {activeTab === "practice" && (
           <PracticeHubScreen
             onOpenChords={() => setActiveTab("chords")}
@@ -1660,18 +1660,28 @@ function TunerScreen() {
   );
 }
 
-function MetronomeScreen() {
+function MetronomeScreen({ onOpenRhythm }: { onOpenRhythm: () => void }) {
   const [bpm, setBpm] = useState(chordLoopPractice.bpm);
   const [isRunning, setIsRunning] = useState(false);
   const [beatIndex, setBeatIndex] = useState(0);
   const [barCount, setBarCount] = useState(1);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundStatus, setSoundStatus] = useState("节拍声已开启");
   const beatMs = Math.round(60000 / bpm);
+  const tempoPresets = [
+    { label: "慢速", bpm: 60 },
+    { label: "标准", bpm: 70 },
+    { label: "进阶", bpm: 85 }
+  ];
 
   useEffect(() => {
     if (!isRunning) return;
 
     const timer = setInterval(() => {
       setBeatIndex((current) => {
+        if (soundEnabled) {
+          playPracticeBeatClick(current === 0 ? "accent" : "light");
+        }
         const next = (current + 1) % 4;
         if (next === 0) {
           setBarCount((bar) => bar + 1);
@@ -1681,45 +1691,128 @@ function MetronomeScreen() {
     }, beatMs);
 
     return () => clearInterval(timer);
-  }, [beatMs, isRunning]);
+  }, [beatMs, isRunning, soundEnabled]);
+
+  async function toggleMetronome() {
+    if (isRunning) {
+      setIsRunning(false);
+      setBeatIndex(0);
+      return;
+    }
+
+    if (soundEnabled) {
+      const audioState = await preparePracticeBeatAudio();
+      setSoundStatus(audioState === "web-ready" ? "节拍声已就绪" : "当前平台先显示节拍，后续接本地 click 声");
+      playPracticeBeatClick("accent");
+    }
+    setIsRunning(true);
+  }
+
+  async function toggleSound() {
+    const nextEnabled = !soundEnabled;
+    setSoundEnabled(nextEnabled);
+    if (!nextEnabled) {
+      setSoundStatus("节拍声已关闭");
+      return;
+    }
+    const audioState = await preparePracticeBeatAudio();
+    setSoundStatus(audioState === "web-ready" ? "节拍声已开启" : "当前平台先显示节拍，后续接本地 click 声");
+  }
+
+  function changeBpm(nextBpm: number) {
+    setBpm(Math.max(40, Math.min(180, nextBpm)));
+  }
 
   return (
     <View style={styles.stack}>
-      <SectionTitle title="节拍器" detail={`${chordLoopPractice.timeSignature} · 每拍 ${beatMs} ms`} />
-      <View style={styles.metricPanel}>
-        <Text style={styles.metricValue}>{bpm}</Text>
+      <View style={styles.metronomeHeader}>
+        <View>
+          <Text style={styles.screenTitle}>节拍器</Text>
+          <Text style={styles.screenSubtitle}>{chordLoopPractice.timeSignature} · 每拍 {beatMs} ms</Text>
+        </View>
+        <View style={styles.tuningBadge}>
+          <Text style={styles.tuningBadgeText}>4/4</Text>
+        </View>
+      </View>
+
+      <View style={styles.metronomeTempoPanel}>
+        <Text style={styles.metronomeTempoLabel}>当前速度</Text>
+        <Text style={styles.metronomeBpmValue}>{bpm}</Text>
         <Text style={styles.metricLabel}>BPM</Text>
+        <View style={styles.metronomePresetRow}>
+          {tempoPresets.map((preset) => {
+            const selected = preset.bpm === bpm;
+            return (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                key={preset.bpm}
+                onPress={() => changeBpm(preset.bpm)}
+                style={[styles.metronomePresetButton, selected && styles.metronomePresetButtonActive]}
+              >
+                <Text style={[styles.metronomePresetText, selected && styles.metronomePresetTextActive]}>
+                  {preset.label} {preset.bpm}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={styles.metronomeBeatPanel}>
+        <View style={styles.metronomePanelHead}>
+          <Text style={styles.metronomePanelTitle}>四拍循环</Text>
+          <Text style={styles.metronomePanelMeta}>第 {barCount} 小节</Text>
+        </View>
+        <View style={styles.metronomeBeatRow}>
+          {[1, 2, 3, 4].map((beat, index) => {
+            const active = index === beatIndex;
+            const accent = index === 0;
+            return (
+              <View key={beat} style={[styles.metronomeBeatCell, active && styles.metronomeBeatCellActive]}>
+                <View style={[
+                  styles.metronomeBeatDot,
+                  accent ? styles.metronomeBeatDotAccent : styles.metronomeBeatDotLight,
+                  active && styles.metronomeBeatDotActive
+                ]} />
+                <Text style={[styles.metronomeBeatNumber, active && styles.metronomeBeatNumberActive]}>{beat}</Text>
+                <Text style={styles.metronomeBeatKind}>{accent ? "重音" : "轻拍"}</Text>
+              </View>
+            );
+          })}
+        </View>
+        <Text style={styles.metronomeHint}>红点是第一拍重音，蓝点跟轻拍。先听两小节，再进入右手节奏型。</Text>
         <View style={styles.controlRow}>
-          <Pressable
-            accessibilityRole="button"
-            style={styles.secondaryButton}
-            onPress={() => setBpm((value) => Math.max(30, value - 5))}
-          >
+          <Pressable accessibilityRole="button" style={styles.secondaryButton} onPress={() => changeBpm(bpm - 5)}>
             <Text style={styles.secondaryButtonText}>-5</Text>
           </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            style={styles.primaryInlineButton}
-            onPress={() => setIsRunning((value) => !value)}
-          >
+          <Pressable accessibilityRole="button" style={styles.primaryInlineButton} onPress={toggleMetronome}>
             <Text style={styles.primaryButtonText}>{isRunning ? "暂停" : "开始"}</Text>
           </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            style={styles.secondaryButton}
-            onPress={() => setBpm((value) => Math.min(240, value + 5))}
-          >
+          <Pressable accessibilityRole="button" style={styles.secondaryButton} onPress={() => changeBpm(bpm + 5)}>
             <Text style={styles.secondaryButtonText}>+5</Text>
           </Pressable>
         </View>
       </View>
-      <SectionTitle title="Beat Grid" detail={`小节 ${barCount}`} />
-      <View style={styles.beatGrid}>
-        {[1, 2, 3, 4].map((beat, index) => (
-          <View key={beat} style={[styles.beatCell, index === beatIndex && styles.beatAccent]}>
-            <Text style={[styles.beatText, index === beatIndex && styles.beatTextActive]}>{beat}</Text>
-          </View>
-        ))}
+
+      <View style={styles.metronomeStatusPanel}>
+        <View style={styles.metronomeStatusRow}>
+          <Text style={styles.metronomePanelTitle}>节拍声</Text>
+          <Pressable
+            accessibilityRole="switch"
+            accessibilityState={{ checked: soundEnabled }}
+            onPress={toggleSound}
+            style={[styles.soundToggleButton, soundEnabled && styles.soundToggleButtonActive]}
+          >
+            <Text style={[styles.soundToggleText, soundEnabled && styles.soundToggleTextActive]}>
+              {soundEnabled ? "开" : "关"}
+            </Text>
+          </Pressable>
+        </View>
+        <Text style={styles.practiceSoundStatus}>{soundStatus}</Text>
+        <Pressable accessibilityRole="button" onPress={onOpenRhythm} style={styles.metronomeRhythmButton}>
+          <Text style={styles.primaryButtonText}>去练节奏型</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -4647,6 +4740,157 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: colors.forest,
     fontWeight: "900"
+  },
+  metronomeHeader: {
+    minHeight: 48,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12
+  },
+  metronomeTempoPanel: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 14,
+    alignItems: "center",
+    gap: 4
+  },
+  metronomeTempoLabel: {
+    color: "#756D64",
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  metronomeBpmValue: {
+    color: colors.forest,
+    fontSize: 64,
+    lineHeight: 68,
+    fontWeight: "900"
+  },
+  metronomePresetRow: {
+    width: "100%",
+    marginTop: 8,
+    flexDirection: "row",
+    gap: 8
+  },
+  metronomePresetButton: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EEE8DC",
+    paddingHorizontal: 6
+  },
+  metronomePresetButtonActive: {
+    backgroundColor: colors.forest
+  },
+  metronomePresetText: {
+    color: "#756D64",
+    fontSize: 12,
+    fontWeight: "900",
+    textAlign: "center"
+  },
+  metronomePresetTextActive: {
+    color: "#FFF8EC"
+  },
+  metronomeBeatPanel: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 12,
+    gap: 10
+  },
+  metronomePanelHead: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10
+  },
+  metronomePanelTitle: {
+    color: colors.ink,
+    fontWeight: "900"
+  },
+  metronomePanelMeta: {
+    color: "#756D64",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  metronomeBeatRow: {
+    flexDirection: "row",
+    gap: 8
+  },
+  metronomeBeatCell: {
+    flex: 1,
+    minHeight: 76,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F7F1E7",
+    gap: 4
+  },
+  metronomeBeatCellActive: {
+    borderWidth: 2,
+    borderColor: colors.amber,
+    backgroundColor: "#FFF8EC"
+  },
+  metronomeBeatDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 999
+  },
+  metronomeBeatDotAccent: {
+    backgroundColor: accentBeatRed
+  },
+  metronomeBeatDotLight: {
+    backgroundColor: lightBeatBlue
+  },
+  metronomeBeatDotActive: {
+    width: 32,
+    height: 32,
+    borderWidth: 4,
+    borderColor: "#FFF8EC"
+  },
+  metronomeBeatNumber: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  metronomeBeatNumberActive: {
+    color: colors.forest
+  },
+  metronomeBeatKind: {
+    color: "#756D64",
+    fontSize: 10,
+    fontWeight: "900"
+  },
+  metronomeHint: {
+    color: "#756D64",
+    fontSize: 12,
+    lineHeight: 17
+  },
+  metronomeStatusPanel: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 12,
+    gap: 8
+  },
+  metronomeStatusRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10
+  },
+  metronomeRhythmButton: {
+    minHeight: 44,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.forest
   },
   beatGrid: {
     flexDirection: "row",
