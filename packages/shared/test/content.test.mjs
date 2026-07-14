@@ -164,6 +164,7 @@ test("MVP home and learn presentation entries resolve to shared content", () => 
 
 test("MVP course catalog models the beginner learning path", () => {
   const requiredCourses = mvpCourseCatalog.filter((course) => course.type === "required");
+  assert.ok(mvpCourseCatalog.every((course) => course.display?.emoji));
   assert.deepEqual(
     requiredCourses.map((course) => course.order),
     [1, 2, 3, 4, 5]
@@ -180,6 +181,11 @@ test("MVP course catalog models the beginner learning path", () => {
   assert.ok(getBeginnerSongById(songCourse.linkedSongId));
   assert.deepEqual(songCourse.segments, ["读谱和和弦", "前 4 小节", "慢速跟弹", "提交评分"]);
   assert.ok(requiredCourses.every((course) => course.segments.length === 4));
+  for (const course of mvpCourseCatalog) {
+    if (course.primaryPracticeTemplateId) assert.ok(getMvpPracticeTemplate(course.primaryPracticeTemplateId));
+    if (course.followupPracticeTemplateId) assert.ok(getMvpPracticeTemplate(course.followupPracticeTemplateId));
+    if (course.linkedSongId) assert.ok(getBeginnerSongById(course.linkedSongId));
+  }
 });
 
 test("MVP shared content links songs fragments rhythms and templates", () => {

@@ -2947,29 +2947,31 @@ function normalizePreviewSong(song) {
   };
 }
 const songs = songCatalog.map(normalizePreviewSong);
-const courses = [
+const courseCatalog = [
   {
     id: "course-uke-intro",
     order: 1,
     type: "required",
-    emoji: "🎸",
     title: "认识你的尤克里里",
     subtitle: "持琴姿势 · 四根弦 · 基本发声",
     estimatedMinutes: 8,
     access: "free",
     defaultProgress: 100,
+    display: { emoji: "🎸" },
+    skillPathId: "tuning",
     segments: ["认识四根弦", "正确持琴", "第一次拨弦", "完成课后小测"]
   },
   {
     id: "course-tune-gcea",
     order: 2,
     type: "required",
-    emoji: "🎛️",
     title: "学会给琴调音",
     subtitle: "使用调音器把 G-C-E-A 调准",
     estimatedMinutes: 10,
     access: "free",
     defaultProgress: 100,
+    display: { emoji: "🎛️" },
+    skillPathId: "tuning",
     toolId: "tuner",
     segments: ["打开调音器", "识别 G-C-E-A", "调准四根弦", "完成调音记录"]
   },
@@ -2977,12 +2979,13 @@ const courses = [
     id: "course-rhythm-down-four",
     order: 3,
     type: "required",
-    emoji: "🥁",
     title: "第一个节奏型",
     subtitle: "下扫四拍，建立稳定节拍感",
     estimatedMinutes: 12,
     access: "free",
     defaultProgress: 60,
+    display: { emoji: "🥁" },
+    skillPathId: "rhythm",
     primaryPracticeTemplateId: "practice-rhythm-down-four",
     segments: ["听 60 BPM", "下扫四拍", "连续 2 轮", "节奏分达到 70"]
   },
@@ -2990,12 +2993,13 @@ const courses = [
     id: "course-c-am-transition",
     order: 4,
     type: "required",
-    emoji: "🔁",
     title: "C 与 Am 的切换",
     subtitle: "从双和弦转换进入四和弦循环",
     estimatedMinutes: 12,
     access: "free",
     defaultProgress: 20,
+    display: { emoji: "🔁" },
+    skillPathId: "transition",
     primaryPracticeTemplateId: "practice-transition-c-am",
     followupPracticeTemplateId: "practice-c-am-f-g7-loop",
     segments: ["C 到 Am", "Am 到 F", "F 到 G7", "四和弦循环"]
@@ -3004,12 +3008,13 @@ const courses = [
     id: "course-first-song-fragment",
     order: 5,
     type: "required",
-    emoji: "🎤",
     title: "第一首弹唱《童年》",
     subtitle: "C-Am-F-G7 歌曲片段跟弹",
     estimatedMinutes: 15,
     access: "free",
     defaultProgress: 0,
+    display: { emoji: "🎤" },
+    skillPathId: "song-fragment",
     primaryPracticeTemplateId: "practice-song-fragment-four-chord-hum",
     linkedSongId: "song-four-chord-hum",
     segments: ["读谱和和弦", "前 4 小节", "慢速跟弹", "提交评分"]
@@ -3018,12 +3023,12 @@ const courses = [
     id: "course-island-strum",
     order: 6,
     type: "optional",
-    emoji: "🎵",
     title: "切分节奏和扫弦方向",
     subtitle: "下下上上、弱起和切音的入门练习",
     estimatedMinutes: 14,
     access: "free",
     defaultProgress: 0,
+    display: { emoji: "🎵" },
     primaryRhythmPatternId: "rhythm-down-down-up-up",
     primaryPracticeTemplateId: "practice-rhythm-down-down-up-up",
     segments: ["节奏方向", "空拍练习", "切分扫弦", "应用到歌曲"]
@@ -3032,16 +3037,23 @@ const courses = [
     id: "course-riptide-pro",
     order: 7,
     type: "pro",
-    emoji: "🏝️",
     title: "完整弹唱：Riptide",
     subtitle: "从前奏节奏进入完整歌曲跟弹",
     estimatedMinutes: 18,
     access: "pro",
     defaultProgress: 0,
+    display: { emoji: "🏝️" },
     linkedSongId: "song-riptide-style-progression",
     segments: ["歌曲结构", "主歌跟弹", "副歌跟弹", "完整录制"]
   }
 ];
+function normalizePreviewCourse(course) {
+  return {
+    ...course,
+    emoji: course.display?.emoji || "🎸"
+  };
+}
+const courses = courseCatalog.map(normalizePreviewCourse);
 const chordCategories = [
   { id: "all", label: "所有" },
   { id: "beginner", label: "入门和弦" },
@@ -3857,7 +3869,9 @@ function courseFollowupPracticeTemplate(course) {
   return practiceTemplates.find(item => item.id === course?.followupPracticeTemplateId) || null;
 }
 function courseSong(course) {
-  return songs.find(item => item.templateId === course?.primaryPracticeTemplateId) || null;
+  return songs.find(item => item.id === course?.linkedSongId) ||
+    songs.find(item => item.templateId === course?.primaryPracticeTemplateId) ||
+    null;
 }
 function renderCourseResources(course) {
   const template = coursePracticeTemplate(course);
