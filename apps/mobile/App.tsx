@@ -14,8 +14,10 @@ import {
   beginnerChords,
   buildMvpCourseProgressPath,
   chordLoopPractice,
+  chordLibraryCategories as sharedChordLibraryCategories,
   designPrinciples,
   designTokens,
+  favoriteChordNames as sharedFavoriteChordNames,
   filterBeginnerSongs,
   getMvpCourseForPracticeTemplate,
   mvpHomeCheckinMinutes,
@@ -2029,16 +2031,8 @@ function MetronomeScreen({ onOpenRhythm }: { onOpenRhythm: () => void }) {
 function ChordScreen() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<ChordCategoryId>("all");
-  const favoriteChordNames = ["C", "Am", "F", "G7"];
-  const chordCategories: Array<{ id: ChordCategoryId; label: string; detail: string }> = [
-    { id: "all", label: "所有", detail: "完整常用表" },
-    { id: "beginner", label: "入门", detail: "C Am F G7" },
-    { id: "major", label: "大三", detail: "明亮稳定" },
-    { id: "minor", label: "小三", detail: "柔和暗色" },
-    { id: "seventh", label: "属七", detail: "常见收束" },
-    { id: "accidental", label: "升降", detail: "进阶调性" },
-    { id: "barre", label: "横按", detail: "手型进阶" }
-  ];
+  const favoriteChordNames = sharedFavoriteChordNames;
+  const chordCategories = sharedChordLibraryCategories as Array<{ id: ChordCategoryId; label: string; detail: string }>;
   const matchesChordCategory = (chord: typeof beginnerChords[number], categoryId: ChordCategoryId) => {
     if (categoryId === "all") return true;
     if (categoryId === "beginner") return favoriteChordNames.includes(chord.name);

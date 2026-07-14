@@ -52,6 +52,18 @@ export const beginnerChords = [
   { id: "uke-fsharp7", instrumentId: "ukulele", name: "F#7", fingering: [3, 4, 2, 4], fingers: [2, 3, 1, 4], difficulty: 4, tags: ["seventh", "sharp", "key-b"] }
 ];
 
+export const chordLibraryCategories = [
+  { id: "all", label: "所有", detail: "完整常用表" },
+  { id: "beginner", label: "入门", detail: "C Am F G7" },
+  { id: "major", label: "大三", detail: "明亮稳定" },
+  { id: "minor", label: "小三", detail: "柔和暗色" },
+  { id: "seventh", label: "属七", detail: "常见收束" },
+  { id: "accidental", label: "升降", detail: "进阶调性" },
+  { id: "barre", label: "横按", detail: "手型进阶" }
+];
+
+export const favoriteChordNames = ["C", "Am", "F", "G7"];
+
 export const mvpLesson = {
   id: "lesson-tune-and-c-am-f-g7",
   title: "第一课：调音与 C-Am-F-G7 循环",
@@ -1135,6 +1147,10 @@ export const mvpPracticeContent = {
     hotSongRecommendations: mvpHomeHotSongRecommendations
   },
   learnTopics: mvpLearnTopicEntrances,
+  chordLibrary: {
+    categories: chordLibraryCategories,
+    favoriteChordNames
+  },
   courses: mvpCourseCatalog,
   rhythmPatterns: beginnerRhythmPatterns,
   chordTransitions: chordTransitionExercises,

@@ -3055,13 +3055,13 @@ function normalizePreviewCourse(course) {
 }
 const courses = courseCatalog.map(normalizePreviewCourse);
 const chordCategories = [
-  { id: "all", label: "所有" },
-  { id: "beginner", label: "入门和弦" },
-  { id: "major", label: "大三和弦" },
-  { id: "minor", label: "小三和弦" },
-  { id: "seventh", label: "属七和弦" },
-  { id: "accidental", label: "升降和弦" },
-  { id: "suspended", label: "挂留和弦" }
+  { id: "all", label: "所有", detail: "完整常用表" },
+  { id: "beginner", label: "入门", detail: "C Am F G7" },
+  { id: "major", label: "大三", detail: "明亮稳定" },
+  { id: "minor", label: "小三", detail: "柔和暗色" },
+  { id: "seventh", label: "属七", detail: "常见收束" },
+  { id: "accidental", label: "升降", detail: "进阶调性" },
+  { id: "barre", label: "横按", detail: "手型进阶" }
 ];
 let activeChordCategory = "all";
 const chords = [
@@ -3216,11 +3216,18 @@ function chordCard(chord) {
     <span class="chord-play">▶</span>
   </button>`;
 }
+function matchesChordCategory(chord, categoryId) {
+  if (categoryId === "all") return true;
+  if (categoryId === "beginner") return favoriteChordNames.includes(chord.name);
+  if (categoryId === "accidental") return chord.tags?.includes("sharp") || chord.tags?.includes("flat");
+  if (categoryId === "barre") return chord.tags?.includes("barre");
+  return chord.category === categoryId || chord.tags?.includes(categoryId);
+}
 function renderChords() {
   const search = ($("#chordSearch")?.value || "").trim().toLowerCase();
   $("#chordCategoryTabs").innerHTML = chordCategories.map(category => `<button class="chord-category-tab ${category.id === activeChordCategory ? "active" : ""}" data-chord-category="${category.id}">${category.label}</button>`).join("");
   const visibleChords = chords.filter(chord => {
-    const categoryMatch = activeChordCategory === "all" || chord.category === activeChordCategory || chord.tags?.includes(activeChordCategory);
+    const categoryMatch = matchesChordCategory(chord, activeChordCategory);
     const searchMatch = search.length === 0 || chord.name.toLowerCase().includes(search);
     return categoryMatch && searchMatch;
   });

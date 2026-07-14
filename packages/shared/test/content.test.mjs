@@ -5,6 +5,7 @@ import {
   appendPracticeRecord,
   beginnerChords,
   buildMvpCourseProgressPath,
+  chordLibraryCategories,
   chordLoopPractice,
   createNextPracticeRecommendation,
   createPracticeSessionRecord,
@@ -12,6 +13,7 @@ import {
   evaluateMvpLessonProgress,
   evaluatePracticeMilestone,
   estimateMvpCourseProgress,
+  favoriteChordNames,
   filterBeginnerSongs,
   formatPracticeDayKey,
   getBeginnerSongById,
@@ -74,6 +76,20 @@ test("common chord library includes the key chart chords", () => {
   ]) {
     assert.ok(chordNames.has(chordName), `${chordName} should be in the chord library`);
   }
+});
+
+test("chord library categories and favorites resolve beginner chords", () => {
+  assert.deepEqual(
+    chordLibraryCategories.map((category) => category.id),
+    ["all", "beginner", "major", "minor", "seventh", "accidental", "barre"]
+  );
+  const chordNames = new Set(beginnerChords.map((chord) => chord.name));
+  assert.deepEqual(favoriteChordNames, ["C", "Am", "F", "G7"]);
+  for (const name of favoriteChordNames) {
+    assert.ok(chordNames.has(name), `${name} should exist`);
+  }
+  assert.equal(mvpPracticeContent.chordLibrary.categories, chordLibraryCategories);
+  assert.equal(mvpPracticeContent.chordLibrary.favoriteChordNames, favoriteChordNames);
 });
 
 test("MVP practice template can be queried by id", () => {
