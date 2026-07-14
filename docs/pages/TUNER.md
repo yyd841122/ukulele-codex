@@ -322,6 +322,13 @@ Native/JSI 进入条件：
 - 延迟或卡顿无法满足调音反馈。
 - 后续和弦识别或更复杂评分需要更低层实时处理。
 
+本轮已增加实时 PCM 调试指标：
+
+- sampleRate / channels / encoding
+- buffer 间隔
+- Pitch 延迟
+- PitchFrame 数量与最近频率
+
 详细方案见：
 
 - `docs/AUDIO_ENGINE_PLAN.md`

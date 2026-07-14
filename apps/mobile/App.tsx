@@ -1607,6 +1607,29 @@ function TunerScreen() {
   const centsAngle = Math.max(-58, Math.min(58, cents * 2.6));
   const inputPercent = Math.round(combinedInputLevel * 100);
   const noiseGateLabel = recorderMonitor.isRecording || realtimeTuner.isStreaming ? "门限 3.2x" : "门限 2.6x";
+  const realtimeDebugMetrics = realtimeTuner.debugMetrics;
+  const realtimeDebugRows = [
+    {
+      label: "sampleRate",
+      value: realtimeDebugMetrics.sampleRate ? `${realtimeDebugMetrics.sampleRate} Hz` : "--",
+      detail: `${realtimeDebugMetrics.channels ?? "--"} ch · ${realtimeDebugMetrics.encoding ?? "--"}`
+    },
+    {
+      label: "buffer 间隔",
+      value: realtimeDebugMetrics.bufferIntervalMs == null ? "--" : `${realtimeDebugMetrics.bufferIntervalMs} ms`,
+      detail: `${realtimeDebugMetrics.sampleCount || 0} samples`
+    },
+    {
+      label: "Pitch 延迟",
+      value: realtimeDebugMetrics.pitchLatencyMs == null ? "--" : `${realtimeDebugMetrics.pitchLatencyMs} ms`,
+      detail: realtimeDebugMetrics.pitchConfidence == null ? "confidence --" : `confidence ${realtimeDebugMetrics.pitchConfidence.toFixed(2)}`
+    },
+    {
+      label: "PitchFrame",
+      value: `${realtimeDebugMetrics.processedBuffers}`,
+      detail: realtimeDebugMetrics.detectedFrequencyHz == null ? "frequency --" : `${realtimeDebugMetrics.detectedFrequencyHz.toFixed(1)} Hz`
+    }
+  ];
   const tunerHint = Math.abs(cents) <= IN_TUNE_CENTS
     ? "绿色范围内已经足够准，可以进入节奏练习。"
     : cents > 0
@@ -1758,6 +1781,15 @@ function TunerScreen() {
           <Text style={styles.inputMeta}>
             metering {recorderMonitor.metering == null ? "--" : recorderMonitor.metering.toFixed(1)}
           </Text>
+        </View>
+        <View style={styles.realtimeDebugGrid}>
+          {realtimeDebugRows.map((item) => (
+            <View key={item.label} style={[styles.realtimeDebugCard, realtimeTuner.isStreaming && styles.realtimeDebugCardActive]}>
+              <Text style={styles.realtimeDebugLabel}>{item.label}</Text>
+              <Text style={styles.realtimeDebugValue}>{item.value}</Text>
+              <Text style={styles.realtimeDebugDetail}>{item.detail}</Text>
+            </View>
+          ))}
         </View>
         {recorderMonitor.error ? <Text style={styles.errorText}>{recorderMonitor.error}</Text> : null}
         {realtimeTuner.error ? <Text style={styles.errorText}>{realtimeTuner.error}</Text> : null}
@@ -5943,6 +5975,41 @@ const styles = StyleSheet.create({
   inputMeta: {
     color: "#756D64",
     fontSize: 12
+  },
+  realtimeDebugGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6
+  },
+  realtimeDebugCard: {
+    width: "48.5%",
+    minHeight: 58,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5DED4",
+    backgroundColor: "#FFFDF8",
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    gap: 2
+  },
+  realtimeDebugCardActive: {
+    borderColor: "#B8E3DA",
+    backgroundColor: "#F0FDFA"
+  },
+  realtimeDebugLabel: {
+    color: "#756D64",
+    fontSize: 10,
+    fontWeight: "800"
+  },
+  realtimeDebugValue: {
+    color: colors.forest,
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  realtimeDebugDetail: {
+    color: "#8A8176",
+    fontSize: 10,
+    fontWeight: "700"
   },
   errorText: {
     color: colors.coral,

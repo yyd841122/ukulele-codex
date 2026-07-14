@@ -7,6 +7,7 @@ import { createDetectedTunerFrame, type TunerFrame, type TuningString } from "./
 export type RealtimeTunerStream = {
   frame: TunerFrame | null;
   level: number;
+  debugMetrics: RealtimeTunerDebugMetrics;
   isStreaming: boolean;
   isBusy: boolean;
   error: string | null;
@@ -15,10 +16,34 @@ export type RealtimeTunerStream = {
   stop: () => void;
 };
 
+export type RealtimeTunerDebugMetrics = {
+  sampleRate: number | null;
+  channels: number | null;
+  encoding: string | null;
+  sampleCount: number;
+  processedBuffers: number;
+  bufferIntervalMs: number | null;
+  pitchLatencyMs: number | null;
+  pitchConfidence: number | null;
+  detectedFrequencyHz: number | null;
+};
+
 const streamOptions = {
   sampleRate: 44100,
   channels: 1,
   encoding: "float32" as const
+};
+
+const initialDebugMetrics: RealtimeTunerDebugMetrics = {
+  sampleRate: null,
+  channels: null,
+  encoding: null,
+  sampleCount: 0,
+  processedBuffers: 0,
+  bufferIntervalMs: null,
+  pitchLatencyMs: null,
+  pitchConfidence: null,
+  detectedFrequencyHz: null
 };
 
 export function useRealtimeTunerStream(
@@ -30,10 +55,16 @@ export function useRealtimeTunerStream(
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [access, setAccess] = useState<MicrophoneAccessState | null>(null);
+  const [debugMetrics, setDebugMetrics] = useState<RealtimeTunerDebugMetrics>(initialDebugMetrics);
   const lastProcessedAtRef = useRef(0);
+  const processedBufferCountRef = useRef(0);
 
   const handleBuffer = useCallback(
     (buffer: AudioStreamBuffer) => {
+      const callbackStartedAtMs = Date.now();
+      const bufferIntervalMs = lastProcessedAtRef.current > 0
+        ? Math.round((buffer.timestamp - lastProcessedAtRef.current) * 1000)
+        : null;
       if (buffer.timestamp - lastProcessedAtRef.current < 0.1) return;
       lastProcessedAtRef.current = buffer.timestamp;
 
@@ -47,14 +78,25 @@ export function useRealtimeTunerStream(
         threshold: 0.15
       });
 
+      const nextFrame = createDetectedTunerFrame(tuningStrings, selectedIndex, {
+        frequencyHz: pitch.frequencyHz,
+        confidence: pitch.confidence,
+        timestampMs: buffer.timestamp * 1000
+      });
+      processedBufferCountRef.current += 1;
       setLevel(Math.max(0, Math.min(1, (pitch.rms ?? 0) / 0.12)));
-      setFrame(
-        createDetectedTunerFrame(tuningStrings, selectedIndex, {
-          frequencyHz: pitch.frequencyHz,
-          confidence: pitch.confidence,
-          timestampMs: buffer.timestamp * 1000
-        })
-      );
+      setFrame(nextFrame);
+      setDebugMetrics({
+        sampleRate: buffer.sampleRate,
+        channels: buffer.channels,
+        encoding: (buffer as AudioStreamBuffer & { encoding?: string }).encoding ?? streamOptions.encoding,
+        sampleCount: samples.length,
+        processedBuffers: processedBufferCountRef.current,
+        bufferIntervalMs,
+        pitchLatencyMs: Date.now() - callbackStartedAtMs,
+        pitchConfidence: pitch.confidence ?? null,
+        detectedFrequencyHz: pitch.frequencyHz
+      });
     },
     [selectedIndex, tuningStrings]
   );
@@ -97,11 +139,15 @@ export function useRealtimeTunerStream(
     maybeStream?.stop?.();
     setFrame(null);
     setLevel(0);
+    setDebugMetrics(initialDebugMetrics);
+    lastProcessedAtRef.current = 0;
+    processedBufferCountRef.current = 0;
   }
 
   return {
     frame,
     level,
+    debugMetrics,
     isStreaming,
     isBusy,
     error,
