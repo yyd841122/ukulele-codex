@@ -1553,7 +1553,7 @@ const practiceRecordPassesTemplate = (record, template) => {
     (targetCount > 0 && completedCount >= targetCount && rhythmScore !== null && rhythmScore >= passingScore);
 };
 
-const mvpPracticeRecommendationPath = [
+export const mvpPracticeRecommendationPath = [
   { courseId: "course-rhythm-down-four", templateId: "practice-rhythm-down-four" },
   { courseId: "course-c-am-transition", templateId: "practice-transition-c-am" },
   { courseId: "course-first-song-fragment", templateId: "practice-song-fragment-four-chord-hum" }

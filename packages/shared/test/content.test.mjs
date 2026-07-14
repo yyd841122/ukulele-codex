@@ -34,6 +34,7 @@ import {
   mvpMelodyPracticePhrases,
   mvpContentModules,
   mvpCourseCatalog,
+  mvpPracticeRecommendationPath,
   mvpPracticeContent,
   mvpSkillPath,
   mvpPracticeTemplates,
@@ -160,6 +161,17 @@ test("MVP home and learn presentation entries resolve to shared content", () => 
       assert.ok(templateIds.has(topic.target.id), `${topic.target.id} should exist`);
     }
   }
+});
+
+test("MVP practice recommendation path follows the intended beginner order", () => {
+  assert.deepEqual(
+    mvpPracticeRecommendationPath.map((step) => [step.courseId, step.templateId]),
+    [
+      ["course-rhythm-down-four", "practice-rhythm-down-four"],
+      ["course-c-am-transition", "practice-transition-c-am"],
+      ["course-first-song-fragment", "practice-song-fragment-four-chord-hum"]
+    ]
+  );
 });
 
 test("MVP course catalog models the beginner learning path", () => {

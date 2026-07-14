@@ -2545,7 +2545,7 @@
             </button>
           </section>
 
-          <section class="home-recommend">
+          <section class="home-recommend" id="homeRecommendation">
             <div class="home-card-head">
               <b>今日推荐 · 稳住 C</b>
               <small>8 分钟</small>
@@ -2557,7 +2557,7 @@
               <div class="home-meta"><span>目标</span><b>C</b></div>
               <div class="home-meta"><span>来源</span><b>本地</b></div>
             </div>
-            <button class="home-start clickable" data-tab-go="practice">按建议开始</button>
+            <button class="home-start clickable" id="homeRecommendationStart">按建议开始</button>
           </section>
 
           <section>
@@ -3727,6 +3727,90 @@ function normalizeSession(session) {
     totalSteps: session.totalSteps ?? template?.targets?.length ?? 0
   };
 }
+const previewRecommendationPath = [
+  { courseId: "course-rhythm-down-four", templateId: "practice-rhythm-down-four" },
+  { courseId: "course-c-am-transition", templateId: "practice-transition-c-am" },
+  { courseId: "course-first-song-fragment", templateId: "practice-song-fragment-four-chord-hum" }
+];
+function sessionMatchesTemplate(session, templateId) {
+  return session?.templateId === templateId || session?.exerciseId === templateId;
+}
+function sessionRhythmScore(session) {
+  const value = session?.rhythmScore ?? session?.score ?? session?.rhythmSummary?.averageRhythmScore;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+function sessionCompletedCount(session) {
+  const value = session?.completedCount ?? session?.completedTargetCount ?? session?.totalSteps ?? 0;
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, Math.round(number)) : 0;
+}
+function sessionPassesTemplate(session, template) {
+  const targetCount = Math.max(1, template?.targets?.length || Number(session?.totalSteps) || 1);
+  const score = sessionRhythmScore(session);
+  return session?.status === "passed" || (sessionCompletedCount(session) >= targetCount && score !== null && score >= 70);
+}
+function weakTargetForSession(session, template) {
+  const targets = template?.targets || [];
+  if (!targets.length) return null;
+  const completed = Math.min(targets.length - 1, sessionCompletedCount(session));
+  return targetChordName(template, targets[completed]) || targets[completed] || targets[0];
+}
+function createPreviewNextPracticeRecommendation() {
+  const sessions = appState.sessions.map(normalizeSession);
+  for (const step of previewRecommendationPath) {
+    const template = templateById(step.templateId);
+    if (!template) continue;
+    const course = courses.find(item => item.id === step.courseId) || null;
+    const records = sessions.filter(item => sessionMatchesTemplate(item, template.id));
+    if (records.some(item => sessionPassesTemplate(item, template))) continue;
+    const latest = records[0] || null;
+    const score = latest ? sessionRhythmScore(latest) : null;
+    const targetCount = Math.max(1, template.targets?.length || 1);
+    const completed = latest ? sessionCompletedCount(latest) : 0;
+    const needsFocus = !latest || completed < targetCount || (score !== null && score < 70);
+    const focus = latest ? weakTargetForSession(latest, template) : targetChordName(template, template.targets?.[0]);
+    const bpm = needsFocus ? Math.min(template.bpm, 60) : template.bpm;
+    const loopMode = needsFocus && focus ? "single" : "auto";
+    const title = loopMode === "single"
+      ? `稳住 ${focus}`
+      : template.id.includes("song-fragment")
+        ? "进入歌曲片段"
+        : template.title;
+    const detail = loopMode === "single"
+      ? `用 ${bpm} BPM 只练 ${focus}，先把换指和完成时机练稳。`
+      : template.id.includes("rhythm")
+        ? `用 ${bpm} BPM 自动循环，先把右手节奏型扫稳。`
+        : template.id.includes("song-fragment")
+          ? `用 ${bpm} BPM 跟着歌曲片段练小节、和弦和节奏。`
+          : `用 ${bpm} BPM 自动循环，完整跑顺 ${template.title}。`;
+    return {
+      title,
+      detail,
+      bpm,
+      loopMode,
+      focusChord: focus,
+      templateId: template.id,
+      courseId: course?.id || step.courseId,
+      songId: course?.linkedSongId || null,
+      minutes: course?.estimatedMinutes || 8,
+      reason: latest ? `最近完成 ${completed}/${targetCount} · ${score ?? "--"} 分` : `下一步：${course?.title || template.title}`
+    };
+  }
+  const finalTemplate = templateById("practice-song-fragment-four-chord-hum") || practiceTemplates[0];
+  return {
+    title: "提高速度",
+    detail: "第一轮路径已经完成，可以回到歌曲片段或把速度提高 5 BPM。",
+    bpm: Math.min(140, (finalTemplate?.bpm || 70) + 5),
+    loopMode: "auto",
+    focusChord: null,
+    templateId: finalTemplate?.id || null,
+    courseId: "course-first-song-fragment",
+    songId: "song-four-chord-hum",
+    minutes: 8,
+    reason: "路径已完成"
+  };
+}
 function addSession(session) {
   appState.sessions = [normalizeSession({ ...session, at: "刚刚" }), ...appState.sessions].slice(0, 5);
   appState.todayMinutes += session.minutes || 1;
@@ -4423,6 +4507,7 @@ function completeFollow() {
   advanceAfterPracticeComplete("follow", 5, finalScore);
 }
 function renderHome() {
+  const recommendation = createPreviewNextPracticeRecommendation();
   const streakNumber = document.querySelector(".home-streak-badge b");
   if (streakNumber) streakNumber.textContent = String(appState.streak || 7);
   const checkinMeta = document.querySelector(".home-checkin-card .home-card-head small");
@@ -4451,6 +4536,23 @@ function renderHome() {
       <span class="row-copy"><b>${song.title}</b><small>${song.diff} · ${song.bpm} BPM · ${song.chords} · ${song.minutes} 分钟</small></span>
       <span class="difficulty">去练</span>
     </button>`).join("");
+  }
+  const recommendNode = $("#homeRecommendation");
+  if (recommendNode) {
+    recommendNode.innerHTML = `
+      <div class="home-card-head">
+        <b>今日推荐 · ${recommendation.title}</b>
+        <small>${recommendation.minutes} 分钟</small>
+      </div>
+      <p>${recommendation.detail}</p>
+      <div class="home-meta-row">
+        <div class="home-meta"><span>BPM</span><b>${recommendation.bpm}</b></div>
+        <div class="home-meta"><span>模式</span><b>${recommendation.loopMode === "single" ? "单练" : "循环"}</b></div>
+        <div class="home-meta"><span>目标</span><b>${recommendation.focusChord || "歌曲"}</b></div>
+        <div class="home-meta"><span>来源</span><b>本地</b></div>
+      </div>
+      <button class="home-start clickable" id="homeRecommendationStart" data-practice-template="${recommendation.templateId || ""}">按建议开始</button>
+    `;
   }
 }
 function renderCourses() {
@@ -4544,9 +4646,10 @@ function renderMe() {
   }
   const advice = $("#meAdvice");
   if (advice) {
+    const recommendation = createPreviewNextPracticeRecommendation();
     const adviceText = totalProgress >= 100
       ? "第一课路径已完成，可以去曲谱库挑一首歌继续跟弹。"
-      : `${courseActionText(currentCourse)} · ${currentCourse.subtitle}`;
+      : `${recommendation.title} · ${recommendation.bpm} BPM · ${recommendation.reason}`;
     advice.innerHTML = `<span><b>下一步建议</b><small>${adviceText}</small></span><span class="me-advice-arrow">›</span>`;
   }
   const pattern = [1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,0,1,1,0,1];
