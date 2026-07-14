@@ -48,6 +48,7 @@ import {
   practiceLoopModes,
   practiceHubDisplayConfig,
   practiceRecordVersion,
+  practiceRunnerDisplayConfig,
   practiceTempoPresets,
   profileDisplayConfig,
   summarizePracticeHistory,
@@ -165,6 +166,16 @@ test("profile display config defines local record labels", () => {
   assert.equal(profileDisplayConfig.recent.clearLabel, "清空");
   assert.equal(profileDisplayConfig.recent.emptyText, "完成一次练琴后，这里会出现最近记录。");
   assert.equal(mvpPracticeContent.profile, profileDisplayConfig);
+});
+
+test("practice runner display config defines shared statuses and controls", () => {
+  assert.equal(practiceRunnerDisplayConfig.statusLabels.idle, "待开始");
+  assert.equal(practiceRunnerDisplayConfig.statusLabels.recording, "自动记录中");
+  assert.equal(practiceRunnerDisplayConfig.buttons.start, "开始");
+  assert.equal(practiceRunnerDisplayConfig.buttons.pause, "暂停");
+  assert.equal(practiceRunnerDisplayConfig.sound.onLabel, "节拍声 开");
+  assert.equal(practiceRunnerDisplayConfig.feedback.rhythmIdle, "点击开始后自动记录扫弦节奏，结束后生成评分");
+  assert.equal(mvpPracticeContent.practiceRunner, practiceRunnerDisplayConfig);
 });
 
 test("MVP practice template can be queried by id", () => {

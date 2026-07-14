@@ -347,6 +347,51 @@ export const profileDisplayConfig = {
   }
 };
 
+export const practiceRunnerDisplayConfig = {
+  statusLabels: {
+    idle: "待开始",
+    running: "进行中",
+    waiting: "等待开始",
+    recording: "自动记录中",
+    complete: "本轮完成"
+  },
+  buttons: {
+    start: "开始",
+    pause: "暂停",
+    reset: "重置",
+    resetPractice: "重置练习",
+    completeGroup: "完成本组",
+    submitSegment: "提交本段",
+    backToSong: "返回歌曲",
+    nextGroup: "下一组"
+  },
+  sound: {
+    prefix: "节拍声",
+    on: "开",
+    off: "关",
+    onLabel: "节拍声 开",
+    offLabel: "节拍声 关"
+  },
+  stats: {
+    practiced: "已练",
+    rhythm: "节奏",
+    record: "记录",
+    attempts: "尝试",
+    stable: "稳定",
+    score: "分数",
+    bars: "小节",
+    hits: "命中",
+    rounds: "轮次"
+  },
+  feedback: {
+    rhythmIdle: "点击开始后自动记录扫弦节奏，结束后生成评分",
+    transitionIdle: "点击开始后，第 4 拍会自动记录一次换指尝试。",
+    followIdle: "点击开始后，每 4 拍进入下一和弦。",
+    melodyIdle: "点击开始后，按提示弦和品位逐拍练单音。",
+    melodyAppIdle: "点击开始后会按节拍自动记录本轮单音表现。"
+  }
+};
+
 export const getSongChordNames = (song) =>
   song?.chordNames ?? song?.chords ?? ["C", "Am", "F", "G7"];
 
@@ -1461,6 +1506,7 @@ export const mvpPracticeContent = {
   practiceHub: practiceHubDisplayConfig,
   courseDetail: courseDetailDisplayConfig,
   profile: profileDisplayConfig,
+  practiceRunner: practiceRunnerDisplayConfig,
   courses: mvpCourseCatalog,
   rhythmPatterns: beginnerRhythmPatterns,
   chordTransitions: chordTransitionExercises,

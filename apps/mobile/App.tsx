@@ -33,6 +33,7 @@ import {
   mvpPracticeContent,
   practiceHubDisplayConfig as sharedPracticeHubDisplayConfig,
   practiceLoopModes as sharedPracticeLoopModes,
+  practiceRunnerDisplayConfig as sharedPracticeRunnerDisplayConfig,
   practiceTempoPresets as sharedPracticeTempoPresets,
   profileDisplayConfig as sharedProfileDisplayConfig,
   songDetailDisplayConfig as sharedSongDetailDisplayConfig,
@@ -121,6 +122,7 @@ const songDetailDisplayConfig = sharedSongDetailDisplayConfig;
 const practiceHubDisplayConfig = sharedPracticeHubDisplayConfig;
 const courseDetailDisplayConfig = sharedCourseDetailDisplayConfig;
 const profileDisplayConfig = sharedProfileDisplayConfig;
+const practiceRunnerDisplayConfig = sharedPracticeRunnerDisplayConfig;
 const practiceLoopModes = sharedPracticeLoopModes.map((mode) => ({
   ...mode,
   id: mode.id as PracticeLoopMode,
@@ -2022,7 +2024,9 @@ function MetronomeScreen({ onOpenRhythm }: { onOpenRhythm: () => void }) {
             <Text style={styles.secondaryButtonText}>-5</Text>
           </Pressable>
           <Pressable accessibilityRole="button" style={styles.primaryInlineButton} onPress={toggleMetronome}>
-            <Text style={styles.primaryButtonText}>{isRunning ? "暂停" : "开始"}</Text>
+            <Text style={styles.primaryButtonText}>
+              {isRunning ? practiceRunnerDisplayConfig.buttons.pause : practiceRunnerDisplayConfig.buttons.start}
+            </Text>
           </Pressable>
           <Pressable accessibilityRole="button" style={styles.secondaryButton} onPress={() => changeBpm(bpm + 5)}>
             <Text style={styles.secondaryButtonText}>+5</Text>
@@ -2444,7 +2448,9 @@ function MelodyPracticeScreen({
             <Text style={styles.sessionEyebrow}>单音跟弹</Text>
             <Text style={styles.melodySongTitle}>{song.title}</Text>
           </View>
-          <Text style={styles.sessionPill}>{isRunning ? "进行中" : "待开始"}</Text>
+          <Text style={styles.sessionPill}>
+            {isRunning ? practiceRunnerDisplayConfig.statusLabels.running : practiceRunnerDisplayConfig.statusLabels.idle}
+          </Text>
         </View>
 
         <View style={styles.melodyTargetPanel}>
@@ -2488,10 +2494,12 @@ function MelodyPracticeScreen({
 
         <View style={styles.rhythmControlGrid}>
           <Pressable accessibilityRole="button" style={styles.primaryMiniButton} onPress={toggleRunning}>
-            <Text style={styles.primaryButtonText}>{isRunning ? "暂停" : "开始"}</Text>
+            <Text style={styles.primaryButtonText}>
+              {isRunning ? practiceRunnerDisplayConfig.buttons.pause : practiceRunnerDisplayConfig.buttons.start}
+            </Text>
           </Pressable>
           <Pressable accessibilityRole="button" style={styles.secondaryMiniButton} onPress={resetMelodyPractice}>
-            <Text style={styles.secondaryButtonText}>重置</Text>
+            <Text style={styles.secondaryButtonText}>{practiceRunnerDisplayConfig.buttons.reset}</Text>
           </Pressable>
         </View>
 
@@ -2502,7 +2510,7 @@ function MelodyPracticeScreen({
         </View>
         <Text style={styles.melodyFeedbackText}>
           {scores.length === 0
-            ? "点击开始后会按节拍自动记录本轮单音表现。"
+            ? practiceRunnerDisplayConfig.feedback.melodyAppIdle
             : `最近一次 ${latestScore} 分 · ${averageScore >= 80 ? "可以进入歌曲片段" : "建议放慢再练一轮"}`}
         </Text>
 
@@ -3264,7 +3272,9 @@ function PracticeScreen({
               <Text style={styles.sessionEyebrow}>当前节奏型</Text>
               <Text style={styles.rhythmRunnerTitle}>{getRhythmTemplateDisplayTitle(activeTemplate)}</Text>
             </View>
-            <Text style={styles.sessionPill}>{isRunning ? "进行中" : "待开始"}</Text>
+            <Text style={styles.sessionPill}>
+              {isRunning ? practiceRunnerDisplayConfig.statusLabels.running : practiceRunnerDisplayConfig.statusLabels.idle}
+            </Text>
           </View>
 
           <View style={styles.rhythmTemplateGrid}>
@@ -3357,34 +3367,42 @@ function PracticeScreen({
               onPress={toggleBeatSound}
             >
               <Text style={[styles.soundToggleText, beatSoundEnabled && styles.soundToggleTextActive]}>
-                节拍声 {beatSoundEnabled ? "开" : "关"}
+                {practiceRunnerDisplayConfig.sound.prefix} {beatSoundEnabled ? practiceRunnerDisplayConfig.sound.on : practiceRunnerDisplayConfig.sound.off}
               </Text>
             </Pressable>
             <Pressable accessibilityRole="button" style={styles.primaryMiniButton} onPress={togglePracticeRunning}>
-              <Text style={styles.primaryButtonText}>{isRunning ? "暂停" : "开始"}</Text>
+              <Text style={styles.primaryButtonText}>
+                {isRunning ? practiceRunnerDisplayConfig.buttons.pause : practiceRunnerDisplayConfig.buttons.start}
+              </Text>
             </Pressable>
           </View>
           <Text style={styles.practiceSoundStatus}>{beatSoundStatus}</Text>
 
           <View style={styles.rhythmScorePanel}>
             <View style={[styles.rhythmTapButton, isRunning && styles.rhythmAutoCaptureActive]}>
-              <Text style={styles.rhythmTapButtonText}>{isRunning ? "自动记录中" : rhythmTapCount > 0 ? "本轮完成" : "等待开始"}</Text>
+              <Text style={styles.rhythmTapButtonText}>
+                {isRunning
+                  ? practiceRunnerDisplayConfig.statusLabels.recording
+                  : rhythmTapCount > 0
+                    ? practiceRunnerDisplayConfig.statusLabels.complete
+                    : practiceRunnerDisplayConfig.statusLabels.waiting}
+              </Text>
             </View>
             <Text style={styles.rhythmFeedbackText}>{rhythmFeedback}</Text>
           </View>
 
           <View style={styles.rhythmStatsGrid}>
-            <ScoreBox label="已练" value={`${barsPracticed} 小节`} />
-            <ScoreBox label="节奏" value={rhythmScoreLabel} />
+            <ScoreBox label={practiceRunnerDisplayConfig.stats.practiced} value={`${barsPracticed} 小节`} />
+            <ScoreBox label={practiceRunnerDisplayConfig.stats.rhythm} value={rhythmScoreLabel} />
             <ScoreBox label="完成" value={`${completedCount}/${practiceTargets.length}`} />
           </View>
 
           <View style={styles.rhythmControlGrid}>
             <Pressable accessibilityRole="button" style={styles.secondaryMiniButton} onPress={resetPractice}>
-              <Text style={styles.secondaryButtonText}>重置</Text>
+              <Text style={styles.secondaryButtonText}>{practiceRunnerDisplayConfig.buttons.reset}</Text>
             </Pressable>
             <Pressable accessibilityRole="button" style={styles.secondaryMiniButton} onPress={completeRhythmGroup}>
-              <Text style={styles.secondaryButtonText}>完成本组</Text>
+              <Text style={styles.secondaryButtonText}>{practiceRunnerDisplayConfig.buttons.completeGroup}</Text>
             </Pressable>
           </View>
         </View>
@@ -3412,7 +3430,9 @@ function PracticeScreen({
             <Text style={styles.sessionEyebrow}>当前任务</Text>
             <Text style={styles.sessionTitle}>{getPracticeTargetChord(activeTarget)} · {practiceAction(getPracticeTargetChord(activeTarget), activeTemplate)}</Text>
           </View>
-          <Text style={styles.sessionPill}>{isRunning ? "进行中" : "待开始"}</Text>
+          <Text style={styles.sessionPill}>
+            {isRunning ? practiceRunnerDisplayConfig.statusLabels.running : practiceRunnerDisplayConfig.statusLabels.idle}
+          </Text>
         </View>
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
@@ -3624,7 +3644,7 @@ function PracticeScreen({
                 onPress={toggleBeatSound}
               >
                 <Text style={[styles.soundToggleText, beatSoundEnabled && styles.soundToggleTextActive]}>
-                  节拍声 {beatSoundEnabled ? "开" : "关"}
+                  {practiceRunnerDisplayConfig.sound.prefix} {beatSoundEnabled ? practiceRunnerDisplayConfig.sound.on : practiceRunnerDisplayConfig.sound.off}
                 </Text>
               </Pressable>
               <Text style={styles.practiceSoundStatus}>{beatSoundStatus}</Text>
@@ -3642,7 +3662,9 @@ function PracticeScreen({
                 style={styles.primaryMiniButton}
                 onPress={togglePracticeRunning}
               >
-                <Text style={styles.primaryButtonText}>{isRunning ? "暂停" : "开始"}</Text>
+                <Text style={styles.primaryButtonText}>
+                  {isRunning ? practiceRunnerDisplayConfig.buttons.pause : practiceRunnerDisplayConfig.buttons.start}
+                </Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -3653,7 +3675,7 @@ function PracticeScreen({
               </Pressable>
             </View>
             <Pressable accessibilityRole="button" style={styles.resetCompactButton} onPress={resetPractice}>
-              <Text style={styles.resetButtonText}>重置练习</Text>
+              <Text style={styles.resetButtonText}>{practiceRunnerDisplayConfig.buttons.resetPractice}</Text>
             </Pressable>
           </View>
         </View>

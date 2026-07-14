@@ -3051,6 +3051,50 @@ const profileDisplayConfig = {
     clearedToast: "最近练习已清空"
   }
 };
+const practiceRunnerDisplayConfig = {
+  statusLabels: {
+    idle: "待开始",
+    running: "进行中",
+    waiting: "等待开始",
+    recording: "自动记录中",
+    complete: "本轮完成"
+  },
+  buttons: {
+    start: "开始",
+    pause: "暂停",
+    reset: "重置",
+    resetPractice: "重置练习",
+    completeGroup: "完成本组",
+    submitSegment: "提交本段",
+    backToSong: "返回歌曲",
+    nextGroup: "下一组"
+  },
+  sound: {
+    prefix: "节拍声",
+    on: "开",
+    off: "关",
+    onLabel: "节拍声 开",
+    offLabel: "节拍声 关"
+  },
+  stats: {
+    practiced: "已练",
+    rhythm: "节奏",
+    record: "记录",
+    attempts: "尝试",
+    stable: "稳定",
+    score: "分数",
+    bars: "小节",
+    hits: "命中",
+    rounds: "轮次"
+  },
+  feedback: {
+    rhythmIdle: "点击开始后自动记录扫弦节奏，结束后生成评分",
+    transitionIdle: "点击开始后，第 4 拍会自动记录一次换指尝试。",
+    followIdle: "点击开始后，每 4 拍进入下一和弦。",
+    melodyIdle: "点击开始后，按提示弦和品位逐拍练单音。",
+    melodyAppIdle: "点击开始后会按节拍自动记录本轮单音表现。"
+  }
+};
 const courseCatalog = [
   {
     id: "course-uke-intro",
@@ -3509,12 +3553,12 @@ function toggleMetro() {
   if (metroTimer) {
     clearInterval(metroTimer);
     metroTimer = null;
-    $("#metroToggle").textContent = "开始";
+    $("#metroToggle").textContent = practiceRunnerDisplayConfig.buttons.start;
     beat = 0;
     renderMetro();
     return;
   }
-  $("#metroToggle").textContent = "暂停";
+  $("#metroToggle").textContent = practiceRunnerDisplayConfig.buttons.pause;
   tickMetro();
   metroTimer = setInterval(tickMetro, 60000 / bpm);
 }
@@ -3759,13 +3803,13 @@ const practiceSimulationFixtures = {
   melodyHitPattern: [92, 86, 78, 95, 72, 88, 81, 96]
 };
 const rhythmAutoOffsets = practiceSimulationFixtures.rhythmAutoOffsetsMs;
-const rhythmState = { pattern: 0, beat: 0, bars: 0, running: false, timer: null, score: 0, sound: true, startedAt: 0, taps: [], feedback: "点击开始后自动记录扫弦节奏，结束后生成评分" };
+const rhythmState = { pattern: 0, beat: 0, bars: 0, running: false, timer: null, score: 0, sound: true, startedAt: 0, taps: [], feedback: practiceRunnerDisplayConfig.feedback.rhythmIdle };
 const transitionAutoOffsets = practiceSimulationFixtures.transitionAutoOffsetsMs;
-const transitionState = { index: 0, beat: 0, reps: 0, stable: 0, running: false, timer: null, bpm: 60, score: 0, scores: [], feedback: "点击开始后，第 4 拍会自动记录一次换指尝试。" };
+const transitionState = { index: 0, beat: 0, reps: 0, stable: 0, running: false, timer: null, bpm: 60, score: 0, scores: [], feedback: practiceRunnerDisplayConfig.feedback.transitionIdle };
 const followScorePattern = practiceSimulationFixtures.followScorePattern;
-const followState = { chordIndex: 0, beat: 0, bars: 0, stable: 0, running: false, timer: null, score: 0, scores: [], feedback: "点击开始后，每 4 拍进入下一和弦。" };
+const followState = { chordIndex: 0, beat: 0, bars: 0, stable: 0, running: false, timer: null, score: 0, scores: [], feedback: practiceRunnerDisplayConfig.feedback.followIdle };
 const melodyHitPattern = practiceSimulationFixtures.melodyHitPattern;
-const melodyState = { index: 0, rounds: 0, hits: 0, running: false, timer: null, bpm: 70, scores: [], feedback: "点击开始后，按提示弦和品位逐拍练单音。" };
+const melodyState = { index: 0, rounds: 0, hits: 0, running: false, timer: null, bpm: 70, scores: [], feedback: practiceRunnerDisplayConfig.feedback.melodyIdle };
 const melodyPhrases = {
   C: [
     { note: "C", string: "A", fret: 3 },
@@ -4278,15 +4322,15 @@ function setupExtraSheets() {
 function setupPracticeSheets() {
   const rhythm = $("#rhythm");
   if (rhythm) {
-    rhythm.innerHTML = `<div class="sheet-head"><button class="back" data-close="rhythm">‹</button><h2>节奏练习</h2><p>右手节奏型</p></div><div class="rhythm-page"><div class="rhythm-runner card"><div class="module-row"><div><small class="eyebrow">当前节奏型</small><h3 id="rhythmName">↓ 四拍</h3></div><b id="rhythmStateLabel">待开始</b></div><div class="rhythm-template-tabs" id="rhythmTabs"></div><div class="rhythm-action"><h3 id="rhythmAction">↓</h3><p id="rhythmHint"></p><div class="rhythm-progress"><i id="rhythmProgress" style="width:25%"></i></div></div><div class="rhythm-dot-grid" id="rhythmDots"></div><div class="rhythm-controls"><button class="ghost" id="rhythmBpmDown">-5</button><div class="rhythm-bpm-badge"><span id="rhythmBpm">60</span><small>BPM</small></div><button class="ghost" id="rhythmBpmUp">+5</button></div><div class="rhythm-controls two"><button class="ghost" id="rhythmSound">节拍声 开</button><button class="primary" id="rhythmToggle">开始</button></div><div class="rhythm-score-panel"><span class="rhythm-capture-badge" id="rhythmCaptureState">等待开始</span><span class="rhythm-feedback" id="rhythmFeedback">点击开始后自动记录扫弦节奏，结束后生成评分</span></div><div class="rhythm-stats"><div class="rhythm-stat"><small>已练</small><b id="rhythmBars">0</b></div><div class="rhythm-stat"><small>节奏</small><b id="rhythmScore">--</b></div><div class="rhythm-stat"><small>记录</small><b id="rhythmCompleteCount">0/4</b></div></div><div class="rhythm-controls two"><button class="ghost" id="rhythmReset">重置</button><button class="ghost" id="rhythmComplete">完成本组</button></div></div></div>`;
+    rhythm.innerHTML = `<div class="sheet-head"><button class="back" data-close="rhythm">‹</button><h2>节奏练习</h2><p>右手节奏型</p></div><div class="rhythm-page"><div class="rhythm-runner card"><div class="module-row"><div><small class="eyebrow">当前节奏型</small><h3 id="rhythmName">↓ 四拍</h3></div><b id="rhythmStateLabel">${practiceRunnerDisplayConfig.statusLabels.idle}</b></div><div class="rhythm-template-tabs" id="rhythmTabs"></div><div class="rhythm-action"><h3 id="rhythmAction">↓</h3><p id="rhythmHint"></p><div class="rhythm-progress"><i id="rhythmProgress" style="width:25%"></i></div></div><div class="rhythm-dot-grid" id="rhythmDots"></div><div class="rhythm-controls"><button class="ghost" id="rhythmBpmDown">-5</button><div class="rhythm-bpm-badge"><span id="rhythmBpm">60</span><small>BPM</small></div><button class="ghost" id="rhythmBpmUp">+5</button></div><div class="rhythm-controls two"><button class="ghost" id="rhythmSound">${practiceRunnerDisplayConfig.sound.onLabel}</button><button class="primary" id="rhythmToggle">${practiceRunnerDisplayConfig.buttons.start}</button></div><div class="rhythm-score-panel"><span class="rhythm-capture-badge" id="rhythmCaptureState">${practiceRunnerDisplayConfig.statusLabels.waiting}</span><span class="rhythm-feedback" id="rhythmFeedback">${practiceRunnerDisplayConfig.feedback.rhythmIdle}</span></div><div class="rhythm-stats"><div class="rhythm-stat"><small>${practiceRunnerDisplayConfig.stats.practiced}</small><b id="rhythmBars">0</b></div><div class="rhythm-stat"><small>${practiceRunnerDisplayConfig.stats.rhythm}</small><b id="rhythmScore">--</b></div><div class="rhythm-stat"><small>${practiceRunnerDisplayConfig.stats.record}</small><b id="rhythmCompleteCount">0/4</b></div></div><div class="rhythm-controls two"><button class="ghost" id="rhythmReset">${practiceRunnerDisplayConfig.buttons.reset}</button><button class="ghost" id="rhythmComplete">${practiceRunnerDisplayConfig.buttons.completeGroup}</button></div></div></div>`;
   }
   const transition = $("#transition");
   if (transition) {
-    transition.innerHTML = `<div class="sheet-head"><button class="back" data-close="transition">‹</button><h2>和弦转换</h2><p>两个和弦一组，练稳后再进入歌曲。</p></div><div class="transition-page"><div class="transition-runner card"><div class="module-row"><div><small class="eyebrow">当前转换</small><h3 id="transitionTitle">C → Am</h3></div><b id="transitionStateLabel">待开始</b></div><div class="transition-pair-tabs" id="transitionList"></div><div id="transitionChordFocus"></div><div class="transition-cue-card"><b id="transitionCueChord">C</b><div><span id="transitionCueTitle">稳住起始和弦</span><small id="transitionTip">保留手型，只移动到 G 弦 2 品。</small></div></div><div class="transition-beat-grid" id="transitionBeats"></div><div class="transition-controls"><button class="ghost" id="transitionBpmDown">-5</button><div class="transition-bpm-badge"><span id="transitionBpm">60</span><small>BPM</small></div><button class="ghost" id="transitionBpmUp">+5</button></div><div class="transition-controls two"><button class="ghost" id="transitionNext">下一组</button><button class="primary" id="transitionToggle">开始</button></div><div class="transition-stats"><div class="transition-stat"><small>尝试</small><b id="transitionReps">0</b></div><div class="transition-stat"><small>稳定</small><b id="transitionStable">0</b></div><div class="transition-stat"><small>分数</small><b id="transitionScore">--</b></div></div><div class="transition-feedback" id="transitionFeedback">点击开始后，第 4 拍会自动记录一次换指尝试。</div><div class="transition-controls two"><button class="ghost" id="transitionReset">重置</button><button class="ghost" id="transitionComplete">完成本组</button></div></div></div>`;
+    transition.innerHTML = `<div class="sheet-head"><button class="back" data-close="transition">‹</button><h2>和弦转换</h2><p>两个和弦一组，练稳后再进入歌曲。</p></div><div class="transition-page"><div class="transition-runner card"><div class="module-row"><div><small class="eyebrow">当前转换</small><h3 id="transitionTitle">C → Am</h3></div><b id="transitionStateLabel">${practiceRunnerDisplayConfig.statusLabels.idle}</b></div><div class="transition-pair-tabs" id="transitionList"></div><div id="transitionChordFocus"></div><div class="transition-cue-card"><b id="transitionCueChord">C</b><div><span id="transitionCueTitle">稳住起始和弦</span><small id="transitionTip">保留手型，只移动到 G 弦 2 品。</small></div></div><div class="transition-beat-grid" id="transitionBeats"></div><div class="transition-controls"><button class="ghost" id="transitionBpmDown">-5</button><div class="transition-bpm-badge"><span id="transitionBpm">60</span><small>BPM</small></div><button class="ghost" id="transitionBpmUp">+5</button></div><div class="transition-controls two"><button class="ghost" id="transitionNext">${practiceRunnerDisplayConfig.buttons.nextGroup}</button><button class="primary" id="transitionToggle">${practiceRunnerDisplayConfig.buttons.start}</button></div><div class="transition-stats"><div class="transition-stat"><small>${practiceRunnerDisplayConfig.stats.attempts}</small><b id="transitionReps">0</b></div><div class="transition-stat"><small>${practiceRunnerDisplayConfig.stats.stable}</small><b id="transitionStable">0</b></div><div class="transition-stat"><small>${practiceRunnerDisplayConfig.stats.score}</small><b id="transitionScore">--</b></div></div><div class="transition-feedback" id="transitionFeedback">${practiceRunnerDisplayConfig.feedback.transitionIdle}</div><div class="transition-controls two"><button class="ghost" id="transitionReset">${practiceRunnerDisplayConfig.buttons.reset}</button><button class="ghost" id="transitionComplete">${practiceRunnerDisplayConfig.buttons.completeGroup}</button></div></div></div>`;
   }
   const follow = $("#follow");
   if (follow) {
-    follow.innerHTML = `<div class="sheet-head"><button class="back" data-close="follow">‹</button><h2>歌曲片段跟弹</h2><p>把节奏型和和弦转换放回真实歌曲。</p></div><div class="follow-page"><div class="follow-runner card"><div class="module-row"><div><small class="eyebrow">当前片段</small><h3 id="followSongTitle">《童年》前 4 小节</h3></div><b id="followSongBpm">70 BPM</b></div><div id="followChordFocus"></div><div class="follow-next-card"><span id="followHint">第 1 小节 · 当前和弦 C</span><b id="followNextChord">下一和弦 Am</b></div><div class="follow-beat-grid" id="followDots"></div><div class="follow-lyrics" id="followLyrics"></div><div class="follow-controls"><button class="ghost" id="followReset">重置</button><button class="primary" id="followToggle">开始</button></div><div class="follow-stats"><div class="follow-stat"><small>小节</small><b id="followBars">0</b></div><div class="follow-stat"><small>稳定</small><b id="followStable">0</b></div><div class="follow-stat"><small>分数</small><b id="followScore">--</b></div></div><div class="follow-feedback" id="followFeedback">点击开始后，每 4 拍进入下一和弦。</div><div class="follow-controls"><button class="ghost" id="followBackToSong">返回歌曲</button><button class="ghost" id="followComplete">提交本段</button></div></div></div>`;
+    follow.innerHTML = `<div class="sheet-head"><button class="back" data-close="follow">‹</button><h2>歌曲片段跟弹</h2><p>把节奏型和和弦转换放回真实歌曲。</p></div><div class="follow-page"><div class="follow-runner card"><div class="module-row"><div><small class="eyebrow">当前片段</small><h3 id="followSongTitle">《童年》前 4 小节</h3></div><b id="followSongBpm">70 BPM</b></div><div id="followChordFocus"></div><div class="follow-next-card"><span id="followHint">第 1 小节 · 当前和弦 C</span><b id="followNextChord">下一和弦 Am</b></div><div class="follow-beat-grid" id="followDots"></div><div class="follow-lyrics" id="followLyrics"></div><div class="follow-controls"><button class="ghost" id="followReset">${practiceRunnerDisplayConfig.buttons.reset}</button><button class="primary" id="followToggle">${practiceRunnerDisplayConfig.buttons.start}</button></div><div class="follow-stats"><div class="follow-stat"><small>${practiceRunnerDisplayConfig.stats.bars}</small><b id="followBars">0</b></div><div class="follow-stat"><small>${practiceRunnerDisplayConfig.stats.stable}</small><b id="followStable">0</b></div><div class="follow-stat"><small>${practiceRunnerDisplayConfig.stats.score}</small><b id="followScore">--</b></div></div><div class="follow-feedback" id="followFeedback">${practiceRunnerDisplayConfig.feedback.followIdle}</div><div class="follow-controls"><button class="ghost" id="followBackToSong">${practiceRunnerDisplayConfig.buttons.backToSong}</button><button class="ghost" id="followComplete">${practiceRunnerDisplayConfig.buttons.submitSegment}</button></div></div></div>`;
   }
 }
 function renderScoreBars(target, score) {
@@ -4344,15 +4388,19 @@ function renderRhythm() {
   const activeBeat = pattern.beats[rhythmState.beat] || pattern.beats[0];
   $("#rhythmName").textContent = pattern.name;
   $("#rhythmBpm").textContent = pattern.bpm;
-  $("#rhythmStateLabel").textContent = rhythmState.running ? "进行中" : "待开始";
+  $("#rhythmStateLabel").textContent = rhythmState.running ? practiceRunnerDisplayConfig.statusLabels.running : practiceRunnerDisplayConfig.statusLabels.idle;
   $("#rhythmAction").textContent = activeBeat.action;
   $("#rhythmHint").textContent = `${activeBeat.beat} 拍 · ${activeBeat.accent ? "重音" : "轻拍"}`;
   $("#rhythmBars").textContent = rhythmState.bars;
   $("#rhythmScore").textContent = rhythmAverageScore();
   $("#rhythmCompleteCount").textContent = `${rhythmState.taps.length}/${pattern.beats.length}`;
-  $("#rhythmToggle").textContent = rhythmState.running ? "暂停" : "开始";
-  $("#rhythmSound").textContent = `节拍声 ${rhythmState.sound ? "开" : "关"}`;
-  $("#rhythmCaptureState").textContent = rhythmState.running ? "自动记录中" : rhythmState.taps.length ? "本轮完成" : "等待开始";
+  $("#rhythmToggle").textContent = rhythmState.running ? practiceRunnerDisplayConfig.buttons.pause : practiceRunnerDisplayConfig.buttons.start;
+  $("#rhythmSound").textContent = `${practiceRunnerDisplayConfig.sound.prefix} ${rhythmState.sound ? practiceRunnerDisplayConfig.sound.on : practiceRunnerDisplayConfig.sound.off}`;
+  $("#rhythmCaptureState").textContent = rhythmState.running
+    ? practiceRunnerDisplayConfig.statusLabels.recording
+    : rhythmState.taps.length
+      ? practiceRunnerDisplayConfig.statusLabels.complete
+      : practiceRunnerDisplayConfig.statusLabels.waiting;
   $("#rhythmCaptureState").classList.toggle("active", rhythmState.running);
   $("#rhythmFeedback").textContent = rhythmFeedbackText(rhythmState.taps[rhythmState.taps.length - 1]);
   $("#rhythmProgress").style.width = `${Math.round(((rhythmState.beat + 1) / pattern.beats.length) * 100)}%`;
@@ -4391,7 +4439,7 @@ function resetRhythm() {
   rhythmState.score = 0;
   rhythmState.startedAt = 0;
   rhythmState.taps = [];
-  rhythmState.feedback = "点击开始后自动记录扫弦节奏，结束后生成评分";
+  rhythmState.feedback = practiceRunnerDisplayConfig.feedback.rhythmIdle;
   renderRhythm();
 }
 function completeRhythm() {
@@ -4451,7 +4499,7 @@ function renderTransition() {
     `换到 ${pair.to}`
   ];
   $("#transitionTitle").textContent = `${pair.from} → ${pair.to}`;
-  $("#transitionStateLabel").textContent = transitionState.running ? "进行中" : "待开始";
+  $("#transitionStateLabel").textContent = transitionState.running ? practiceRunnerDisplayConfig.statusLabels.running : practiceRunnerDisplayConfig.statusLabels.idle;
   $("#transitionTip").textContent = pair.tip;
   $("#transitionCueChord").textContent = transitionState.beat === 3 ? pair.to : pair.from;
   $("#transitionCueTitle").textContent = cueTitles[transitionState.beat] || cueTitles[0];
@@ -4460,7 +4508,7 @@ function renderTransition() {
   $("#transitionScore").textContent = transitionAverageScore();
   $("#transitionBpm").textContent = transitionState.bpm;
   $("#transitionFeedback").textContent = transitionState.feedback;
-  $("#transitionToggle").textContent = transitionState.running ? "暂停" : "开始";
+  $("#transitionToggle").textContent = transitionState.running ? practiceRunnerDisplayConfig.buttons.pause : practiceRunnerDisplayConfig.buttons.start;
   $("#transitionChordFocus").innerHTML = renderTransitionChordFocus(pair, activeTargetIndex === 0 ? pair.from : pair.to);
   $("#transitionList").innerHTML = transitionPairs.map((item, index) => `<button class="transition-pair-tab ${index === transitionState.index ? "active" : ""}" data-transition-index="${index}">${item.from}→${item.to}</button>`).join("");
   $("#transitionBeats").innerHTML = ["稳住", "保持", "预备", "换"].map((label, index) => `<div class="transition-beat ${index === transitionState.beat ? "active" : ""} ${index === 3 ? "switch" : ""}"><b>${index + 1}</b>${label}</div>`).join("");
@@ -4489,7 +4537,7 @@ function resetTransitionStats(keepPair = true) {
   transitionState.stable = 0;
   transitionState.score = 0;
   transitionState.scores = [];
-  transitionState.feedback = "点击开始后，第 4 拍会自动记录一次换指尝试。";
+  transitionState.feedback = practiceRunnerDisplayConfig.feedback.transitionIdle;
   if (!keepPair) transitionState.index = 0;
   renderTransition();
 }
@@ -4532,7 +4580,7 @@ function renderMelody() {
   const current = phrase[melodyState.index] || phrase[0];
   $("#melodySubtitle").textContent = `《${song.title}》· ${song.key} 调 · ${melodyState.bpm} BPM`;
   $("#melodySongTitle").textContent = song.title;
-  $("#melodyStateLabel").textContent = melodyState.running ? "进行中" : "待开始";
+  $("#melodyStateLabel").textContent = melodyState.running ? practiceRunnerDisplayConfig.statusLabels.running : practiceRunnerDisplayConfig.statusLabels.idle;
   $("#melodyNote").textContent = current.note;
   $("#melodyString").textContent = `${current.string} 弦`;
   $("#melodyFret").textContent = `${current.fret} 品`;
@@ -4542,7 +4590,7 @@ function renderMelody() {
   $("#melodyRounds").textContent = melodyState.rounds;
   $("#melodyScore").textContent = melodyAverageScore();
   $("#melodyFeedback").textContent = melodyState.feedback;
-  $("#melodyToggle").textContent = melodyState.running ? "暂停" : "开始";
+  $("#melodyToggle").textContent = melodyState.running ? practiceRunnerDisplayConfig.buttons.pause : practiceRunnerDisplayConfig.buttons.start;
   $("#melodySequence").innerHTML = phrase.map((item, index) => `<div class="melody-step ${index === melodyState.index ? "active" : ""}"><b>${item.note}</b>${item.string} 弦 ${item.fret} 品</div>`).join("");
 }
 function recordMelodyHit() {
@@ -4579,7 +4627,7 @@ function resetMelody() {
   melodyState.rounds = 0;
   melodyState.hits = 0;
   melodyState.scores = [];
-  melodyState.feedback = "点击开始后，按提示弦和品位逐拍练单音。";
+  melodyState.feedback = practiceRunnerDisplayConfig.feedback.melodyIdle;
   renderMelody();
 }
 function startMelodyPractice() {
@@ -4644,7 +4692,7 @@ function renderFollow() {
   $("#followChordFocus").innerHTML = renderCurrentChordFocus(chords[activeIndex], "当前和弦指法");
   renderTargetInsight("#followInsight", template, activeIndex);
   $("#followLyrics").innerHTML = (song.lyrics || []).map((line, index) => `<div class="lyric-line ${index === activeIndex ? "now" : ""}"><span class="chord">${line[0]}</span>${line[1]}</div>`).join("");
-  $("#followToggle").textContent = followState.running ? "暂停" : "开始";
+  $("#followToggle").textContent = followState.running ? practiceRunnerDisplayConfig.buttons.pause : practiceRunnerDisplayConfig.buttons.start;
 }
 function tickFollow() {
   const song = activeSong();
@@ -4678,7 +4726,7 @@ function resetFollow() {
   followState.stable = 0;
   followState.score = 0;
   followState.scores = [];
-  followState.feedback = "点击开始后，每 4 拍进入下一和弦。";
+  followState.feedback = practiceRunnerDisplayConfig.feedback.followIdle;
   renderFollow();
 }
 function completeFollow() {
@@ -5098,7 +5146,7 @@ function bindEnhancedPreview() {
       rhythmState.score = 0;
       rhythmState.startedAt = 0;
       rhythmState.taps = [];
-      rhythmState.feedback = "点击开始后自动记录扫弦节奏，结束后生成评分";
+      rhythmState.feedback = practiceRunnerDisplayConfig.feedback.rhythmIdle;
       renderRhythm();
     }
     if (event.target.id === "transitionToggle") toggleTransition();
