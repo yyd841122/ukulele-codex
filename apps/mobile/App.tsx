@@ -37,6 +37,7 @@ import {
   practiceTempoPresets as sharedPracticeTempoPresets,
   profileDisplayConfig as sharedProfileDisplayConfig,
   songDetailDisplayConfig as sharedSongDetailDisplayConfig,
+  songLibraryDisplayConfig as sharedSongLibraryDisplayConfig,
   tunerDisplayConfig as sharedTunerDisplayConfig,
   ukuleleInstrument
 } from "@ukulele/shared";
@@ -123,6 +124,7 @@ const practiceHubDisplayConfig = sharedPracticeHubDisplayConfig;
 const courseDetailDisplayConfig = sharedCourseDetailDisplayConfig;
 const profileDisplayConfig = sharedProfileDisplayConfig;
 const practiceRunnerDisplayConfig = sharedPracticeRunnerDisplayConfig;
+const songLibraryDisplayConfig = sharedSongLibraryDisplayConfig;
 const practiceLoopModes = sharedPracticeLoopModes.map((mode) => ({
   ...mode,
   id: mode.id as PracticeLoopMode,
@@ -2533,12 +2535,7 @@ function SongsScreen({
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<SongFilter>("all");
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
-  const filters: Array<{ id: SongFilter; label: string }> = [
-    { id: "all", label: "全部" },
-    { id: "entry", label: "入门" },
-    { id: "advanced", label: "进阶" },
-    { id: "pro", label: "Pro" }
-  ];
+  const filters = songLibraryDisplayConfig.filters as Array<{ id: SongFilter; label: string; previewLabel?: string }>;
   const visibleSongs = filterBeginnerSongs({
     query,
     access: filter === "pro" ? "pro" : filter === "all" ? undefined : "free",
@@ -2578,7 +2575,7 @@ function SongsScreen({
               <ChordMiniList chordNames={chordNames} />
             </View>
             <Text style={[styles.songAccessBadge, locked && styles.songAccessBadgeLocked]}>
-              {locked ? "Pro" : "免费"}
+              {locked ? songLibraryDisplayConfig.accessLabels.pro : songLibraryDisplayConfig.accessLabels.free}
             </Text>
           </View>
           <Text style={styles.songDetailGoal}>
@@ -2646,14 +2643,17 @@ function SongsScreen({
 
   return (
     <View style={styles.stack}>
-      <SectionTitle title="曲谱库" detail={`${songs.length} 首 · 从歌曲片段进入弹唱`} />
+      <SectionTitle
+        title={songLibraryDisplayConfig.title}
+        detail={songLibraryDisplayConfig.detailTemplate.replace("{count}", String(songs.length))}
+      />
       <View style={styles.songSearchPanel}>
         <TextInput
-          accessibilityLabel="搜索曲谱"
+          accessibilityLabel={songLibraryDisplayConfig.search.accessibilityLabel}
           autoCapitalize="none"
           autoCorrect={false}
           onChangeText={setQuery}
-          placeholder="搜索歌曲、调式、和弦"
+          placeholder={songLibraryDisplayConfig.search.placeholder}
           placeholderTextColor="#9A9288"
           style={styles.songSearchInput}
           value={query}
@@ -2678,7 +2678,7 @@ function SongsScreen({
 
       {visibleSongs.length === 0 ? (
         <View style={styles.emptyPanel}>
-          <Text style={styles.historyEmpty}>没有找到匹配曲谱。</Text>
+          <Text style={styles.historyEmpty}>{songLibraryDisplayConfig.emptyText}</Text>
         </View>
       ) : null}
 
@@ -2707,19 +2707,22 @@ function SongsScreen({
                 <ChordMiniList chordNames={song.chordNames ?? ["C", "Am", "F", "G7"]} />
               </View>
               <Text style={[styles.songAccessBadge, locked && styles.songAccessBadgeLocked]}>
-                {locked ? "Pro" : "免费"}
+                {locked ? songLibraryDisplayConfig.accessLabels.pro : songLibraryDisplayConfig.accessLabels.free}
               </Text>
             </View>
             <View style={[styles.songPracticeButton, locked && styles.songPracticeButtonDisabled]}>
               <Text style={[styles.primaryButtonText, locked && styles.songPracticeButtonTextDisabled]}>
-                {locked ? "后续解锁完整曲谱" : "查看详情"}
+                {locked ? songLibraryDisplayConfig.actions.lockedDetail : songLibraryDisplayConfig.actions.viewDetail}
               </Text>
             </View>
           </Pressable>
         );
       })}
 
-      <SectionTitle title="和弦大全" detail={`${beginnerChords.length} 个常用和弦`} />
+      <SectionTitle
+        title={songLibraryDisplayConfig.chordLibraryTitle}
+        detail={songLibraryDisplayConfig.chordLibraryDetailTemplate.replace("{count}", String(beginnerChords.length))}
+      />
       <View style={styles.chordLibraryGrid}>
         {beginnerChords.map((chord) => (
           <View key={chord.id} style={styles.chordLibraryCard}>

@@ -55,6 +55,7 @@ import {
   summarizeMvpPracticePath,
   summarizePracticeRecord,
   songDetailDisplayConfig,
+  songLibraryDisplayConfig,
   tunerDisplayConfig,
   ukuleleInstrument
 } from "../src/index.js";
@@ -125,6 +126,23 @@ test("song detail display config builds route steps from song data", () => {
   );
   assert.equal(songDetailDisplayConfig.sectionLabels.chordPrepTitle, "和弦准备");
   assert.equal(mvpPracticeContent.songDetail, songDetailDisplayConfig);
+});
+
+test("song library display config defines filters search and card labels", () => {
+  assert.equal(songLibraryDisplayConfig.title, "曲谱库");
+  assert.deepEqual(
+    songLibraryDisplayConfig.filters.map((filter) => [filter.id, filter.label]),
+    [
+      ["all", "全部"],
+      ["entry", "入门"],
+      ["advanced", "进阶"],
+      ["pro", "Pro"]
+    ]
+  );
+  assert.equal(songLibraryDisplayConfig.search.accessibilityLabel, "搜索曲谱");
+  assert.equal(songLibraryDisplayConfig.accessLabels.free, "免费");
+  assert.equal(songLibraryDisplayConfig.actions.viewDetail, "查看详情");
+  assert.equal(mvpPracticeContent.songLibrary, songLibraryDisplayConfig);
 });
 
 test("practice hub display config defines tools drills and beginner plan", () => {

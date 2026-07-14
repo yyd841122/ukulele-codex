@@ -166,6 +166,45 @@ export const songDetailDisplayConfig = {
   ]
 };
 
+export const songLibraryDisplayConfig = {
+  title: "曲谱库",
+  detailTemplate: "{count} 首 · 从歌曲片段进入弹唱",
+  hero: {
+    eyebrow: "🎵 曲谱库",
+    title: "边弹边唱的歌单",
+    detail: "按难度、调式和节奏型筛选。"
+  },
+  search: {
+    accessibilityLabel: "搜索曲谱",
+    placeholder: "搜索歌曲、调式、和弦",
+    previewPlaceholder: "搜索歌名 / 歌手 / Key"
+  },
+  filters: [
+    { id: "all", label: "全部", previewLabel: "全部" },
+    { id: "entry", label: "入门", previewLabel: "⭐ 入门" },
+    { id: "advanced", label: "进阶", previewLabel: "⭐⭐ 进阶" },
+    { id: "pro", label: "Pro", previewLabel: "会员" }
+  ],
+  summaryMetrics: {
+    total: "曲谱",
+    free: "免费",
+    entry: "入门"
+  },
+  accessLabels: {
+    free: "免费",
+    pro: "Pro",
+    member: "会员"
+  },
+  featuredHint: "建议从这一首开始",
+  emptyText: "没有找到匹配曲谱。",
+  actions: {
+    viewDetail: "查看详情",
+    lockedDetail: "后续解锁完整曲谱"
+  },
+  chordLibraryTitle: "和弦大全",
+  chordLibraryDetailTemplate: "{count} 个常用和弦"
+};
+
 export const practiceHubDisplayConfig = {
   eyebrow: "PRACTICE TOOLS",
   title: "练琴",
@@ -1514,6 +1553,7 @@ export const mvpPracticeContent = {
   practiceTemplates: mvpPracticeTemplates,
   simulationFixtures: mvpPracticeSimulationFixtures,
   songDetail: songDetailDisplayConfig,
+  songLibrary: songLibraryDisplayConfig,
   songs: beginnerSongCatalog
 };
 

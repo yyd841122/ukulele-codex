@@ -2942,6 +2942,44 @@ const songDetailDisplayConfig = {
     { step: "3", id: "song-fragment", title: "歌曲片段", detailTemplate: "跟着小节进入弹唱" }
   ]
 };
+const songLibraryDisplayConfig = {
+  title: "曲谱库",
+  detailTemplate: "{count} 首 · 从歌曲片段进入弹唱",
+  hero: {
+    eyebrow: "🎵 曲谱库",
+    title: "边弹边唱的歌单",
+    detail: "按难度、调式和节奏型筛选。"
+  },
+  search: {
+    accessibilityLabel: "搜索曲谱",
+    placeholder: "搜索歌曲、调式、和弦",
+    previewPlaceholder: "搜索歌名 / 歌手 / Key"
+  },
+  filters: [
+    { id: "all", label: "全部", previewLabel: "全部" },
+    { id: "entry", label: "入门", previewLabel: "⭐ 入门" },
+    { id: "advanced", label: "进阶", previewLabel: "⭐⭐ 进阶" },
+    { id: "pro", label: "Pro", previewLabel: "会员" }
+  ],
+  summaryMetrics: {
+    total: "曲谱",
+    free: "免费",
+    entry: "入门"
+  },
+  accessLabels: {
+    free: "免费",
+    pro: "Pro",
+    member: "会员"
+  },
+  featuredHint: "建议从这一首开始",
+  emptyText: "没有找到匹配曲谱。",
+  actions: {
+    viewDetail: "查看详情",
+    lockedDetail: "后续解锁完整曲谱"
+  },
+  chordLibraryTitle: "和弦大全",
+  chordLibraryDetailTemplate: "{count} 个常用和弦"
+};
 function buildSongDetailRoute(song) {
   const transition = (song.chords || ["C", "Am"]).slice(0, 2).join(" → ");
   return songDetailDisplayConfig.routeSteps.map(step => ({
@@ -4261,16 +4299,13 @@ function setupEnhancedPreview() {
   }
   const songSearch = document.querySelector("#page-songs .search");
   if (songSearch && !$("#songSearch")) {
-    songSearch.outerHTML = `<label class="search card" for="songSearch">🔎 <input id="songSearch" type="search" placeholder="搜索歌名 / 歌手 / Key" autocomplete="off" style="border:0;outline:0;background:transparent;font:inherit;width:100%;color:var(--text-1)" /></label>`;
+    songSearch.outerHTML = `<label class="search card" for="songSearch">🔎 <input id="songSearch" type="search" aria-label="${songLibraryDisplayConfig.search.accessibilityLabel}" placeholder="${songLibraryDisplayConfig.search.previewPlaceholder}" autocomplete="off" style="border:0;outline:0;background:transparent;font:inherit;width:100%;color:var(--text-1)" /></label>`;
   }
   const filters = document.querySelector("#page-songs .filters");
   if (filters) {
-    filters.innerHTML = [
-      ["all", "全部"],
-      ["entry", "⭐ 入门"],
-      ["advanced", "⭐⭐ 进阶"],
-      ["member", "会员"]
-    ].map(([id, label]) => `<button class="filter ${id === activeSongFilter ? "active" : ""}" data-song-filter="${id}">${label}</button>`).join("");
+    filters.innerHTML = songLibraryDisplayConfig.filters
+      .map(item => `<button class="filter ${item.id === activeSongFilter ? "active" : ""}" data-song-filter="${item.id}">${item.previewLabel || item.label}</button>`)
+      .join("");
   }
   const checkin = document.querySelector(".checkin");
   if (checkin) {
@@ -4831,28 +4866,28 @@ function renderSongs() {
       activeSongFilter === "all" ||
       (activeSongFilter === "entry" && song.stars <= 1) ||
       (activeSongFilter === "advanced" && song.stars === 2) ||
-      (activeSongFilter === "member" && song.diff === "会员");
+      (activeSongFilter === "pro" && song.diff === songLibraryDisplayConfig.accessLabels.member);
     const searchMatch = !query || `${song.title} ${song.artist} ${song.key} ${(song.chords || []).join(" ")}`.toLowerCase().includes(query);
     return filterMatch && searchMatch;
   });
   const freeCount = songs.filter(song => song.diff !== "会员").length;
   const entryCount = songs.filter(song => song.stars <= 1).length;
   $("#songLibrarySummary").innerHTML = [
-    ["曲谱", songs.length],
-    ["免费", freeCount],
-    ["入门", entryCount]
+    [songLibraryDisplayConfig.summaryMetrics.total, songs.length],
+    [songLibraryDisplayConfig.summaryMetrics.free, freeCount],
+    [songLibraryDisplayConfig.summaryMetrics.entry, entryCount]
   ].map(([label, value]) => `<div class="song-library-stat card"><b>${value}</b><span>${label}</span></div>`).join("");
   const featured = visible.find(song => song.diff !== "会员") || visible[0] || songs[0];
   $("#songFeature").innerHTML = featured ? `<button class="song-feature-card card clickable" data-open-song="${featured.title}">
     <div class="song-feature-cover" style="background:linear-gradient(135deg,${featured.color},${featured.light})">${featured.emoji}</div>
     <div class="song-feature-copy">
       <b>${featured.title}</b>
-      <small>${featured.artist} · 建议从这一首开始</small>
+      <small>${featured.artist} · ${songLibraryDisplayConfig.featuredHint}</small>
       <div class="song-feature-meta"><span>Key ${featured.key}</span><span>${featured.bpm} BPM</span><span>${starText(featured.stars)} ${featured.diff}</span></div>
       ${renderMiniChordList(featured.chords)}
     </div>
   </button>` : "";
-  $("#songList").innerHTML = visible.map(song => `<button class="song-row song-library-row clickable" data-open-song="${song.title}"><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light});position:relative">${song.emoji}${song.diff === "会员" ? "<span class='member-tag' style='position:absolute;right:-8px;top:-5px'>会员</span>" : ""}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · Key ${song.key} · ${song.bpm} BPM · ${song.chords.join(" ")}</small>${renderMiniChordList(song.chords)}</div><div class="difficulty">${starText(song.stars)}<br>${song.diff}</div></button>`).join("") || `<div class="empty-state">没有找到匹配曲谱。</div>`;
+  $("#songList").innerHTML = visible.map(song => `<button class="song-row song-library-row clickable" data-open-song="${song.title}"><div class="avatar-cover" style="background:linear-gradient(135deg,${song.color},${song.light});position:relative">${song.emoji}${song.diff === songLibraryDisplayConfig.accessLabels.member ? `<span class='member-tag' style='position:absolute;right:-8px;top:-5px'>${songLibraryDisplayConfig.accessLabels.member}</span>` : ""}</div><div class="row-copy"><b>${song.title}</b><small>${song.artist} · Key ${song.key} · ${song.bpm} BPM · ${song.chords.join(" ")}</small>${renderMiniChordList(song.chords)}</div><div class="difficulty">${starText(song.stars)}<br>${song.diff}</div></button>`).join("") || `<div class="empty-state">${songLibraryDisplayConfig.emptyText}</div>`;
   $all("[data-song-filter]").forEach(node => node.classList.toggle("active", node.dataset.songFilter === activeSongFilter));
 }
 function renderMe() {
