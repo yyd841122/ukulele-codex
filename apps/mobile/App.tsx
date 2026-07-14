@@ -20,6 +20,7 @@ import {
   favoriteChordNames as sharedFavoriteChordNames,
   filterBeginnerSongs,
   getMvpCourseForPracticeTemplate,
+  metronomeTempoPresets as sharedMetronomeTempoPresets,
   mvpHomeCheckinMinutes,
   mvpHomeHotSongRecommendations,
   mvpHomeQuickActions,
@@ -101,6 +102,10 @@ const practiceTempoPresets = sharedPracticeTempoPresets.map((preset) => ({
   ...preset,
   id: preset.id as Exclude<PracticeTempoId, "custom">,
   label: tempoLabelById[preset.id as Exclude<PracticeTempoId, "custom">] ?? preset.label
+}));
+const metronomeTempoPresets = sharedMetronomeTempoPresets.map((preset) => ({
+  ...preset,
+  id: preset.id as Exclude<PracticeTempoId, "custom">
 }));
 const practiceLoopModes = sharedPracticeLoopModes.map((mode) => ({
   ...mode,
@@ -1878,11 +1883,6 @@ function MetronomeScreen({ onOpenRhythm }: { onOpenRhythm: () => void }) {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [soundStatus, setSoundStatus] = useState("节拍声已开启");
   const beatMs = Math.round(60000 / bpm);
-  const tempoPresets = [
-    { label: "慢速", bpm: 60 },
-    { label: "标准", bpm: 70 },
-    { label: "进阶", bpm: 85 }
-  ];
 
   useEffect(() => {
     if (!isRunning) return;
@@ -1950,7 +1950,7 @@ function MetronomeScreen({ onOpenRhythm }: { onOpenRhythm: () => void }) {
         <Text style={styles.metronomeBpmValue}>{bpm}</Text>
         <Text style={styles.metricLabel}>BPM</Text>
         <View style={styles.metronomePresetRow}>
-          {tempoPresets.map((preset) => {
+          {metronomeTempoPresets.map((preset) => {
             const selected = preset.bpm === bpm;
             return (
               <Pressable

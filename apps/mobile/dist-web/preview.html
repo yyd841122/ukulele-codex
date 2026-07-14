@@ -2725,11 +2725,7 @@
           <div class="metro-label">当前速度</div>
           <div class="metro-bpm"><span id="bpm">70</span></div>
           <div class="metro-label" id="metroBeatMs">每拍 857 ms</div>
-          <div class="metro-presets">
-            <button class="metro-preset" data-metro-preset="60">慢速 60</button>
-            <button class="metro-preset active" data-metro-preset="70">标准 70</button>
-            <button class="metro-preset" data-metro-preset="85">进阶 85</button>
-          </div>
+          <div class="metro-presets" id="metroPresets"></div>
         </div>
         <div class="metro-beat-card card">
           <div class="module-row"><b>四拍循环</b><span id="metroBarCount">第 1 小节</span></div>
@@ -3341,7 +3337,16 @@ let beat = 0;
 let bpm = 70;
 let metroBars = 1;
 let metroSoundEnabled = true;
-const metroPresets = [60, 70, 85];
+const metronomeTempoPresets = [
+  { id: "slow", label: "慢速", bpm: 60, description: "新手稳拍" },
+  { id: "standard", label: "标准", bpm: 70, description: "常规练习" },
+  { id: "advanced", label: "进阶", bpm: 85, description: "歌曲速度" }
+];
+function renderMetroPresetButtons() {
+  $("#metroPresets").innerHTML = metronomeTempoPresets.map((preset) => (
+    `<button class="metro-preset" data-metro-preset="${preset.bpm}" title="${preset.description}">${preset.label} ${preset.bpm}</button>`
+  )).join("");
+}
 function renderMetro() {
   $("#bpm").textContent = bpm;
   $("#metroBeatMs").textContent = `每拍 ${Math.round(60000 / bpm)} ms`;
@@ -3461,11 +3466,14 @@ $("#metroSoundToggle").addEventListener("click", () => {
   metroSoundEnabled = !metroSoundEnabled;
   renderMetro();
 });
-$all("[data-metro-preset]").forEach((node) => node.addEventListener("click", () => {
+$("#metroPresets").addEventListener("click", (event) => {
+  const node = event.target instanceof Element ? event.target.closest("[data-metro-preset]") : null;
+  if (!node) return;
   bpm = Number(node.dataset.metroPreset);
   renderMetro();
   restartMetroTimer();
-}));
+});
+renderMetroPresetButtons();
 renderMetro();
 const defaultAppState = {
   todayMinutes: 12,

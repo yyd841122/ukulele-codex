@@ -25,6 +25,7 @@ import {
   getPracticeTemplatesByType,
   getRhythmPatternById,
   getSongFragmentById,
+  metronomeTempoPresets,
   m0AgentTasks,
   beginnerRhythmPatterns,
   beginnerSongFragments,
@@ -126,6 +127,18 @@ test("practice tempo presets define slow standard and advanced bpm", () => {
       ["advanced", 85]
     ]
   );
+});
+
+test("metronome tempo presets expose localized display labels", () => {
+  assert.deepEqual(
+    metronomeTempoPresets.map((preset) => [preset.id, preset.label, preset.bpm]),
+    [
+      ["slow", "慢速", 60],
+      ["standard", "标准", 70],
+      ["advanced", "进阶", 85]
+    ]
+  );
+  assert.equal(mvpPracticeContent.metronome.tempoPresets, metronomeTempoPresets);
 });
 
 test("practice loop modes include auto and single", () => {

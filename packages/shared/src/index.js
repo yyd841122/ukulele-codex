@@ -345,6 +345,12 @@ export const practiceTempoPresets = [
   { id: "advanced", label: "Advanced", bpm: 85 }
 ];
 
+export const metronomeTempoPresets = [
+  { id: "slow", label: "慢速", bpm: 60, description: "新手稳拍" },
+  { id: "standard", label: "标准", bpm: 70, description: "常规练习" },
+  { id: "advanced", label: "进阶", bpm: 85, description: "歌曲速度" }
+];
+
 export const practiceLoopModes = [
   {
     id: "auto",
@@ -1150,6 +1156,9 @@ export const mvpPracticeContent = {
   chordLibrary: {
     categories: chordLibraryCategories,
     favoriteChordNames
+  },
+  metronome: {
+    tempoPresets: metronomeTempoPresets
   },
   courses: mvpCourseCatalog,
   rhythmPatterns: beginnerRhythmPatterns,
