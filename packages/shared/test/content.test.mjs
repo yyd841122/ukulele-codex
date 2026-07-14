@@ -27,6 +27,10 @@ import {
   beginnerRhythmPatterns,
   beginnerSongFragments,
   chordTransitionExercises,
+  mvpHomeCheckinMinutes,
+  mvpHomeHotSongRecommendations,
+  mvpHomeQuickActions,
+  mvpLearnTopicEntrances,
   mvpMelodyPracticePhrases,
   mvpContentModules,
   mvpCourseCatalog,
@@ -131,6 +135,31 @@ test("MVP content modules cover the current app tabs", () => {
   assert.equal(getContentModuleById("practice").practiceTemplateIds.length, mvpPracticeTemplates.length);
   assert.equal(getContentModuleById("songs").songIds.length, mvpPracticeContent.songs.length);
   assert.deepEqual(getContentModuleById("tuner").courseIds, ["course-uke-intro", "course-tune-gcea"]);
+});
+
+test("MVP home and learn presentation entries resolve to shared content", () => {
+  assert.equal(mvpHomeCheckinMinutes.length, 14);
+  assert.deepEqual(
+    mvpHomeQuickActions.map((item) => item.id),
+    ["tuner", "chords", "songs", "practice"]
+  );
+  assert.ok(mvpHomeQuickActions.every((item) => item.title && item.detail && item.target?.type));
+
+  for (const recommendation of mvpHomeHotSongRecommendations) {
+    assert.ok(getBeginnerSongById(recommendation.songId), `${recommendation.songId} should exist`);
+    assert.ok(recommendation.minutes > 0);
+  }
+
+  const templateIds = new Set(mvpPracticeTemplates.map((template) => template.id));
+  assert.deepEqual(
+    mvpLearnTopicEntrances.map((item) => item.id),
+    ["tuning", "rhythm", "transition", "song-fragment"]
+  );
+  for (const topic of mvpLearnTopicEntrances) {
+    if (topic.target.type === "practice-template") {
+      assert.ok(templateIds.has(topic.target.id), `${topic.target.id} should exist`);
+    }
+  }
 });
 
 test("MVP course catalog models the beginner learning path", () => {

@@ -817,11 +817,87 @@ export const mvpContentModules = [
   }
 ];
 
+export const mvpHomeCheckinMinutes = [8, 12, 0, 15, 10, 18, 21, 0, 6, 12, 14, 0, 20, 16];
+
+export const mvpHomeQuickActions = [
+  {
+    id: "tuner",
+    icon: "🎛️",
+    title: "调音器",
+    detail: "开始前校准 GCEA",
+    target: { type: "tool", id: "tuner" }
+  },
+  {
+    id: "chords",
+    icon: "🎼",
+    title: "和弦",
+    detail: "看指法图和试听",
+    target: { type: "library", id: "chords" }
+  },
+  {
+    id: "songs",
+    icon: "🎵",
+    title: "曲谱库",
+    detail: "找一首歌练",
+    target: { type: "tab", id: "songs" }
+  },
+  {
+    id: "practice",
+    icon: "🎸",
+    title: "练习",
+    detail: "节奏与和弦转换",
+    target: { type: "tab", id: "practice" }
+  }
+];
+
+export const mvpHomeHotSongRecommendations = [
+  { id: "hot-four-chord", songId: "song-four-chord-hum", minutes: 8 },
+  { id: "hot-island-strum", songId: "song-island-strum-demo", minutes: 10 },
+  { id: "hot-riptide-style", songId: "song-riptide-style-progression", minutes: 12 }
+];
+
+export const mvpLearnTopicEntrances = [
+  {
+    id: "tuning",
+    icon: "🎙️",
+    title: "调音基础",
+    detail: "先把 G-C-E-A 调准",
+    target: { type: "tool", id: "tuner" }
+  },
+  {
+    id: "rhythm",
+    icon: "🥁",
+    title: "节奏型",
+    detail: "从下扫四拍开始",
+    target: { type: "practice-template", id: "practice-rhythm-down-four" }
+  },
+  {
+    id: "transition",
+    icon: "🔁",
+    title: "和弦转换",
+    detail: "先练 C 到 Am，再进入四和弦",
+    target: { type: "practice-template", id: "practice-transition-c-am" }
+  },
+  {
+    id: "song-fragment",
+    icon: "🎵",
+    title: "歌曲片段",
+    detail: "从曲谱库进入第一首歌",
+    target: { type: "tab", id: "songs" }
+  }
+];
+
 export const mvpPracticeContent = {
   version: "mvp-content-v1",
   instrumentId: ukuleleInstrument.id,
   skillPath: mvpSkillPath,
   modules: mvpContentModules,
+  home: {
+    checkinMinutes: mvpHomeCheckinMinutes,
+    quickActions: mvpHomeQuickActions,
+    hotSongRecommendations: mvpHomeHotSongRecommendations
+  },
+  learnTopics: mvpLearnTopicEntrances,
   courses: mvpCourseCatalog,
   rhythmPatterns: beginnerRhythmPatterns,
   chordTransitions: chordTransitionExercises,

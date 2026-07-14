@@ -18,6 +18,10 @@ import {
   designTokens,
   filterBeginnerSongs,
   getMvpCourseForPracticeTemplate,
+  mvpHomeCheckinMinutes,
+  mvpHomeHotSongRecommendations,
+  mvpHomeQuickActions,
+  mvpLearnTopicEntrances,
   mvpMelodyPracticePhrases,
   mvpPracticeTemplates,
   mvpLesson,
@@ -159,6 +163,10 @@ type SongPracticeLine = {
   text?: string;
 };
 type BeginnerSong = typeof practiceContent.songs[number];
+type SharedNavigationTarget = {
+  type?: string;
+  id?: string;
+};
 type MelodyPracticeNote = {
   id: string;
   note: string;
@@ -168,6 +176,11 @@ type MelodyPracticeNote = {
   beat: number;
 };
 const melodyPracticePhrases = mvpMelodyPracticePhrases as Record<string, MelodyPracticeNote[]>;
+
+function getSongDifficultyLabel(song: BeginnerSong) {
+  if (song.access === "pro") return "会员";
+  return song.difficulty <= 1 ? "入门" : "进阶";
+}
 
 function getPracticeTemplateById(templateId?: string | null): PracticeTemplate {
   return practiceTemplates.find((template) => template.id === templateId) ?? defaultPracticeTemplate;
@@ -1351,18 +1364,29 @@ function HomeScreen({
     ? Math.max(8, Math.round(practiceHistorySummary.totalDurationSec / 60))
     : 84;
   const streakDays = Math.max(practiceHistorySummary.currentStreakDays, 7);
-  const checkinDays = [8, 12, 0, 15, 10, 18, 21, 0, 6, 12, 14, 0, 20, 16];
-  const modules = [
-    { id: "tuner", icon: "🎛️", title: "调音器", detail: "开始前校准 GCEA", action: onOpenTuner },
-    { id: "chords", icon: "🎼", title: "和弦", detail: "看指法图和试听", action: onOpenChords },
-    { id: "songs", icon: "🎵", title: "曲谱库", detail: "找一首歌练", action: onOpenSongs },
-    { id: "practice", icon: "🎸", title: "练习", detail: "节奏与和弦转换", action: onOpenPractice }
-  ];
-  const hotSongs = [
-    { title: "四和弦海风", meta: "入门 · 70 BPM · C Am F G7 · 8 分钟" },
-    { title: "晚安分解练习", meta: "入门 · 60 BPM · C G Am F · 6 分钟" },
-    { title: "小岛下扫歌", meta: "进阶 · 85 BPM · F G7 C · 10 分钟" }
-  ];
+  const checkinDays = mvpHomeCheckinMinutes;
+  const homeActionByTarget = (target: SharedNavigationTarget) => {
+    if (target.type === "tool" && target.id === "tuner") return onOpenTuner;
+    if (target.type === "library" && target.id === "chords") return onOpenChords;
+    if (target.type === "tab" && target.id === "songs") return onOpenSongs;
+    if (target.type === "tab" && target.id === "practice") return onOpenPractice;
+    return onOpenPractice;
+  };
+  const modules = mvpHomeQuickActions.map((module) => ({
+    ...module,
+    action: homeActionByTarget(module.target)
+  }));
+  const hotSongs = mvpHomeHotSongRecommendations
+    .map((recommendation) => {
+      const song = practiceContent.songs.find((item) => item.id === recommendation.songId);
+      if (!song) return null;
+      return {
+        id: recommendation.id,
+        title: song.title,
+        meta: `${getSongDifficultyLabel(song)} · ${song.bpm} BPM · ${song.chordNames.join(" ")} · ${recommendation.minutes} 分钟`
+      };
+    })
+    .filter((song): song is { id: string; title: string; meta: string } => song !== null);
 
   return (
     <View style={styles.homeStack}>
@@ -1455,7 +1479,7 @@ function HomeScreen({
         </View>
         <View style={styles.homeSongList}>
           {hotSongs.slice(0, 2).map((song, index) => (
-            <Pressable accessibilityRole="button" key={song.title} onPress={onOpenSongs} style={styles.homeSongRow}>
+            <Pressable accessibilityRole="button" key={song.id} onPress={onOpenSongs} style={styles.homeSongRow}>
               <View style={styles.homeSongIndex}>
                 <Text style={styles.homeSongIndexText}>{index + 1}</Text>
               </View>
@@ -2138,12 +2162,16 @@ function LearnScreen({
   const totalProgress = pathItems.length === 0
     ? 0
     : Math.round(pathItems.reduce((sum, item) => sum + Math.min(item.progress, 100), 0) / pathItems.length);
-  const topicEntrances = [
-    { title: "调音基础", detail: "先把 G-C-E-A 调准", icon: "🎙️", action: onOpenTuner },
-    { title: "节奏型", detail: "从下扫四拍开始", icon: "🥁", action: () => onStartPracticeTemplate("practice-rhythm-down-four") },
-    { title: "和弦转换", detail: "C-Am-F-G7 循环", icon: "🔁", action: () => onStartPracticeTemplate("practice-c-am-f-g7-loop") },
-    { title: "歌曲片段", detail: "从曲谱库进入第一首歌", icon: "🎵", action: onOpenSongs }
-  ];
+  const learnActionByTarget = (target: SharedNavigationTarget) => {
+    if (target.type === "tool" && target.id === "tuner") return onOpenTuner;
+    if (target.type === "practice-template" && target.id) return () => onStartPracticeTemplate(target.id ?? "");
+    if (target.type === "tab" && target.id === "songs") return onOpenSongs;
+    return onOpenSongs;
+  };
+  const topicEntrances = mvpLearnTopicEntrances.map((topic) => ({
+    ...topic,
+    action: learnActionByTarget(topic.target)
+  }));
 
   return (
     <View style={styles.stack}>
@@ -2233,7 +2261,7 @@ function LearnScreen({
       <SectionTitle title="专项入口" detail="按当前目标直接开练" />
       <View style={styles.learnTopicGrid}>
         {topicEntrances.map((topic) => (
-          <Pressable accessibilityRole="button" key={topic.title} onPress={topic.action} style={styles.learnTopicCard}>
+          <Pressable accessibilityRole="button" key={topic.id} onPress={topic.action} style={styles.learnTopicCard}>
             <Text style={styles.learnTopicIcon}>{topic.icon}</Text>
             <View style={styles.learnTopicCopy}>
               <Text style={styles.learnTopicTitle}>{topic.title}</Text>
