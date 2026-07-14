@@ -2777,92 +2777,176 @@
   </div>
 </div>
 <script>
-const songs = [
+const songCatalog = [
   {
+    id: "song-four-chord-hum",
     title: "童年",
     artist: "罗大佑",
-    emoji: "🌈",
-    color: "#FCD34D",
-    light: "#FDE68A",
-    stars: 1,
-    diff: "入门",
+    level: "P0",
     key: "C",
     bpm: 70,
-    chords: ["C", "Am", "F", "G7"],
-    templateId: "practice-song-fragment-four-chord-hum",
-    lyrics: [
-      ["C", "啦啦啦啦 稳住第一拍"],
-      ["Am", "啦啦啦啦 提前换和弦"],
-      ["F", "啦啦啦啦 右手保持匀速"],
-      ["G7", "啦啦啦啦 轻轻收尾"]
+    difficulty: 1,
+    access: "free",
+    display: { emoji: "🌈", color: "#FCD34D", light: "#FEF3C7", stars: 1, difficultyLabel: "入门" },
+    chordNames: ["C", "Am", "F", "G7"],
+    practiceTemplateIds: ["practice-song-fragment-four-chord-hum"],
+    practiceLines: [
+      { bar: 1, chord: "C", text: "啦啦啦啦 稳住第一拍" },
+      { bar: 2, chord: "Am", text: "啦啦啦啦 提前换和弦" },
+      { bar: 3, chord: "F", text: "啦啦啦啦 右手保持匀速" },
+      { bar: 4, chord: "G7", text: "啦啦啦啦 轻轻收尾" }
     ]
   },
   {
+    id: "song-four-chord-breeze",
     title: "四和弦海风",
     artist: "入门练习曲",
-    emoji: "🏝️",
-    color: "#5EEAD4",
-    light: "#CCFBF1",
-    stars: 1,
-    diff: "入门",
+    level: "P0",
     key: "C",
     bpm: 70,
-    chords: ["C", "Am", "F", "G7"],
-    templateId: "practice-song-fragment-four-chord-hum",
-    lyrics: [
-      ["C", "海风轻轻吹 稳住第一拍"],
-      ["Am", "左手提前换 右手不停摆"],
-      ["F", "扫弦别着急 声音要打开"],
-      ["G7", "回到下一轮 放松再重来"]
+    difficulty: 1,
+    access: "free",
+    display: { emoji: "🏝️", color: "#5EEAD4", light: "#CCFBF1", stars: 1, difficultyLabel: "入门" },
+    chordNames: ["C", "Am", "F", "G7"],
+    practiceTemplateIds: ["practice-song-fragment-four-chord-hum"],
+    practiceLines: [
+      { bar: 1, chord: "C", text: "海风轻轻吹 稳住第一拍" },
+      { bar: 2, chord: "Am", text: "左手提前换 右手不停摆" },
+      { bar: 3, chord: "F", text: "扫弦别着急 声音要打开" },
+      { bar: 4, chord: "G7", text: "回到下一轮 放松再重来" }
     ]
   },
   {
+    id: "song-bedtime-arpeggio",
     title: "晚安分解练习",
     artist: "入门练习曲",
-    emoji: "🌙",
-    color: "#93C5FD",
-    light: "#DBEAFE",
-    stars: 1,
-    diff: "入门",
+    level: "P0",
     key: "C",
     bpm: 60,
-    chords: ["C", "G", "Am", "F"],
-    templateId: "practice-c-am-f-g7-loop",
-    lyrics: [["C", "先用 C-G-Am-F 练习慢速换和弦"]]
+    difficulty: 1,
+    access: "free",
+    display: { emoji: "🌙", color: "#93C5FD", light: "#DBEAFE", stars: 1, difficultyLabel: "入门" },
+    chordNames: ["C", "G", "Am", "F"],
+    practiceTemplateIds: ["practice-c-am-f-g7-loop"],
+    practiceLines: [{ bar: 1, chord: "C", text: "先用 C-G-Am-F 练习慢速换和弦" }]
   },
   {
+    id: "song-g-transition",
     title: "G调换指练习",
     artist: "进阶练习曲",
-    emoji: "🛤️",
-    color: "#C4B5FD",
-    light: "#EDE9FE",
-    stars: 2,
-    diff: "进阶",
+    level: "P1",
     key: "G",
     bpm: 72,
-    chords: ["G", "D", "Em", "C"],
-    templateId: "practice-c-am-f-g7-loop",
-    lyrics: [["G", "练 G-D-Em-C 的常用弹唱走向"]]
+    difficulty: 2,
+    access: "free",
+    display: { emoji: "🛤️", color: "#C4B5FD", light: "#EDE9FE", stars: 2, difficultyLabel: "进阶" },
+    chordNames: ["G", "D", "Em", "C"],
+    practiceTemplateIds: ["practice-c-am-f-g7-loop"],
+    practiceLines: [{ bar: 1, chord: "G", text: "练 G-D-Em-C 的常用弹唱走向" }]
   },
   {
+    id: "song-waltz-slow",
     title: "三拍子慢歌",
     artist: "节奏练习曲",
-    emoji: "💧",
-    color: "#A7F3D0",
-    light: "#ECFDF5",
-    stars: 2,
-    diff: "进阶",
+    level: "P1",
     key: "C",
     bpm: 60,
-    chords: ["C", "F", "G7"],
-    templateId: "practice-rhythm-waltz-three",
-    lyrics: [["C", "用 3/4 强弱弱节奏练慢歌进入"]]
+    difficulty: 2,
+    access: "free",
+    display: { emoji: "💧", color: "#A7F3D0", light: "#ECFDF5", stars: 2, difficultyLabel: "进阶" },
+    chordNames: ["C", "F", "G7"],
+    practiceTemplateIds: ["practice-rhythm-waltz-three"],
+    practiceLines: [{ bar: 1, chord: "C", text: "用 3/4 强弱弱节奏练慢歌进入" }]
   },
-  { title: "小幸运", artist: "田馥甄", emoji: "🍀", color: "#86EFAC", light: "#BBF7D0", stars: 2, diff: "进阶", key: "C", bpm: 78, chords: ["C", "G", "Am", "F"], templateId: "practice-c-am-f-g7-loop", lyrics: [["C", "先用四和弦练习代替完整曲谱"]] },
-  { title: "晴天", artist: "周杰伦", emoji: "☀️", color: "#FDBA74", light: "#FED7AA", stars: 2, diff: "进阶", key: "G", bpm: 76, chords: ["G", "D", "Em", "C"], templateId: "practice-c-am-f-g7-loop", lyrics: [["G", "进阶歌曲后续接完整曲谱"]] },
-  { title: "Lemon", artist: "米津玄师", emoji: "🍋", color: "#FDE68A", light: "#FEF3C7", stars: 3, diff: "会员", key: "C", bpm: 88, chords: ["C", "G", "Am", "F"], templateId: null, lyrics: [] },
-  { title: "Riptide", artist: "Vance Joy", emoji: "🌊", color: "#67E8F9", light: "#CFFAFE", stars: 3, diff: "会员", key: "Am", bpm: 102, chords: ["Am", "G", "C"], templateId: null, lyrics: [] }
+  {
+    id: "song-little-luck",
+    title: "小幸运",
+    artist: "田馥甄",
+    level: "P1",
+    key: "C",
+    bpm: 78,
+    difficulty: 2,
+    access: "free",
+    display: { emoji: "🍀", color: "#86EFAC", light: "#BBF7D0", stars: 2, difficultyLabel: "进阶" },
+    chordNames: ["C", "G", "Am", "F"],
+    practiceTemplateIds: ["practice-c-am-f-g7-loop"],
+    practiceLines: [{ bar: 1, chord: "C", text: "先用四和弦练习代替完整曲谱" }]
+  },
+  {
+    id: "song-sunny-day",
+    title: "晴天",
+    artist: "周杰伦",
+    level: "P1",
+    key: "G",
+    bpm: 76,
+    difficulty: 2,
+    access: "free",
+    display: { emoji: "☀️", color: "#FDBA74", light: "#FED7AA", stars: 2, difficultyLabel: "进阶" },
+    chordNames: ["G", "D", "Em", "C"],
+    practiceTemplateIds: ["practice-c-am-f-g7-loop"],
+    practiceLines: [{ bar: 1, chord: "G", text: "进阶歌曲后续接完整曲谱" }]
+  },
+  {
+    id: "song-lemon-locked",
+    title: "Lemon",
+    artist: "米津玄师",
+    level: "P2",
+    key: "C",
+    bpm: 88,
+    difficulty: 3,
+    access: "pro",
+    display: { emoji: "🍋", color: "#FDE68A", light: "#FEF3C7", stars: 3, difficultyLabel: "会员" },
+    chordNames: ["C", "G", "Am", "F"],
+    practiceTemplateIds: [],
+    practiceLines: []
+  },
+  {
+    id: "song-island-strum-demo",
+    title: "小岛下扫歌",
+    artist: "节奏练习曲",
+    level: "P1",
+    key: "C",
+    bpm: 85,
+    difficulty: 2,
+    access: "free",
+    display: { emoji: "🎵", color: "#2DD4BF", light: "#CCFBF1", stars: 2, difficultyLabel: "进阶" },
+    chordNames: ["F", "G7", "C"],
+    practiceTemplateIds: ["practice-c-am-f-g7-loop"],
+    practiceLines: [{ bar: 1, chord: "F", text: "先用 F-G7-C 练习小岛风格下扫" }]
+  },
+  {
+    id: "song-riptide-style-progression",
+    title: "Riptide",
+    artist: "Vance Joy",
+    level: "P2",
+    key: "Am",
+    bpm: 102,
+    difficulty: 3,
+    access: "pro",
+    display: { emoji: "🌊", color: "#67E8F9", light: "#CFFAFE", stars: 3, difficultyLabel: "会员" },
+    chordNames: ["Am", "G", "C"],
+    practiceTemplateIds: [],
+    practiceLines: [{ bar: 1, chord: "Am", text: "会员歌曲后续接完整曲谱" }]
+  }
 ];
+function normalizePreviewSong(song) {
+  const display = song.display || {};
+  const diff = display.difficultyLabel || (song.access === "pro" ? "会员" : song.difficulty <= 1 ? "入门" : "进阶");
+  const templateId = song.practiceTemplateIds?.[0] || null;
+  const chords = song.chordNames || [];
+  return {
+    ...song,
+    emoji: display.emoji || "♪",
+    color: display.color || "#FDBA74",
+    light: display.light || "#FEF3C7",
+    stars: display.stars || song.difficulty || 1,
+    diff,
+    chords,
+    templateId,
+    lyrics: (song.practiceLines || []).map(line => [line.chord || chords[0] || "C", line.text || ""])
+  };
+}
+const songs = songCatalog.map(normalizePreviewSong);
 const courses = [
   {
     id: "course-uke-intro",
@@ -4221,7 +4305,7 @@ function completeMelody() {
     title: `${activeSong().title} 单音短句`,
     templateId: "practice-melody-preview",
     courseId: "course-first-song-fragment",
-    songId: activeSong().title,
+    songId: activeSong().id,
     score,
     minutes: Math.max(1, melodyState.rounds + 1),
     completedCount: melodyState.hits,
@@ -4314,7 +4398,7 @@ function completeFollow() {
     title: `${activeSong().title}前 4 小节`,
     templateId: "practice-song-fragment-four-chord-hum",
     courseId: "course-first-song-fragment",
-    songId: "song-four-chord-hum",
+    songId: activeSong().id,
     score: finalScore,
     minutes: Math.max(3, followState.bars * 2),
     completedCount: followState.stable,

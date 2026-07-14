@@ -228,21 +228,33 @@ test("MVP melody practice phrases map notes to ukulele positions", () => {
 });
 
 test("song catalog can be filtered for library views", () => {
+  assert.equal(mvpPracticeContent.songs.length, 10);
+  for (const song of mvpPracticeContent.songs) {
+    assert.ok(song.id);
+    assert.ok(song.title);
+    assert.ok(["free", "pro"].includes(song.access));
+    assert.ok(song.display?.emoji);
+    assert.match(song.display?.color, /^#/);
+    assert.match(song.display?.light, /^#/);
+    assert.ok(song.display?.stars >= 1 && song.display?.stars <= 3);
+    assert.ok(song.chordNames.length > 0);
+  }
+
   assert.deepEqual(
     filterBeginnerSongs({ access: "free", maxDifficulty: 1 }).map((song) => song.id),
-    ["song-four-chord-hum"]
+    ["song-four-chord-hum", "song-four-chord-breeze", "song-bedtime-arpeggio"]
   );
   assert.deepEqual(
     filterBeginnerSongs({ access: "free", minDifficulty: 2 }).map((song) => song.id),
-    ["song-island-strum-demo"]
+    ["song-g-transition", "song-waltz-slow", "song-little-luck", "song-sunny-day", "song-island-strum-demo"]
   );
   assert.deepEqual(
     filterBeginnerSongs({ access: "pro" }).map((song) => song.id),
-    ["song-riptide-style-progression"]
+    ["song-lemon-locked", "song-riptide-style-progression"]
   );
   assert.deepEqual(
     filterBeginnerSongs({ query: "Am G7" }).map((song) => song.id),
-    ["song-four-chord-hum", "song-island-strum-demo", "song-riptide-style-progression"]
+    ["song-four-chord-hum", "song-four-chord-breeze"]
   );
 });
 

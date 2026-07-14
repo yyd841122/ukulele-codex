@@ -574,8 +574,8 @@ export const chordLoopPractice = {
 export const beginnerSongCatalog = [
   {
     id: "song-four-chord-hum",
-    title: "四和弦哼唱",
-    artist: "AI 音乐学园",
+    title: "童年",
+    artist: "罗大佑",
     instrument: "ukulele",
     level: "P0",
     key: "C",
@@ -604,25 +604,222 @@ export const beginnerSongCatalog = [
     tags: ["beginner", "four-chord", "song-fragment"]
   },
   {
-    id: "song-island-strum-demo",
-    title: "海岛扫弦示范",
-    artist: "AI 音乐学园",
+    id: "song-four-chord-breeze",
+    title: "四和弦海风",
+    artist: "入门练习曲",
     instrument: "ukulele",
-    level: "P1",
+    level: "P0",
     key: "C",
     bpm: 70,
+    timeSignature: "4/4",
+    difficulty: 1,
+    access: "free",
+    display: {
+      emoji: "🏝️",
+      color: "#5EEAD4",
+      light: "#CCFBF1",
+      stars: 1,
+      difficultyLabel: "入门"
+    },
+    chordIds: ["uke-c", "uke-am", "uke-f", "uke-g7"],
+    chordNames: ["C", "Am", "F", "G7"],
+    rhythmPatternIds: ["rhythm-down-four"],
+    songFragmentIds: ["song-fragment-four-chord-hum"],
+    practiceTemplateIds: ["practice-song-fragment-four-chord-hum"],
+    practiceLines: [
+      { bar: 1, chord: "C", text: "海风轻轻吹 稳住第一拍" },
+      { bar: 2, chord: "Am", text: "左手提前换 右手不停摆" },
+      { bar: 3, chord: "F", text: "扫弦别着急 声音要打开" },
+      { bar: 4, chord: "G7", text: "回到下一轮 放松再重来" }
+    ],
+    tags: ["beginner", "four-chord", "song-fragment"]
+  },
+  {
+    id: "song-bedtime-arpeggio",
+    title: "晚安分解练习",
+    artist: "入门练习曲",
+    instrument: "ukulele",
+    level: "P0",
+    key: "C",
+    bpm: 60,
+    timeSignature: "4/4",
+    difficulty: 1,
+    access: "free",
+    display: {
+      emoji: "🌙",
+      color: "#93C5FD",
+      light: "#DBEAFE",
+      stars: 1,
+      difficultyLabel: "入门"
+    },
+    chordIds: ["uke-c", "uke-g", "uke-am", "uke-f"],
+    chordNames: ["C", "G", "Am", "F"],
+    rhythmPatternIds: ["rhythm-down-four"],
+    songFragmentIds: [],
+    practiceTemplateIds: ["practice-c-am-f-g7-loop"],
+    practiceLines: [
+      { bar: 1, chord: "C", text: "先用 C-G-Am-F 练习慢速换和弦" }
+    ],
+    tags: ["beginner", "arpeggio", "chord-loop"]
+  },
+  {
+    id: "song-g-transition",
+    title: "G调换指练习",
+    artist: "进阶练习曲",
+    instrument: "ukulele",
+    level: "P1",
+    key: "G",
+    bpm: 72,
     timeSignature: "4/4",
     difficulty: 2,
     access: "free",
     display: {
-      emoji: "🏝️",
+      emoji: "🛤️",
+      color: "#C4B5FD",
+      light: "#EDE9FE",
+      stars: 2,
+      difficultyLabel: "进阶"
+    },
+    chordIds: ["uke-g", "uke-d", "uke-em", "uke-c"],
+    chordNames: ["G", "D", "Em", "C"],
+    rhythmPatternIds: ["rhythm-down-four"],
+    songFragmentIds: [],
+    practiceTemplateIds: ["practice-c-am-f-g7-loop"],
+    practiceLines: [
+      { bar: 1, chord: "G", text: "练 G-D-Em-C 的常用弹唱走向" }
+    ],
+    tags: ["intermediate", "key-g", "chord-loop"]
+  },
+  {
+    id: "song-waltz-slow",
+    title: "三拍子慢歌",
+    artist: "节奏练习曲",
+    instrument: "ukulele",
+    level: "P1",
+    key: "C",
+    bpm: 60,
+    timeSignature: "3/4",
+    difficulty: 2,
+    access: "free",
+    display: {
+      emoji: "💧",
+      color: "#A7F3D0",
+      light: "#ECFDF5",
+      stars: 2,
+      difficultyLabel: "进阶"
+    },
+    chordIds: ["uke-c", "uke-f", "uke-g7"],
+    chordNames: ["C", "F", "G7"],
+    rhythmPatternIds: ["rhythm-waltz-three"],
+    songFragmentIds: [],
+    practiceTemplateIds: ["practice-rhythm-waltz-three"],
+    practiceLines: [
+      { bar: 1, chord: "C", text: "用 3/4 强弱弱节奏练慢歌进入" }
+    ],
+    tags: ["intermediate", "waltz", "rhythm-pattern"]
+  },
+  {
+    id: "song-little-luck",
+    title: "小幸运",
+    artist: "田馥甄",
+    instrument: "ukulele",
+    level: "P1",
+    key: "C",
+    bpm: 78,
+    timeSignature: "4/4",
+    difficulty: 2,
+    access: "free",
+    display: {
+      emoji: "🍀",
+      color: "#86EFAC",
+      light: "#BBF7D0",
+      stars: 2,
+      difficultyLabel: "进阶"
+    },
+    chordIds: ["uke-c", "uke-g", "uke-am", "uke-f"],
+    chordNames: ["C", "G", "Am", "F"],
+    rhythmPatternIds: ["rhythm-down-four"],
+    songFragmentIds: [],
+    practiceTemplateIds: ["practice-c-am-f-g7-loop"],
+    practiceLines: [
+      { bar: 1, chord: "C", text: "先用四和弦练习代替完整曲谱" }
+    ],
+    tags: ["intermediate", "song-practice", "chord-loop"]
+  },
+  {
+    id: "song-sunny-day",
+    title: "晴天",
+    artist: "周杰伦",
+    instrument: "ukulele",
+    level: "P1",
+    key: "G",
+    bpm: 76,
+    timeSignature: "4/4",
+    difficulty: 2,
+    access: "free",
+    display: {
+      emoji: "☀️",
+      color: "#FDBA74",
+      light: "#FED7AA",
+      stars: 2,
+      difficultyLabel: "进阶"
+    },
+    chordIds: ["uke-g", "uke-d", "uke-em", "uke-c"],
+    chordNames: ["G", "D", "Em", "C"],
+    rhythmPatternIds: ["rhythm-down-four"],
+    songFragmentIds: [],
+    practiceTemplateIds: ["practice-c-am-f-g7-loop"],
+    practiceLines: [
+      { bar: 1, chord: "G", text: "进阶歌曲后续接完整曲谱" }
+    ],
+    tags: ["intermediate", "key-g", "song-practice"]
+  },
+  {
+    id: "song-lemon-locked",
+    title: "Lemon",
+    artist: "米津玄师",
+    instrument: "ukulele",
+    level: "P2",
+    key: "C",
+    bpm: 88,
+    timeSignature: "4/4",
+    difficulty: 3,
+    access: "pro",
+    display: {
+      emoji: "🍋",
+      color: "#FDE68A",
+      light: "#FEF3C7",
+      stars: 3,
+      difficultyLabel: "会员"
+    },
+    chordIds: ["uke-c", "uke-g", "uke-am", "uke-f"],
+    chordNames: ["C", "G", "Am", "F"],
+    rhythmPatternIds: ["rhythm-down-four"],
+    songFragmentIds: [],
+    practiceTemplateIds: [],
+    practiceLines: [],
+    tags: ["pro", "song-practice", "locked"]
+  },
+  {
+    id: "song-island-strum-demo",
+    title: "小岛下扫歌",
+    artist: "节奏练习曲",
+    instrument: "ukulele",
+    level: "P1",
+    key: "C",
+    bpm: 85,
+    timeSignature: "4/4",
+    difficulty: 2,
+    access: "free",
+    display: {
+      emoji: "🎵",
       color: "#2DD4BF",
       light: "#CCFBF1",
       stars: 2,
       difficultyLabel: "进阶"
     },
-    chordIds: ["uke-c", "uke-am", "uke-f", "uke-g7"],
-    chordNames: ["C", "Am", "F", "G7"],
+    chordIds: ["uke-f", "uke-g7", "uke-c"],
+    chordNames: ["F", "G7", "C"],
     rhythmPatternIds: ["rhythm-down-down-up-up"],
     songFragmentIds: [],
     practiceTemplateIds: ["practice-c-am-f-g7-loop"],
@@ -633,12 +830,12 @@ export const beginnerSongCatalog = [
   },
   {
     id: "song-riptide-style-progression",
-    title: "Riptide 风格进行",
-    artist: "AI 音乐学园",
+    title: "Riptide",
+    artist: "Vance Joy",
     instrument: "ukulele",
     level: "P2",
     key: "Am",
-    bpm: 85,
+    bpm: 102,
     timeSignature: "4/4",
     difficulty: 3,
     access: "pro",
@@ -649,13 +846,13 @@ export const beginnerSongCatalog = [
       stars: 3,
       difficultyLabel: "会员"
     },
-    chordIds: ["uke-am", "uke-f", "uke-c", "uke-g7"],
-    chordNames: ["Am", "F", "C", "G7"],
+    chordIds: ["uke-am", "uke-g", "uke-c"],
+    chordNames: ["Am", "G", "C"],
     rhythmPatternIds: ["rhythm-down-down-up-up"],
     songFragmentIds: [],
-    practiceTemplateIds: ["practice-c-am-f-g7-loop"],
+    practiceTemplateIds: [],
     practiceLines: [
-      { bar: 1, chord: "Am", text: "Pro 歌曲后续接完整曲谱" }
+      { bar: 1, chord: "Am", text: "会员歌曲后续接完整曲谱" }
     ],
     tags: ["pro", "song-practice", "progression"]
   }
