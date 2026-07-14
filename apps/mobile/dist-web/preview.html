@@ -2584,50 +2584,24 @@
         <div class="practice-hub-shell">
           <header class="practice-hub-top">
             <div>
-              <div class="practice-hub-kicker">PRACTICE TOOLS</div>
-              <h1 class="practice-hub-title">练琴</h1>
-              <p class="practice-hub-subtitle">调好琴、找好拍、看好指法再开始。</p>
+              <div class="practice-hub-kicker" id="practiceHubEyebrow">PRACTICE TOOLS</div>
+              <h1 class="practice-hub-title" id="practiceHubTitle">练琴</h1>
+              <p class="practice-hub-subtitle" id="practiceHubSubtitle">调好琴、找好拍、看好指法再开始。</p>
             </div>
-            <div class="practice-hub-pill">15 分钟</div>
+            <div class="practice-hub-pill" id="practiceHubBadge">15 分钟</div>
           </header>
 
           <section class="practice-hub-section">
-            <div class="practice-hub-head"><b>工具</b><small>练前准备</small></div>
-            <div class="practice-tool-grid">
-              <button class="practice-tool-card feature card clickable" data-open="tuner">
-                <span class="practice-tool-icon">🎛️</span>
-                <span><b>智能调音器</b><small>标准 GCEA · 拨弦检测</small></span>
-              </button>
-              <button class="practice-tool-card card clickable" data-open="metronome">
-                <span class="practice-tool-icon">⏱️</span>
-                <span><b>节拍器</b><small>BPM · 重音 · 声音</small></span>
-              </button>
-              <button class="practice-tool-card card clickable" data-open="chords">
-                <span class="practice-tool-icon">🎼</span>
-                <span><b>和弦库</b><small>指法图 · 试听</small></span>
-              </button>
-            </div>
+            <div class="practice-hub-head"><b id="practiceHubToolsTitle">工具</b><small id="practiceHubToolsMeta">练前准备</small></div>
+            <div class="practice-tool-grid" id="practiceHubTools"></div>
           </section>
 
           <section class="practice-hub-section">
-            <div class="practice-hub-head"><b>专项练习</b><small>按节拍推进</small></div>
-            <div class="practice-tool-grid">
-              <button class="practice-tool-card card clickable" data-open="rhythm">
-                <span class="practice-tool-icon">🥁</span>
-                <span><b>节奏练习</b><small>下扫四拍 · 下下上上</small></span>
-              </button>
-              <button class="practice-tool-card card clickable" data-open="transition">
-                <span class="practice-tool-icon">🔁</span>
-                <span><b>和弦转换</b><small>12 组常用换指</small></span>
-              </button>
-            </div>
+            <div class="practice-hub-head"><b id="practiceHubDrillsTitle">专项练习</b><small id="practiceHubDrillsMeta">按节拍推进</small></div>
+            <div class="practice-tool-grid" id="practiceHubDrills"></div>
           </section>
 
           <div class="practice-plan compact card" id="practicePlan">
-            <div class="practice-hub-head"><b>今日建议路径</b><small>新手顺序</small></div>
-            <div class="plan-row"><span class="step-dot">1</span><div class="row-copy"><b>调准四根弦</b><small>G-C-E-A 全部进绿色区</small></div></div>
-            <div class="plan-row"><span class="step-dot">2</span><div class="row-copy"><b>节奏型练习</b><small>60 BPM 下扫四拍，稳定 2 轮</small></div></div>
-            <div class="plan-row"><span class="step-dot">3</span><div class="row-copy"><b>C-Am 转换</b><small>先练两个和弦，再进四和弦</small></div></div>
           </div>
         </div>
       </section>
@@ -2977,6 +2951,31 @@ function buildSongDetailRoute(song) {
       .replace("{transition}", transition || "C → Am")
   }));
 }
+const practiceHubDisplayConfig = {
+  eyebrow: "PRACTICE TOOLS",
+  title: "练琴",
+  subtitle: "调好琴、找好拍、看好指法再开始。",
+  badge: "15 分钟",
+  sections: {
+    tools: { title: "工具", meta: "练前准备" },
+    drills: { title: "专项练习", meta: "按节拍推进" },
+    plan: { title: "今日建议路径", meta: "新手顺序" }
+  },
+  toolCards: [
+    { id: "tuner", icon: "🎛️", title: "智能调音器", detail: "标准 GCEA · 拨弦检测", target: { type: "tool", id: "tuner" }, featured: true },
+    { id: "metronome", icon: "⏱️", title: "节拍器", detail: "BPM · 重音 · 声音", target: { type: "tool", id: "metronome" } },
+    { id: "chords", icon: "🎼", title: "和弦库", detail: "指法图 · 试听", target: { type: "library", id: "chords" } }
+  ],
+  drillCards: [
+    { id: "rhythm", icon: "🥁", title: "节奏练习", detail: "下扫四拍 · 下下上上", target: { type: "practice-template", id: "practice-rhythm-down-four" } },
+    { id: "transition", icon: "🔁", title: "和弦转换", detail: "12 组常用换指", target: { type: "practice-template", id: "practice-transition-c-am" } }
+  ],
+  planSteps: [
+    { id: "tune", title: "调准四根弦", detail: "G-C-E-A 全部进绿色区", target: { type: "tool", id: "tuner" } },
+    { id: "rhythm", title: "节奏型练习", detail: "60 BPM 下扫四拍，稳定 2 轮", target: { type: "practice-template", id: "practice-rhythm-down-four" } },
+    { id: "transition", title: "C-Am 转换", detail: "先练两个和弦，再进四和弦", target: { type: "practice-template", id: "practice-transition-c-am" } }
+  ]
+};
 const courseCatalog = [
   {
     id: "course-uke-intro",
@@ -4063,14 +4062,47 @@ function renderCourseResources(course) {
 function templateProgress(template) {
   return appState.courseProgress[template.courseOrder] ?? 0;
 }
+function practiceHubTargetOpen(target = {}) {
+  if (target.id === "metronome") return "metronome";
+  if (target.id === "chords") return "chords";
+  if (target.id === "practice-rhythm-down-four") return "rhythm";
+  if (target.id === "practice-transition-c-am") return "transition";
+  return target.id || "practice";
+}
+function practiceHubCard(card) {
+  const open = practiceHubTargetOpen(card.target);
+  return `
+    <button class="practice-tool-card ${card.featured ? "feature " : ""}card clickable" data-open="${open}">
+      <span class="practice-tool-icon">${card.icon}</span>
+      <span><b>${card.title}</b><small>${card.detail}</small></span>
+    </button>
+  `;
+}
+function renderPracticeHub() {
+  const copy = practiceHubDisplayConfig;
+  $("#practiceHubEyebrow").textContent = copy.eyebrow;
+  $("#practiceHubTitle").textContent = copy.title;
+  $("#practiceHubSubtitle").textContent = copy.subtitle;
+  $("#practiceHubBadge").textContent = copy.badge;
+  $("#practiceHubToolsTitle").textContent = copy.sections.tools.title;
+  $("#practiceHubToolsMeta").textContent = copy.sections.tools.meta;
+  $("#practiceHubDrillsTitle").textContent = copy.sections.drills.title;
+  $("#practiceHubDrillsMeta").textContent = copy.sections.drills.meta;
+  $("#practiceHubTools").innerHTML = copy.toolCards.map(practiceHubCard).join("");
+  $("#practiceHubDrills").innerHTML = copy.drillCards.map(practiceHubCard).join("");
+}
 function renderPracticePlan() {
   const plan = $("#practicePlan");
   if (!plan) return;
+  const copy = practiceHubDisplayConfig;
   plan.innerHTML = `
-    <div class="practice-hub-head"><b>今日建议路径</b><small>新手顺序</small></div>
-    <button class="plan-row clickable" data-open="tuner"><span class="step-dot">1</span><div class="row-copy"><b>调准四根弦</b><small>G-C-E-A 全部进绿色区</small></div></button>
-    <button class="plan-row clickable" data-open="rhythm"><span class="step-dot">2</span><div class="row-copy"><b>节奏型练习</b><small>60 BPM 下扫四拍，稳定 2 轮</small></div></button>
-    <button class="plan-row clickable" data-open="transition"><span class="step-dot">3</span><div class="row-copy"><b>C-Am 转换</b><small>先练两个和弦，再进四和弦</small></div></button>
+    <div class="practice-hub-head"><b>${copy.sections.plan.title}</b><small>${copy.sections.plan.meta}</small></div>
+    ${copy.planSteps.map((step, index) => `
+      <button class="plan-row clickable" data-open="${practiceHubTargetOpen(step.target)}">
+        <span class="step-dot">${index + 1}</span>
+        <div class="row-copy"><b>${step.title}</b><small>${step.detail}</small></div>
+      </button>
+    `).join("")}
   `;
 }
 function openPracticeTemplate(templateId) {
@@ -5014,6 +5046,7 @@ renderTransition();
 renderMelody();
 renderFollow();
 renderHome();
+renderPracticeHub();
 renderPracticePlan();
 renderCourses();
 renderSongs();

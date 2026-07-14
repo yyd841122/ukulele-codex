@@ -166,6 +166,87 @@ export const songDetailDisplayConfig = {
   ]
 };
 
+export const practiceHubDisplayConfig = {
+  eyebrow: "PRACTICE TOOLS",
+  title: "练琴",
+  subtitle: "调好琴、找好拍、看好指法再开始。",
+  badge: "15 分钟",
+  sections: {
+    tools: {
+      title: "工具",
+      meta: "练前准备"
+    },
+    drills: {
+      title: "专项练习",
+      meta: "按节拍推进"
+    },
+    plan: {
+      title: "今日建议路径",
+      meta: "新手顺序"
+    }
+  },
+  toolCards: [
+    {
+      id: "tuner",
+      icon: "🎛️",
+      title: "智能调音器",
+      detail: "标准 GCEA · 拨弦检测",
+      target: { type: "tool", id: "tuner" },
+      featured: true
+    },
+    {
+      id: "metronome",
+      icon: "⏱️",
+      title: "节拍器",
+      detail: "BPM · 重音 · 声音",
+      target: { type: "tool", id: "metronome" }
+    },
+    {
+      id: "chords",
+      icon: "🎼",
+      title: "和弦库",
+      detail: "指法图 · 试听",
+      target: { type: "library", id: "chords" }
+    }
+  ],
+  drillCards: [
+    {
+      id: "rhythm",
+      icon: "🥁",
+      title: "节奏练习",
+      detail: "下扫四拍 · 下下上上",
+      target: { type: "practice-template", id: "practice-rhythm-down-four" }
+    },
+    {
+      id: "transition",
+      icon: "🔁",
+      title: "和弦转换",
+      detail: "12 组常用换指",
+      target: { type: "practice-template", id: "practice-transition-c-am" }
+    }
+  ],
+  planSteps: [
+    {
+      id: "tune",
+      title: "调准四根弦",
+      detail: "G-C-E-A 全部进绿色区",
+      target: { type: "tool", id: "tuner" }
+    },
+    {
+      id: "rhythm",
+      title: "节奏型练习",
+      detail: "60 BPM 下扫四拍，稳定 2 轮",
+      target: { type: "practice-template", id: "practice-rhythm-down-four" }
+    },
+    {
+      id: "transition",
+      title: "C-Am 转换",
+      detail: "先练两个和弦，再进四和弦",
+      target: { type: "practice-template", id: "practice-transition-c-am" }
+    }
+  ]
+};
+
 export const getSongChordNames = (song) =>
   song?.chordNames ?? song?.chords ?? ["C", "Am", "F", "G7"];
 
@@ -1277,6 +1358,7 @@ export const mvpPracticeContent = {
   metronome: {
     tempoPresets: metronomeTempoPresets
   },
+  practiceHub: practiceHubDisplayConfig,
   courses: mvpCourseCatalog,
   rhythmPatterns: beginnerRhythmPatterns,
   chordTransitions: chordTransitionExercises,

@@ -30,6 +30,7 @@ import {
   mvpPracticeTemplates,
   mvpLesson,
   mvpPracticeContent,
+  practiceHubDisplayConfig as sharedPracticeHubDisplayConfig,
   practiceLoopModes as sharedPracticeLoopModes,
   practiceTempoPresets as sharedPracticeTempoPresets,
   songDetailDisplayConfig as sharedSongDetailDisplayConfig,
@@ -115,6 +116,7 @@ const tunerStatusStageById = Object.fromEntries(
   tunerDisplayConfig.statusStages.map((stage) => [stage.id, stage])
 );
 const songDetailDisplayConfig = sharedSongDetailDisplayConfig;
+const practiceHubDisplayConfig = sharedPracticeHubDisplayConfig;
 const practiceLoopModes = sharedPracticeLoopModes.map((mode) => ({
   ...mode,
   id: mode.id as PracticeLoopMode,
@@ -1533,50 +1535,48 @@ function PracticeHubScreen({
   onOpenTransition: () => void;
   onOpenTuner: () => void;
 }) {
-  const tools = [
-    { id: "metronome", icon: "⏱️", title: "节拍器", detail: "BPM · 重音 · 声音", action: onOpenMetronome },
-    { id: "chords", icon: "🎼", title: "和弦库", detail: "指法图 · 试听", action: onOpenChords }
-  ];
-  const drills = [
-    { id: "rhythm", icon: "🥁", title: "节奏练习", detail: "下扫四拍 · 下下上上", action: onOpenRhythm },
-    { id: "transition", icon: "🔁", title: "和弦转换", detail: "C-Am · Am-F · F-G7", action: onOpenTransition }
-  ];
-  const plan = [
-    { title: "调准四根弦", detail: "G-C-E-A 全部进绿色区" },
-    { title: "节奏型练习", detail: "60 BPM 下扫四拍，稳定 2 轮" },
-    { title: "C-Am 转换", detail: "先练两个和弦，再进四和弦" }
-  ];
+  const hubCopy = practiceHubDisplayConfig;
+  const featureTool = hubCopy.toolCards.find((card) => card.featured) ?? hubCopy.toolCards[0];
+  const secondaryTools = hubCopy.toolCards.filter((card) => card.id !== featureTool.id);
+  const actionForTarget = (target?: SharedNavigationTarget) => {
+    if (target?.id === "tuner") return onOpenTuner;
+    if (target?.id === "metronome") return onOpenMetronome;
+    if (target?.id === "chords") return onOpenChords;
+    if (target?.id === "practice-rhythm-down-four") return onOpenRhythm;
+    if (target?.id === "practice-transition-c-am") return onOpenTransition;
+    return onOpenRhythm;
+  };
 
   return (
     <View style={styles.practiceHubStack}>
       <View style={styles.practiceHubHeader}>
         <View style={styles.homeHeroCopyBlock}>
-          <Text style={styles.homeEyebrow}>PRACTICE TOOLS</Text>
-          <Text style={styles.practiceHubTitle}>练琴</Text>
-          <Text style={styles.practiceHubSubtitle}>调好琴、找好拍、看好指法再开始。</Text>
+          <Text style={styles.homeEyebrow}>{hubCopy.eyebrow}</Text>
+          <Text style={styles.practiceHubTitle}>{hubCopy.title}</Text>
+          <Text style={styles.practiceHubSubtitle}>{hubCopy.subtitle}</Text>
         </View>
         <View style={styles.practiceHubBadge}>
-          <Text style={styles.practiceHubBadgeText}>15 分钟</Text>
+          <Text style={styles.practiceHubBadgeText}>{hubCopy.badge}</Text>
         </View>
       </View>
 
       <View>
         <View style={styles.practiceHubSectionHead}>
-          <Text style={styles.practiceHubSectionTitle}>工具</Text>
-          <Text style={styles.practiceHubSectionMeta}>练前准备</Text>
+          <Text style={styles.practiceHubSectionTitle}>{hubCopy.sections.tools.title}</Text>
+          <Text style={styles.practiceHubSectionMeta}>{hubCopy.sections.tools.meta}</Text>
         </View>
-        <Pressable accessibilityRole="button" onPress={onOpenTuner} style={styles.practiceHubFeatureCard}>
+        <Pressable accessibilityRole="button" onPress={actionForTarget(featureTool.target)} style={styles.practiceHubFeatureCard}>
           <View style={styles.practiceHubIcon}>
-            <Text style={styles.practiceHubIconText}>🎛️</Text>
+            <Text style={styles.practiceHubIconText}>{featureTool.icon}</Text>
           </View>
           <View style={styles.practiceHubCardCopy}>
-            <Text style={styles.practiceHubFeatureTitle}>智能调音器</Text>
-            <Text style={styles.practiceHubFeatureDetail}>标准 GCEA · 拨弦检测</Text>
+            <Text style={styles.practiceHubFeatureTitle}>{featureTool.title}</Text>
+            <Text style={styles.practiceHubFeatureDetail}>{featureTool.detail}</Text>
           </View>
         </Pressable>
         <View style={styles.practiceHubGrid}>
-          {tools.map((tool) => (
-            <Pressable accessibilityRole="button" key={tool.id} onPress={tool.action} style={styles.practiceHubCard}>
+          {secondaryTools.map((tool) => (
+            <Pressable accessibilityRole="button" key={tool.id} onPress={actionForTarget(tool.target)} style={styles.practiceHubCard}>
               <View style={styles.practiceHubIcon}>
                 <Text style={styles.practiceHubIconText}>{tool.icon}</Text>
               </View>
@@ -1591,12 +1591,12 @@ function PracticeHubScreen({
 
       <View>
         <View style={styles.practiceHubSectionHead}>
-          <Text style={styles.practiceHubSectionTitle}>专项练习</Text>
-          <Text style={styles.practiceHubSectionMeta}>按节拍推进</Text>
+          <Text style={styles.practiceHubSectionTitle}>{hubCopy.sections.drills.title}</Text>
+          <Text style={styles.practiceHubSectionMeta}>{hubCopy.sections.drills.meta}</Text>
         </View>
         <View style={styles.practiceHubGrid}>
-          {drills.map((drill) => (
-            <Pressable accessibilityRole="button" key={drill.id} onPress={drill.action} style={styles.practiceHubCard}>
+          {hubCopy.drillCards.map((drill) => (
+            <Pressable accessibilityRole="button" key={drill.id} onPress={actionForTarget(drill.target)} style={styles.practiceHubCard}>
               <View style={styles.practiceHubIcon}>
                 <Text style={styles.practiceHubIconText}>{drill.icon}</Text>
               </View>
@@ -1611,10 +1611,10 @@ function PracticeHubScreen({
 
       <View style={styles.practiceHubPlan}>
         <View style={styles.practiceHubSectionHead}>
-          <Text style={styles.practiceHubSectionTitle}>今日建议路径</Text>
-          <Text style={styles.practiceHubSectionMeta}>新手顺序</Text>
+          <Text style={styles.practiceHubSectionTitle}>{hubCopy.sections.plan.title}</Text>
+          <Text style={styles.practiceHubSectionMeta}>{hubCopy.sections.plan.meta}</Text>
         </View>
-        {plan.map((item, index) => (
+        {hubCopy.planSteps.map((item, index) => (
           <View key={item.title} style={styles.practiceHubPlanRow}>
             <View style={styles.practiceHubStepDot}>
               <Text style={styles.practiceHubStepText}>{index + 1}</Text>

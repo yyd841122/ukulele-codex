@@ -45,6 +45,7 @@ import {
   mvpPracticeTemplates,
   normalizePracticeHistory,
   practiceLoopModes,
+  practiceHubDisplayConfig,
   practiceRecordVersion,
   practiceTempoPresets,
   summarizePracticeHistory,
@@ -121,6 +122,23 @@ test("song detail display config builds route steps from song data", () => {
   );
   assert.equal(songDetailDisplayConfig.sectionLabels.chordPrepTitle, "和弦准备");
   assert.equal(mvpPracticeContent.songDetail, songDetailDisplayConfig);
+});
+
+test("practice hub display config defines tools drills and beginner plan", () => {
+  assert.equal(practiceHubDisplayConfig.title, "练琴");
+  assert.deepEqual(
+    practiceHubDisplayConfig.toolCards.map((card) => card.id),
+    ["tuner", "metronome", "chords"]
+  );
+  assert.deepEqual(
+    practiceHubDisplayConfig.drillCards.map((card) => card.id),
+    ["rhythm", "transition"]
+  );
+  assert.deepEqual(
+    practiceHubDisplayConfig.planSteps.map((step) => step.id),
+    ["tune", "rhythm", "transition"]
+  );
+  assert.equal(mvpPracticeContent.practiceHub, practiceHubDisplayConfig);
 });
 
 test("MVP practice template can be queried by id", () => {
