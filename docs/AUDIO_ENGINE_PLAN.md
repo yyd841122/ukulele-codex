@@ -120,6 +120,10 @@ UI 不直接依赖底层音频实现，只消费 `PitchFrame / TunerFrame`。
 
 ## 5. 真机验收清单
 
+完整执行步骤见：
+
+- `docs/TUNER_DEVICE_TEST.md`
+
 ### 基础
 
 - 点击“开始调音”后请求麦克风权限。
@@ -153,6 +157,6 @@ UI 不直接依赖底层音频实现，只消费 `PitchFrame / TunerFrame`。
 
 ## 7. 下一步任务
 
-1. 准备真机 development build 测试步骤。
-2. 用真机验证 `useAudioStream` 的 buffer 间隔和 Pitch 延迟是否稳定。
+1. 按 `docs/TUNER_DEVICE_TEST.md` 做真机 development build 测试。
+2. 记录 `useAudioStream` 的 buffer 间隔、Pitch 延迟、PitchFrame 数量和最近频率。
 3. 真机验证后再决定是否开启 Native/JSI AudioEngine 分支。
