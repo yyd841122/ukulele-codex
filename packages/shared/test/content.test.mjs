@@ -49,6 +49,7 @@ import {
   summarizePracticeHistory,
   summarizeMvpPracticePath,
   summarizePracticeRecord,
+  tunerDisplayConfig,
   ukuleleInstrument
 } from "../src/index.js";
 
@@ -91,6 +92,18 @@ test("chord library categories and favorites resolve beginner chords", () => {
   }
   assert.equal(mvpPracticeContent.chordLibrary.categories, chordLibraryCategories);
   assert.equal(mvpPracticeContent.chordLibrary.favoriteChordNames, favoriteChordNames);
+});
+
+test("tuner display config defines the microphone pipeline states", () => {
+  assert.equal(tunerDisplayConfig.title, "智能调音器");
+  assert.equal(tunerDisplayConfig.tuningBadge, "GCEA");
+  assert.deepEqual(
+    tunerDisplayConfig.statusStages.map((stage) => stage.id),
+    ["permission", "level", "pitchFrame"]
+  );
+  assert.equal(tunerDisplayConfig.noiseGate.idleLabel, "门限 2.6x");
+  assert.equal(tunerDisplayConfig.noiseGate.activeLabel, "门限 3.2x");
+  assert.equal(mvpPracticeContent.tuner, tunerDisplayConfig);
 });
 
 test("MVP practice template can be queried by id", () => {

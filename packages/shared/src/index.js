@@ -64,6 +64,59 @@ export const chordLibraryCategories = [
 
 export const favoriteChordNames = ["C", "Am", "F", "G7"];
 
+export const tunerDisplayConfig = {
+  title: "智能调音器",
+  tuningBadge: "GCEA",
+  modeLabels: {
+    highG: "High-G",
+    lowG: "Low-G"
+  },
+  statusStages: [
+    {
+      id: "permission",
+      label: "权限",
+      previewDetail: "预览模拟",
+      readyDetail: "已开通",
+      idleDetail: "待授权"
+    },
+    {
+      id: "level",
+      label: "电平",
+      activeDetail: "读取中",
+      streamingDetail: "PCM 流",
+      idleDetail: "待输入"
+    },
+    {
+      id: "pitchFrame",
+      label: "PitchFrame",
+      readyDetail: "真实",
+      idleDetail: "模拟",
+      previewDetail: "模拟帧"
+    }
+  ],
+  noiseGate: {
+    idleLabel: "门限 2.6x",
+    activeLabel: "门限 3.2x"
+  },
+  copy: {
+    permissionGrantedTitle: "麦克风已授权",
+    permissionPendingTitle: "麦克风未授权",
+    permissionGrantedDetail: "真实 App 会在这里接 AudioEngine；当前保留模拟帧兜底。",
+    readyHint: "绿色范围内已经足够准，可以进入节奏练习。",
+    adjustHint: "先把当前弦调进绿色区，再切到下一根弦。",
+    idleHint: "先拨单根弦；当前预览复用模拟 PitchFrame，真实 App 后续接 AudioEngine。",
+    recordingInputDetail: "正在读取真实麦克风电平，PitchFrame 管线已就绪。",
+    fallbackInputDetail: "拨弦触发检测；真实 PCM 后续接 Native/JSI AudioEngine。",
+    inputLevelTitle: "输入电平",
+    pluckTriggerLabel: "拨弦触发检测",
+    calibrateHint: "环境噪声已校准。现在拨弦触发检测，减少风扇和说话误判。",
+    calibrateToast: "环境噪声已校准",
+    startButtonLabel: "开始调音",
+    stopButtonLabel: "停止调音",
+    calibrateButtonLabel: "校准环境噪声"
+  }
+};
+
 export const mvpLesson = {
   id: "lesson-tune-and-c-am-f-g7",
   title: "第一课：调音与 C-Am-F-G7 循环",
@@ -1157,6 +1210,7 @@ export const mvpPracticeContent = {
     categories: chordLibraryCategories,
     favoriteChordNames
   },
+  tuner: tunerDisplayConfig,
   metronome: {
     tempoPresets: metronomeTempoPresets
   },

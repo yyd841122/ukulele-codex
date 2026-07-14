@@ -31,6 +31,7 @@ import {
   mvpPracticeContent,
   practiceLoopModes as sharedPracticeLoopModes,
   practiceTempoPresets as sharedPracticeTempoPresets,
+  tunerDisplayConfig as sharedTunerDisplayConfig,
   ukuleleInstrument
 } from "@ukulele/shared";
 import {
@@ -107,6 +108,10 @@ const metronomeTempoPresets = sharedMetronomeTempoPresets.map((preset) => ({
   ...preset,
   id: preset.id as Exclude<PracticeTempoId, "custom">
 }));
+const tunerDisplayConfig = sharedTunerDisplayConfig;
+const tunerStatusStageById = Object.fromEntries(
+  tunerDisplayConfig.statusStages.map((stage) => [stage.id, stage])
+);
 const practiceLoopModes = sharedPracticeLoopModes.map((mode) => ({
   ...mode,
   id: mode.id as PracticeLoopMode,
@@ -1642,7 +1647,10 @@ function TunerScreen() {
       : frameSourceLabel;
   const centsAngle = Math.max(-58, Math.min(58, cents * 2.6));
   const inputPercent = Math.round(combinedInputLevel * 100);
-  const noiseGateLabel = recorderMonitor.isRecording || realtimeTuner.isStreaming ? "门限 3.2x" : "门限 2.6x";
+  const tunerCopy = tunerDisplayConfig.copy;
+  const noiseGateLabel = recorderMonitor.isRecording || realtimeTuner.isStreaming
+    ? tunerDisplayConfig.noiseGate.activeLabel
+    : tunerDisplayConfig.noiseGate.idleLabel;
   const realtimeDebugMetrics = realtimeTuner.debugMetrics;
   const realtimeDebugRows = [
     {
@@ -1667,22 +1675,29 @@ function TunerScreen() {
     }
   ];
   const tunerHint = Math.abs(cents) <= IN_TUNE_CENTS
-    ? "绿色范围内已经足够准，可以进入节奏练习。"
+    ? tunerCopy.readyHint
     : cents > 0
       ? "当前弦偏高，先轻轻松弦。"
       : "当前弦偏低，先慢慢拧紧。";
+  const permissionStage = tunerStatusStageById.permission;
+  const levelStage = tunerStatusStageById.level;
+  const pitchFrameStage = tunerStatusStageById.pitchFrame;
   const micPipelineStages = [
     {
-      label: "权限",
+      label: permissionStage.label,
       done: micAccess.granted || Boolean(realtimeTuner.access?.granted),
-      detail: micAccess.granted || realtimeTuner.access?.granted ? "已开通" : "待授权"
+      detail: micAccess.granted || realtimeTuner.access?.granted ? permissionStage.readyDetail : permissionStage.idleDetail
     },
     {
-      label: "电平",
+      label: levelStage.label,
       done: recorderMonitor.isRecording || realtimeTuner.isStreaming,
-      detail: realtimeTuner.isStreaming ? "PCM 流" : recorderMonitor.isRecording ? "读取中" : "未启动"
+      detail: realtimeTuner.isStreaming ? levelStage.streamingDetail : recorderMonitor.isRecording ? levelStage.activeDetail : levelStage.idleDetail
     },
-    { label: "PitchFrame", done: frame.source === "detected", detail: frame.source === "detected" ? "真实" : "模拟" }
+    {
+      label: pitchFrameStage.label,
+      done: frame.source === "detected",
+      detail: frame.source === "detected" ? pitchFrameStage.readyDetail : pitchFrameStage.idleDetail
+    }
   ];
 
   useEffect(() => {
@@ -1732,19 +1747,19 @@ function TunerScreen() {
     <View style={styles.stack}>
       <View style={styles.tunerTopRow}>
         <View>
-          <Text style={styles.screenTitle}>智能调音器</Text>
+          <Text style={styles.screenTitle}>{tunerDisplayConfig.title}</Text>
           <Text style={styles.screenSubtitle}>{tuning.name} · {audioInputLabel}</Text>
         </View>
         <View style={styles.tuningBadge}>
-          <Text style={styles.tuningBadgeText}>GCEA</Text>
+          <Text style={styles.tuningBadgeText}>{tunerDisplayConfig.tuningBadge}</Text>
         </View>
       </View>
 
       <View style={styles.tunerPermissionPanel}>
         <View style={styles.micCopy}>
-          <Text style={styles.infoTitle}>{micAccess.granted ? "麦克风已授权" : "麦克风未授权"}</Text>
+          <Text style={styles.infoTitle}>{micAccess.granted ? tunerCopy.permissionGrantedTitle : tunerCopy.permissionPendingTitle}</Text>
           <Text style={styles.infoDetail}>
-            {micAccess.granted ? "真实 App 会在这里接 AudioEngine；当前保留模拟帧兜底。" : micAccess.detail}
+            {micAccess.granted ? tunerCopy.permissionGrantedDetail : micAccess.detail}
           </Text>
         </View>
         <Pressable
@@ -1796,11 +1811,11 @@ function TunerScreen() {
       <View style={styles.inputPanel}>
         <View style={styles.inputHeader}>
           <View>
-            <Text style={styles.infoTitle}>输入电平</Text>
+            <Text style={styles.infoTitle}>{tunerCopy.inputLevelTitle}</Text>
             <Text style={styles.infoDetail}>
               {recorderMonitor.isRecording
-                ? "正在读取真实麦克风电平，PitchFrame 管线已就绪。"
-                : "拨弦触发检测；真实 PCM 后续接 Native/JSI AudioEngine。"}
+                ? tunerCopy.recordingInputDetail
+                : tunerCopy.fallbackInputDetail}
             </Text>
           </View>
           <Text style={styles.levelValue}>{inputPercent}%</Text>
@@ -1809,7 +1824,7 @@ function TunerScreen() {
           <View style={[styles.levelFill, { width: `${inputPercent}%` }]} />
         </View>
         <View style={styles.tunerNoiseRow}>
-          <Text style={styles.inputMeta}>拨弦触发检测</Text>
+          <Text style={styles.inputMeta}>{tunerCopy.pluckTriggerLabel}</Text>
           <Text style={styles.tunerNoiseValue}>{noiseGateLabel}</Text>
         </View>
         <View style={styles.inputMetaRow}>

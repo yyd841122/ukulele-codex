@@ -2704,15 +2704,7 @@
       </div>
     </section>
 
-    <section class="sheet tuner-page" id="tuner">
-      <div class="tuner-head"><button class="back" data-close="tuner">‹</button><b>智能调音器</b><button class="mode-chip" id="gMode">High-G</button></div>
-      <div class="dial-wrap">
-        <div class="dial"><div class="needle" id="needle"></div><div class="dial-center"><div class="note" id="tNote">A</div><div class="hz" id="tHz">440.0 Hz</div><div class="state" id="tState">等待拨弦</div></div></div>
-        <div class="strings" id="strings"></div>
-        <p style="max-width:300px;text-align:center;color:var(--text-3);font-size:12px;line-height:1.7;margin-top:10px">真实拾音后接入现有 PitchFrame 管线；当前预览用模拟帧展示调音流程。</p>
-        <div style="width:100%;padding:20px 24px 32px"><button class="primary" style="width:100%" id="tunerBtn">🎙️ 开始调音</button></div>
-      </div>
-    </section>
+    <section class="sheet tuner-page" id="tuner"></section>
 
     <section class="sheet metro-page" id="metronome">
       <div class="metro-head">
@@ -3253,6 +3245,36 @@ let tuneTimer = null;
 let selectedTuneIndex = 3;
 let tuneStep = 0;
 const tunedStringIndexes = new Set();
+const tunerDisplayConfig = {
+  title: "智能调音器",
+  tuningBadge: "GCEA",
+  modeLabels: {
+    highG: "High-G",
+    lowG: "Low-G"
+  },
+  statusStages: [
+    { id: "permission", label: "权限", previewDetail: "预览模拟", readyDetail: "已开通", idleDetail: "待授权" },
+    { id: "level", label: "电平", activeDetail: "读取中", streamingDetail: "PCM 流", idleDetail: "待输入" },
+    { id: "pitchFrame", label: "PitchFrame", readyDetail: "真实", idleDetail: "模拟", previewDetail: "模拟帧" }
+  ],
+  noiseGate: {
+    idleLabel: "门限 2.6x",
+    activeLabel: "门限 3.2x"
+  },
+  copy: {
+    readyHint: "绿色范围内已经足够准，可以进入节奏练习。",
+    adjustHint: "先把当前弦调进绿色区，再切到下一根弦。",
+    idleHint: "先拨单根弦；当前预览复用模拟 PitchFrame，真实 App 后续接 AudioEngine。",
+    inputLevelTitle: "输入电平",
+    pluckTriggerLabel: "拨弦触发检测",
+    calibrateHint: "环境噪声已校准。现在拨弦触发检测，减少风扇和说话误判。",
+    calibrateToast: "环境噪声已校准",
+    startButtonLabel: "开始调音",
+    stopButtonLabel: "停止调音",
+    calibrateButtonLabel: "校准环境噪声"
+  }
+};
+const tunerStageById = Object.fromEntries(tunerDisplayConfig.statusStages.map(stage => [stage.id, stage]));
 const tuneFrameSets = [
   [
     { note: "G", hz: 391.1, cents: -18 },
@@ -3303,8 +3325,8 @@ function applyTuneFrame({ advance = false } = {}) {
   $("#tLevelState").textContent = "拨弦触发";
   $("#tLevel").textContent = `${Math.round(level)}%`;
   $("#tLevelBar").style.width = `${level}%`;
-  $("#tNoise").textContent = tuning ? "门限 3.2x" : "门限 2.6x";
-  $("#tHint").textContent = inTune ? "绿色范围内已经足够准，可以进入节奏练习。" : "先把当前弦调进绿色区，再切到下一根弦。";
+  $("#tNoise").textContent = tuning ? tunerDisplayConfig.noiseGate.activeLabel : tunerDisplayConfig.noiseGate.idleLabel;
+  $("#tHint").textContent = inTune ? tunerDisplayConfig.copy.readyHint : tunerDisplayConfig.copy.adjustHint;
   const angle = Math.max(-58, Math.min(58, frame.cents * 2.6));
   $("#needle").style.transform = `translateX(-50%) rotate(${angle}deg)`;
   $("#needle").classList.toggle("ok", inTune);
@@ -3313,9 +3335,9 @@ function applyTuneFrame({ advance = false } = {}) {
 }
 function toggleTuner() {
   tuning = !tuning;
-  $("#tunerBtn").textContent = tuning ? "停止调音" : "开始调音";
-  $("#tPerm").textContent = tuning ? "已授权" : "预览模拟";
-  $("#tLevelState").textContent = tuning ? "读取中" : "待输入";
+  $("#tunerBtn").textContent = tuning ? tunerDisplayConfig.copy.stopButtonLabel : tunerDisplayConfig.copy.startButtonLabel;
+  $("#tPerm").textContent = tuning ? tunerStageById.permission.readyDetail : tunerStageById.permission.previewDetail;
+  $("#tLevelState").textContent = tuning ? tunerStageById.level.activeDetail : tunerStageById.level.idleDetail;
   clearInterval(tuneTimer);
   if (tuning) {
     tuneStep = 0;
@@ -3326,9 +3348,9 @@ function toggleTuner() {
     $("#tLevelBar").style.width = "0%";
     $("#tState").textContent = "等待拨弦";
     $("#tState").style.color = "#16A34A";
-    $("#tFrameState").textContent = "模拟帧";
-    $("#tNoise").textContent = "门限 2.6x";
-    $("#tHint").textContent = "先拨单根弦；当前预览复用模拟 PitchFrame，真实 App 后续接 AudioEngine。";
+    $("#tFrameState").textContent = tunerStageById.pitchFrame.previewDetail;
+    $("#tNoise").textContent = tunerDisplayConfig.noiseGate.idleLabel;
+    $("#tHint").textContent = tunerDisplayConfig.copy.idleHint;
     renderStrings(selectedTuneIndex);
   }
 }
@@ -3412,14 +3434,14 @@ function setupTunerPanel() {
   tuner.innerHTML = `
     <div class="tuner-head">
       <button class="back" data-close="tuner">‹</button>
-      <b>智能调音器</b>
-      <button class="mode-chip" id="gMode">High-G</button>
+      <b>${tunerDisplayConfig.title}</b>
+      <button class="mode-chip" id="gMode">${tunerDisplayConfig.modeLabels.highG}</button>
     </div>
     <div class="tuner-body">
       <div class="tuner-status-grid">
-        <div class="tuner-status-card"><b>权限</b><span id="tPerm">预览模拟</span></div>
-        <div class="tuner-status-card"><b>电平</b><span id="tLevelState">待输入</span></div>
-        <div class="tuner-status-card"><b>PitchFrame</b><span id="tFrameState">模拟帧</span></div>
+        <div class="tuner-status-card"><b>${tunerStageById.permission.label}</b><span id="tPerm">${tunerStageById.permission.previewDetail}</span></div>
+        <div class="tuner-status-card"><b>${tunerStageById.level.label}</b><span id="tLevelState">${tunerStageById.level.idleDetail}</span></div>
+        <div class="tuner-status-card"><b>${tunerStageById.pitchFrame.label}</b><span id="tFrameState">${tunerStageById.pitchFrame.previewDetail}</span></div>
       </div>
       <div class="tuner-main-card card">
         <div class="tuner-gauge">
@@ -3427,20 +3449,20 @@ function setupTunerPanel() {
           <div class="tuner-gauge-center">
             <div class="tuner-note" id="tNote">A</div>
             <div class="tuner-state" id="tState">等待拨弦</div>
-            <div class="tuner-hz" id="tHz">440.0 Hz · 标准 GCEA</div>
+            <div class="tuner-hz" id="tHz">440.0 Hz · 标准 ${tunerDisplayConfig.tuningBadge}</div>
           </div>
         </div>
       </div>
       <div class="tuner-input-card card">
-        <div class="tuner-input-row"><b>输入电平</b><span id="tLevel">0%</span></div>
+        <div class="tuner-input-row"><b>${tunerDisplayConfig.copy.inputLevelTitle}</b><span id="tLevel">0%</span></div>
         <div class="level-track"><i id="tLevelBar"></i></div>
-        <div class="tuner-noise-row"><span>拨弦触发检测</span><b id="tNoise">门限 2.6x</b></div>
-        <p class="module-note" id="tHint">先拨单根弦；当前预览复用模拟 PitchFrame，真实 App 后续接 AudioEngine。</p>
+        <div class="tuner-noise-row"><span>${tunerDisplayConfig.copy.pluckTriggerLabel}</span><b id="tNoise">${tunerDisplayConfig.noiseGate.idleLabel}</b></div>
+        <p class="module-note" id="tHint">${tunerDisplayConfig.copy.idleHint}</p>
       </div>
       <div class="strings" id="strings"></div>
       <div class="tuner-actions">
-        <button class="primary" id="tunerBtn">🎙️ 开始调音</button>
-        <button class="ghost" id="tunerCalibrate">校准环境噪声</button>
+        <button class="primary" id="tunerBtn">🎙️ ${tunerDisplayConfig.copy.startButtonLabel}</button>
+        <button class="ghost" id="tunerCalibrate">${tunerDisplayConfig.copy.calibrateButtonLabel}</button>
       </div>
     </div>
   `;
@@ -3449,15 +3471,17 @@ setupTunerPanel();
 $("#chordSearch").addEventListener("input", renderChords);
 $("#tunerBtn").addEventListener("click", toggleTuner);
 $("#gMode").addEventListener("click", () => {
-  $("#gMode").textContent = $("#gMode").textContent === "High-G" ? "Low-G" : "High-G";
+  $("#gMode").textContent = $("#gMode").textContent === tunerDisplayConfig.modeLabels.highG
+    ? tunerDisplayConfig.modeLabels.lowG
+    : tunerDisplayConfig.modeLabels.highG;
   toast(`已切换 ${$("#gMode").textContent}`);
 });
 $("#tunerCalibrate").addEventListener("click", () => {
   $("#tLevel").textContent = "8%";
   $("#tLevelBar").style.width = "8%";
-  $("#tNoise").textContent = "门限 3.2x";
-  $("#tHint").textContent = "环境噪声已校准。现在拨弦触发检测，减少风扇和说话误判。";
-  toast("环境噪声已校准");
+  $("#tNoise").textContent = tunerDisplayConfig.noiseGate.activeLabel;
+  $("#tHint").textContent = tunerDisplayConfig.copy.calibrateHint;
+  toast(tunerDisplayConfig.copy.calibrateToast);
 });
 $("#metroToggle").addEventListener("click", toggleMetro);
 $("#bpmDown").addEventListener("click", () => { bpm = Math.max(40, bpm - 5); renderMetro(); restartMetroTimer(); });
