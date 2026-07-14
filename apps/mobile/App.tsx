@@ -81,6 +81,7 @@ const ukuleleStringLabels = ["G", "C", "E", "A"];
 type PracticeTempoId = "custom" | "slow" | "standard" | "advanced";
 type PracticeLoopMode = "auto" | "single";
 type SongFilter = "all" | "entry" | "advanced" | "pro";
+type ChordCategoryId = "all" | "beginner" | "major" | "minor" | "seventh" | "accidental" | "barre";
 const tempoLabelById: Record<Exclude<PracticeTempoId, "custom">, string> = {
   slow: "慢速",
   standard: "标准",
@@ -1966,26 +1967,38 @@ function MetronomeScreen({ onOpenRhythm }: { onOpenRhythm: () => void }) {
 
 function ChordScreen() {
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<"all" | "beginner" | "major" | "minor" | "seventh" | "accidental">("all");
-  const chordCategories = [
-    { id: "all" as const, label: "所有" },
-    { id: "beginner" as const, label: "入门和弦" },
-    { id: "major" as const, label: "大三和弦" },
-    { id: "minor" as const, label: "小三和弦" },
-    { id: "seventh" as const, label: "属七和弦" },
-    { id: "accidental" as const, label: "升降和弦" }
+  const [category, setCategory] = useState<ChordCategoryId>("all");
+  const favoriteChordNames = ["C", "Am", "F", "G7"];
+  const chordCategories: Array<{ id: ChordCategoryId; label: string; detail: string }> = [
+    { id: "all", label: "所有", detail: "完整常用表" },
+    { id: "beginner", label: "入门", detail: "C Am F G7" },
+    { id: "major", label: "大三", detail: "明亮稳定" },
+    { id: "minor", label: "小三", detail: "柔和暗色" },
+    { id: "seventh", label: "属七", detail: "常见收束" },
+    { id: "accidental", label: "升降", detail: "进阶调性" },
+    { id: "barre", label: "横按", detail: "手型进阶" }
   ];
+  const matchesChordCategory = (chord: typeof beginnerChords[number], categoryId: ChordCategoryId) => {
+    if (categoryId === "all") return true;
+    if (categoryId === "beginner") return favoriteChordNames.includes(chord.name);
+    if (categoryId === "accidental") return chord.tags.includes("sharp") || chord.tags.includes("flat");
+    if (categoryId === "barre") return chord.tags.includes("barre");
+    return chord.tags.includes(categoryId);
+  };
+  const categoryCounts = Object.fromEntries(
+    chordCategories.map((item) => [
+      item.id,
+      beginnerChords.filter((chord) => matchesChordCategory(chord, item.id)).length
+    ])
+  ) as Record<ChordCategoryId, number>;
   const visibleChords = beginnerChords.filter((chord) => {
     const name = chord.name.toLowerCase();
     const searchMatch = query.trim().length === 0 || name.includes(query.trim().toLowerCase());
-    const categoryMatch = category === "all"
-      || (category === "beginner" && chord.tags.includes("beginner"))
-      || (category === "major" && chord.tags.includes("major"))
-      || (category === "minor" && chord.tags.includes("minor"))
-      || (category === "seventh" && chord.tags.includes("seventh"))
-      || (category === "accidental" && (chord.tags.includes("sharp") || chord.tags.includes("flat")));
-    return searchMatch && categoryMatch;
+    return searchMatch && matchesChordCategory(chord, category);
   });
+  const favoriteChords = favoriteChordNames
+    .map((name) => beginnerChords.find((chord) => chord.name === name))
+    .filter(Boolean) as typeof beginnerChords;
 
   return (
     <View style={styles.stack}>
@@ -2012,7 +2025,11 @@ function ChordScreen() {
         />
       </View>
 
-      <View style={styles.chordCategoryRowApp}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chordCategoryRowApp}
+      >
         {chordCategories.map((item) => {
           const selected = item.id === category;
           return (
@@ -2024,10 +2041,13 @@ function ChordScreen() {
               style={[styles.chordCategoryButtonApp, selected && styles.chordCategoryButtonActiveApp]}
             >
               <Text style={[styles.chordCategoryTextApp, selected && styles.chordCategoryTextActiveApp]}>{item.label}</Text>
+              <Text style={[styles.chordCategoryMetaApp, selected && styles.chordCategoryTextActiveApp]}>
+                {categoryCounts[item.id]} · {item.detail}
+              </Text>
             </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
 
       <View style={styles.chordLibraryGridApp}>
         {visibleChords.length === 0 ? (
@@ -2044,12 +2064,13 @@ function ChordScreen() {
         ))}
       </View>
 
-      <SectionTitle title="收藏的和弦" detail="MVP 默认收藏" />
+      <SectionTitle title="收藏的和弦" detail="MVP 默认收藏 · 第一首歌会用到" />
       <View style={styles.chordFavoriteRowApp}>
-        {beginnerChords.filter((chord) => chord.tags.includes("beginner")).map((chord) => (
+        {favoriteChords.map((chord) => (
           <View key={`fav-${chord.id}`} style={styles.chordFavoriteCardApp}>
             <ChordDiagram chord={chord} compact />
             <Text style={styles.chordLibraryNameApp}>{chord.name}</Text>
+            <Text style={styles.chordLibraryFingeringApp}>{chord.fingering.join("-")}</Text>
           </View>
         ))}
       </View>
@@ -5042,16 +5063,18 @@ const styles = StyleSheet.create({
   },
   chordCategoryRowApp: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8
+    gap: 8,
+    paddingRight: 8
   },
   chordCategoryButtonApp: {
-    minHeight: 36,
-    borderRadius: 999,
+    minWidth: 86,
+    minHeight: 48,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#EEE8DC",
-    paddingHorizontal: 12
+    paddingHorizontal: 10,
+    paddingVertical: 6
   },
   chordCategoryButtonActiveApp: {
     backgroundColor: colors.forest
@@ -5061,34 +5084,39 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "900"
   },
+  chordCategoryMetaApp: {
+    marginTop: 2,
+    color: "#8A8176",
+    fontSize: 9,
+    fontWeight: "800"
+  },
   chordCategoryTextActiveApp: {
     color: "#FFF8EC"
   },
   chordLibraryGridApp: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10
+    gap: 7
   },
   chordLibraryCardApp: {
-    flexGrow: 1,
-    flexBasis: "47%",
-    minHeight: 248,
+    width: "31.7%",
+    minHeight: 210,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surface,
-    padding: 10,
+    padding: 7,
     alignItems: "center",
-    gap: 6
+    gap: 4
   },
   chordLibraryNameApp: {
     color: colors.forest,
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: "900"
   },
   chordLibraryFingeringApp: {
     color: "#756D64",
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "800"
   },
   chordFavoriteRowApp: {
@@ -5097,13 +5125,12 @@ const styles = StyleSheet.create({
     gap: 8
   },
   chordFavoriteCardApp: {
-    flexGrow: 1,
-    flexBasis: "47%",
+    width: "23.5%",
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: "#FFFDF8",
-    padding: 8,
+    padding: 6,
     alignItems: "center",
     gap: 4
   },
