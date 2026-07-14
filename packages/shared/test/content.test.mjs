@@ -4,6 +4,7 @@ import {
   agentRoles,
   appendPracticeRecord,
   beginnerChords,
+  buildSongDetailRoute,
   buildMvpCourseProgressPath,
   chordLibraryCategories,
   chordLoopPractice,
@@ -49,6 +50,7 @@ import {
   summarizePracticeHistory,
   summarizeMvpPracticePath,
   summarizePracticeRecord,
+  songDetailDisplayConfig,
   tunerDisplayConfig,
   ukuleleInstrument
 } from "../src/index.js";
@@ -104,6 +106,21 @@ test("tuner display config defines the microphone pipeline states", () => {
   assert.equal(tunerDisplayConfig.noiseGate.idleLabel, "门限 2.6x");
   assert.equal(tunerDisplayConfig.noiseGate.activeLabel, "门限 3.2x");
   assert.equal(mvpPracticeContent.tuner, tunerDisplayConfig);
+});
+
+test("song detail display config builds route steps from song data", () => {
+  const song = getBeginnerSongById("song-four-chord-hum");
+  const route = buildSongDetailRoute(song);
+  assert.deepEqual(
+    route.map((step) => [step.step, step.title, step.detail]),
+    [
+      ["1", "节奏型", "70 BPM 先稳住右手"],
+      ["2", "和弦转换", "C → Am 起步"],
+      ["3", "歌曲片段", "跟着小节进入弹唱"]
+    ]
+  );
+  assert.equal(songDetailDisplayConfig.sectionLabels.chordPrepTitle, "和弦准备");
+  assert.equal(mvpPracticeContent.songDetail, songDetailDisplayConfig);
 });
 
 test("MVP practice template can be queried by id", () => {

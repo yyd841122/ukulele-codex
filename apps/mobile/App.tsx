@@ -12,6 +12,7 @@ import {
 import * as sharedPractice from "@ukulele/shared";
 import {
   beginnerChords,
+  buildSongDetailRoute,
   buildMvpCourseProgressPath,
   chordLoopPractice,
   chordLibraryCategories as sharedChordLibraryCategories,
@@ -31,6 +32,7 @@ import {
   mvpPracticeContent,
   practiceLoopModes as sharedPracticeLoopModes,
   practiceTempoPresets as sharedPracticeTempoPresets,
+  songDetailDisplayConfig as sharedSongDetailDisplayConfig,
   tunerDisplayConfig as sharedTunerDisplayConfig,
   ukuleleInstrument
 } from "@ukulele/shared";
@@ -112,6 +114,7 @@ const tunerDisplayConfig = sharedTunerDisplayConfig;
 const tunerStatusStageById = Object.fromEntries(
   tunerDisplayConfig.statusStages.map((stage) => [stage.id, stage])
 );
+const songDetailDisplayConfig = sharedSongDetailDisplayConfig;
 const practiceLoopModes = sharedPracticeLoopModes.map((mode) => ({
   ...mode,
   id: mode.id as PracticeLoopMode,
@@ -2535,16 +2538,14 @@ function SongsScreen({
     const lines = getSongPracticeLines(selectedSong);
     const chordNames = selectedSong.chordNames ?? ["C", "Am", "F", "G7"];
     const display = getSongDisplay(selectedSong);
-    const routeSteps = [
-      { step: "1", title: "节奏型", detail: `${selectedSong.bpm} BPM 先稳住右手` },
-      { step: "2", title: "和弦转换", detail: `${chordNames.slice(0, 2).join(" → ")} 起步` },
-      { step: "3", title: "歌曲片段", detail: "跟着小节进入弹唱" }
-    ];
+    const routeSteps = buildSongDetailRoute(selectedSong);
+    const detailCopy = songDetailDisplayConfig;
+    const lineCount = lines.length || 4;
 
     return (
       <View style={styles.stack}>
         <Pressable accessibilityRole="button" onPress={() => setSelectedSongId(null)} style={styles.songDetailBackButton}>
-          <Text style={styles.songDetailBackText}>‹ 返回曲谱库</Text>
+          <Text style={styles.songDetailBackText}>‹ {detailCopy.backLabel}</Text>
         </Pressable>
 
         <View style={styles.songDetailHeroCard}>
@@ -2566,16 +2567,21 @@ function SongsScreen({
             </Text>
           </View>
           <Text style={styles.songDetailGoal}>
-            目标：先看清和弦图，再完成 {lines.length || 4} 小节歌曲片段。
+            {locked
+              ? detailCopy.goals.locked
+              : detailCopy.goals.playable.replace("{bars}", String(lineCount))}
           </Text>
         </View>
 
-        <SectionTitle title="和弦准备" detail={`${chordNames.length} 个和弦 · 看图换指`} />
+        <SectionTitle
+          title={detailCopy.sectionLabels.chordPrepTitle}
+          detail={`${chordNames.length} 个和弦 · ${detailCopy.sectionLabels.chordPrepDetailSuffix}`}
+        />
         <View style={styles.songPrepPanel}>
           <ChordMiniList chordNames={chordNames} />
         </View>
 
-        <SectionTitle title="练习路线" detail="先拆开，再合起来" />
+        <SectionTitle title={detailCopy.sectionLabels.routeTitle} detail={detailCopy.sectionLabels.routeDetail} />
         <View style={styles.songRouteGrid}>
           {routeSteps.map((item) => (
             <View key={item.step} style={styles.songRouteStep}>
@@ -2586,9 +2592,12 @@ function SongsScreen({
           ))}
         </View>
 
-        <SectionTitle title="片段预览" detail={`${lines.length || 1} 小节`} />
+        <SectionTitle
+          title={detailCopy.sectionLabels.fragmentTitle}
+          detail={`${lines.length || 1} ${detailCopy.sectionLabels.fragmentUnit}`}
+        />
         <View style={styles.songLineList}>
-          {(lines.length > 0 ? lines : [{ bar: 1, chord: chordNames[0], text: "先完成相关基础练习，再补充完整片段。" }]).map((line, index) => (
+          {(lines.length > 0 ? lines : [{ ...detailCopy.fallbackLine, chord: chordNames[0] }]).map((line, index) => (
             <View key={`${selectedSong.id}-${line.bar ?? index}`} style={styles.songPreviewLine}>
               <ChordMiniCard chordName={line.chord ?? chordNames[0]} />
               <Text style={styles.songPreviewText}>{line.text}</Text>
@@ -2603,7 +2612,7 @@ function SongsScreen({
           style={[styles.songPracticeButton, locked && styles.songPracticeButtonDisabled]}
         >
           <Text style={[styles.primaryButtonText, locked && styles.songPracticeButtonTextDisabled]}>
-            {locked ? "后续解锁完整曲谱" : "开始歌曲片段跟弹"}
+            {locked ? detailCopy.actions.lockedSongFragment : detailCopy.actions.startSongFragment}
           </Text>
         </Pressable>
         <Pressable
@@ -2613,7 +2622,7 @@ function SongsScreen({
           style={[styles.songMelodyButton, locked && styles.songPracticeButtonDisabled]}
         >
           <Text style={[styles.songMelodyButtonText, locked && styles.songPracticeButtonTextDisabled]}>
-            {locked ? "解锁后练单音" : "先练单音"}
+            {locked ? detailCopy.actions.lockedMelody : detailCopy.actions.startMelody}
           </Text>
         </Pressable>
       </View>

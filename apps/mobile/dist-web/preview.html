@@ -2672,15 +2672,15 @@
           </div>
         </div>
         <div class="song-prep-panel card">
-          <div class="song-prep-head"><b>和弦准备</b><span id="detailChordMeta">4 个和弦</span></div>
+          <div class="song-prep-head"><b id="detailChordPrepTitle">和弦准备</b><span id="detailChordMeta">4 个和弦</span></div>
           <div id="detailChordList"></div>
         </div>
         <div class="song-prep-panel card">
-          <div class="song-prep-head"><b>练习路径</b><span>先拆开，再合起来</span></div>
+          <div class="song-prep-head"><b id="detailRouteTitle">练习路线</b><span id="detailRouteMeta">先拆开，再合起来</span></div>
           <div class="song-route-grid" id="detailRoute"></div>
         </div>
         <div class="song-prep-panel card">
-          <div class="song-prep-head"><b>片段预览</b><span id="detailFragmentMeta">4 小节</span></div>
+          <div class="song-prep-head"><b id="detailFragmentTitle">片段预览</b><span id="detailFragmentMeta">4 小节</span></div>
           <div class="song-fragment-list" id="lyrics"></div>
         </div>
       </div>
@@ -2935,6 +2935,48 @@ function normalizePreviewSong(song) {
   };
 }
 const songs = songCatalog.map(normalizePreviewSong);
+const songDetailDisplayConfig = {
+  backLabel: "返回曲谱库",
+  metaSuffix: "弹唱",
+  sectionLabels: {
+    chordPrepTitle: "和弦准备",
+    chordPrepDetailSuffix: "看图换指",
+    routeTitle: "练习路线",
+    routeDetail: "先拆开，再合起来",
+    fragmentTitle: "片段预览",
+    fragmentUnit: "小节"
+  },
+  goals: {
+    playable: "目标：先看清和弦图，再完成 {bars} 小节歌曲片段。",
+    locked: "目标：先完成相关基础练习"
+  },
+  summaryTemplate: "{key} 调 · {bpm} BPM · 用到 {chords}，先看指法再开始。",
+  actions: {
+    startSongFragment: "开始歌曲片段跟弹",
+    lockedSongFragment: "后续解锁完整曲谱",
+    startFallbackPractice: "先练四和弦",
+    startMelody: "先练单音",
+    lockedMelody: "解锁后练单音"
+  },
+  fallbackLine: {
+    bar: 1,
+    text: "先完成相关基础练习，再补充完整片段。"
+  },
+  routeSteps: [
+    { step: "1", id: "rhythm", title: "节奏型", detailTemplate: "{bpm} BPM 先稳住右手" },
+    { step: "2", id: "transition", title: "和弦转换", detailTemplate: "{transition} 起步" },
+    { step: "3", id: "song-fragment", title: "歌曲片段", detailTemplate: "跟着小节进入弹唱" }
+  ]
+};
+function buildSongDetailRoute(song) {
+  const transition = (song.chords || ["C", "Am"]).slice(0, 2).join(" → ");
+  return songDetailDisplayConfig.routeSteps.map(step => ({
+    ...step,
+    detail: step.detailTemplate
+      .replace("{bpm}", String(song.bpm || 70))
+      .replace("{transition}", transition || "C → Am")
+  }));
+}
 const courseCatalog = [
   {
     id: "course-uke-intro",
@@ -4791,23 +4833,32 @@ function openSong(title) {
     return;
   }
   activeSongTitle = song.title;
+  const detailCopy = songDetailDisplayConfig;
   $("#detailTitle").textContent = song.title;
-  $("#detailArtist").textContent = `${song.artist} · ${song.diff}弹唱`;
+  $("#detailArtist").textContent = `${song.artist} · ${song.diff}${detailCopy.metaSuffix}`;
   $("#songDetail .key-row").innerHTML = `<span>Key ${song.key}</span><span>${song.bpm} BPM</span><span>${starText(song.stars)} ${song.diff}</span>`;
   $("#detailCover").textContent = song.emoji;
   $("#detailCover").style.background = `linear-gradient(135deg,${song.color},${song.light})`;
-  $("#detailGoal").textContent = song.templateId ? "目标：完成歌曲片段跟弹" : "目标：先完成相关基础练习";
-  $("#detailSummary").textContent = `${song.key} 调 · ${song.bpm} BPM · 用到 ${song.chords.join(" / ")}，先看指法再开始。`;
-  $("#detailChordMeta").textContent = `${song.chords.length} 个和弦`;
+  const lines = song.lyrics?.length ? song.lyrics : [[song.chords[0] || "C", detailCopy.fallbackLine.text]];
+  $("#detailGoal").textContent = song.templateId
+    ? detailCopy.goals.playable.replace("{bars}", String(lines.length))
+    : detailCopy.goals.locked;
+  $("#detailSummary").textContent = detailCopy.summaryTemplate
+    .replace("{key}", song.key)
+    .replace("{bpm}", String(song.bpm))
+    .replace("{chords}", song.chords.join(" / "));
+  $("#detailChordPrepTitle").textContent = detailCopy.sectionLabels.chordPrepTitle;
+  $("#detailChordMeta").textContent = `${song.chords.length} 个和弦 · ${detailCopy.sectionLabels.chordPrepDetailSuffix}`;
   $("#detailChordList").innerHTML = renderMiniChordList(song.chords);
-  $("#detailRoute").innerHTML = [
-    ["1", "节奏型", `${song.bpm} BPM 先稳右手`],
-    ["2", "和弦转换", `${song.chords.slice(0, 2).join("→")} 起步`],
-    ["3", "歌曲片段", "跟着小节进入弹唱"]
-  ].map(([step, title, detail]) => `<div class="song-route-step"><span>${step}</span><b>${title}</b><small>${detail}</small></div>`).join("");
-  $("#detailPlay").textContent = song.templateId ? "开始歌曲片段跟弹" : "先练四和弦";
-  const lines = song.lyrics?.length ? song.lyrics : [[song.chords[0] || "C", "当前曲谱先进入基础练习，完整片段后续补充。"]];
-  $("#detailFragmentMeta").textContent = `${lines.length} 小节`;
+  $("#detailRouteTitle").textContent = detailCopy.sectionLabels.routeTitle;
+  $("#detailRouteMeta").textContent = detailCopy.sectionLabels.routeDetail;
+  $("#detailRoute").innerHTML = buildSongDetailRoute(song)
+    .map((item) => `<div class="song-route-step"><span>${item.step}</span><b>${item.title}</b><small>${item.detail}</small></div>`)
+    .join("");
+  $("#detailPlay").textContent = song.templateId ? detailCopy.actions.startSongFragment : detailCopy.actions.startFallbackPractice;
+  $("#detailMelody").textContent = detailCopy.actions.startMelody;
+  $("#detailFragmentTitle").textContent = detailCopy.sectionLabels.fragmentTitle;
+  $("#detailFragmentMeta").textContent = `${lines.length} ${detailCopy.sectionLabels.fragmentUnit}`;
   $("#lyrics").innerHTML = lines
     .map((line, index) => `<div class="song-fragment-row"><span class="bar">${index + 1}</span><div><b>${line[0]}</b><small>${line[1]}</small>${renderMiniChordList([line[0]])}</div></div>`)
     .join("");

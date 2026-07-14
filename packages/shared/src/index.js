@@ -117,6 +117,69 @@ export const tunerDisplayConfig = {
   }
 };
 
+export const songDetailDisplayConfig = {
+  backLabel: "返回曲谱库",
+  metaSuffix: "弹唱",
+  sectionLabels: {
+    chordPrepTitle: "和弦准备",
+    chordPrepDetailSuffix: "看图换指",
+    routeTitle: "练习路线",
+    routeDetail: "先拆开，再合起来",
+    fragmentTitle: "片段预览",
+    fragmentUnit: "小节"
+  },
+  goals: {
+    playable: "目标：先看清和弦图，再完成 {bars} 小节歌曲片段。",
+    locked: "目标：先完成相关基础练习"
+  },
+  summaryTemplate: "{key} 调 · {bpm} BPM · 用到 {chords}，先看指法再开始。",
+  actions: {
+    startSongFragment: "开始歌曲片段跟弹",
+    lockedSongFragment: "后续解锁完整曲谱",
+    startFallbackPractice: "先练四和弦",
+    startMelody: "先练单音",
+    lockedMelody: "解锁后练单音"
+  },
+  fallbackLine: {
+    bar: 1,
+    text: "先完成相关基础练习，再补充完整片段。"
+  },
+  routeSteps: [
+    {
+      step: "1",
+      id: "rhythm",
+      title: "节奏型",
+      detailTemplate: "{bpm} BPM 先稳住右手"
+    },
+    {
+      step: "2",
+      id: "transition",
+      title: "和弦转换",
+      detailTemplate: "{transition} 起步"
+    },
+    {
+      step: "3",
+      id: "song-fragment",
+      title: "歌曲片段",
+      detailTemplate: "跟着小节进入弹唱"
+    }
+  ]
+};
+
+export const getSongChordNames = (song) =>
+  song?.chordNames ?? song?.chords ?? ["C", "Am", "F", "G7"];
+
+export const buildSongDetailRoute = (song) => {
+  const chordNames = getSongChordNames(song);
+  const transition = chordNames.slice(0, 2).join(" → ");
+  return songDetailDisplayConfig.routeSteps.map((step) => ({
+    ...step,
+    detail: step.detailTemplate
+      .replace("{bpm}", String(song?.bpm ?? 70))
+      .replace("{transition}", transition || "C → Am")
+  }));
+};
+
 export const mvpLesson = {
   id: "lesson-tune-and-c-am-f-g7",
   title: "第一课：调音与 C-Am-F-G7 循环",
@@ -1220,6 +1283,7 @@ export const mvpPracticeContent = {
   songFragments: beginnerSongFragments,
   practiceTemplates: mvpPracticeTemplates,
   simulationFixtures: mvpPracticeSimulationFixtures,
+  songDetail: songDetailDisplayConfig,
   songs: beginnerSongCatalog
 };
 
