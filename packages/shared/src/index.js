@@ -583,6 +583,13 @@ export const beginnerSongCatalog = [
     timeSignature: "4/4",
     difficulty: 1,
     access: "free",
+    display: {
+      emoji: "🌈",
+      color: "#FCD34D",
+      light: "#FEF3C7",
+      stars: 1,
+      difficultyLabel: "入门"
+    },
     chordIds: ["uke-c", "uke-am", "uke-f", "uke-g7"],
     chordNames: ["C", "Am", "F", "G7"],
     rhythmPatternIds: ["rhythm-down-four"],
@@ -607,6 +614,13 @@ export const beginnerSongCatalog = [
     timeSignature: "4/4",
     difficulty: 2,
     access: "free",
+    display: {
+      emoji: "🏝️",
+      color: "#2DD4BF",
+      light: "#CCFBF1",
+      stars: 2,
+      difficultyLabel: "进阶"
+    },
     chordIds: ["uke-c", "uke-am", "uke-f", "uke-g7"],
     chordNames: ["C", "Am", "F", "G7"],
     rhythmPatternIds: ["rhythm-down-down-up-up"],
@@ -628,6 +642,13 @@ export const beginnerSongCatalog = [
     timeSignature: "4/4",
     difficulty: 3,
     access: "pro",
+    display: {
+      emoji: "🌊",
+      color: "#67E8F9",
+      light: "#CFFAFE",
+      stars: 3,
+      difficultyLabel: "会员"
+    },
     chordIds: ["uke-am", "uke-f", "uke-c", "uke-g7"],
     chordNames: ["Am", "F", "C", "G7"],
     rhythmPatternIds: ["rhythm-down-down-up-up"],

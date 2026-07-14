@@ -178,8 +178,13 @@ type MelodyPracticeNote = {
 const melodyPracticePhrases = mvpMelodyPracticePhrases as Record<string, MelodyPracticeNote[]>;
 
 function getSongDifficultyLabel(song: BeginnerSong) {
+  if (song.display?.difficultyLabel) return song.display.difficultyLabel;
   if (song.access === "pro") return "会员";
   return song.difficulty <= 1 ? "入门" : "进阶";
+}
+
+function getSongDisplay(song: BeginnerSong) {
+  return song.display ?? {};
 }
 
 function getPracticeTemplateById(templateId?: string | null): PracticeTemplate {
@@ -2520,6 +2525,7 @@ function SongsScreen({
     const locked = selectedSong.access !== "free";
     const lines = getSongPracticeLines(selectedSong);
     const chordNames = selectedSong.chordNames ?? ["C", "Am", "F", "G7"];
+    const display = getSongDisplay(selectedSong);
     const routeSteps = [
       { step: "1", title: "节奏型", detail: `${selectedSong.bpm} BPM 先稳住右手` },
       { step: "2", title: "和弦转换", detail: `${chordNames.slice(0, 2).join(" → ")} 起步` },
@@ -2534,13 +2540,15 @@ function SongsScreen({
 
         <View style={styles.songDetailHeroCard}>
           <View style={styles.songDetailHeader}>
-            <View style={styles.songAvatar}>
-              <Text style={styles.songAvatarText}>♪</Text>
+            <View style={[styles.songAvatar, { backgroundColor: display.light ?? "#FFE4D6" }]}>
+              <Text style={[styles.songAvatarText, { color: display.color ?? colors.coral }]}>
+                {display.emoji ?? "♪"}
+              </Text>
             </View>
             <View style={styles.songTitleBlock}>
               <Text style={styles.songTitle}>{selectedSong.title}</Text>
               <Text style={styles.songMeta}>
-                {selectedSong.artist} · {selectedSong.level} · {selectedSong.key} 调 · {selectedSong.bpm} BPM
+                {selectedSong.artist} · {getSongDifficultyLabel(selectedSong)} · {selectedSong.key} 调 · {selectedSong.bpm} BPM
               </Text>
               <ChordMiniList chordNames={chordNames} />
             </View>
@@ -2643,6 +2651,7 @@ function SongsScreen({
 
       {visibleSongs.map((song) => {
         const locked = song.access !== "free";
+        const display = getSongDisplay(song);
         return (
           <Pressable
             accessibilityRole="button"
@@ -2652,12 +2661,16 @@ function SongsScreen({
             style={[styles.songDetailCard, locked && styles.songDetailCardLocked]}
           >
             <View style={styles.songDetailHeader}>
-              <View style={styles.songAvatar}>
-                <Text style={styles.songAvatarText}>♪</Text>
+              <View style={[styles.songAvatar, { backgroundColor: display.light ?? "#FFE4D6" }]}>
+                <Text style={[styles.songAvatarText, { color: display.color ?? colors.coral }]}>
+                  {display.emoji ?? "♪"}
+                </Text>
               </View>
               <View style={styles.songTitleBlock}>
                 <Text style={styles.songTitle}>{song.title}</Text>
-                <Text style={styles.songMeta}>{song.artist} · {song.level} · {song.key} 调 · {song.bpm} BPM</Text>
+                <Text style={styles.songMeta}>
+                  {song.artist} · {getSongDifficultyLabel(song)} · {song.key} 调 · {song.bpm} BPM
+                </Text>
                 <ChordMiniList chordNames={song.chordNames ?? ["C", "Am", "F", "G7"]} />
               </View>
               <Text style={[styles.songAccessBadge, locked && styles.songAccessBadgeLocked]}>
