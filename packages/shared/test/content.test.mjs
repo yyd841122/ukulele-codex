@@ -8,6 +8,7 @@ import {
   buildMvpCourseProgressPath,
   chordLibraryCategories,
   chordLoopPractice,
+  courseDetailDisplayConfig,
   createNextPracticeRecommendation,
   createPracticeSessionRecord,
   designTokens,
@@ -139,6 +140,18 @@ test("practice hub display config defines tools drills and beginner plan", () =>
     ["tune", "rhythm", "transition"]
   );
   assert.equal(mvpPracticeContent.practiceHub, practiceHubDisplayConfig);
+});
+
+test("course detail display config defines actions resources and step states", () => {
+  assert.equal(courseDetailDisplayConfig.title, "课程详情");
+  assert.deepEqual(courseDetailDisplayConfig.defaultSegments, ["预习", "练习", "复盘", "完成"]);
+  assert.deepEqual(
+    Object.values(courseDetailDisplayConfig.resourceLabels),
+    ["练习", "跟进", "歌曲", "步骤"]
+  );
+  assert.equal(courseDetailDisplayConfig.actions.enterCoursePractice, "进入本课练习");
+  assert.equal(courseDetailDisplayConfig.segmentStatusLabels.current, "当前步骤");
+  assert.equal(mvpPracticeContent.courseDetail, courseDetailDisplayConfig);
 });
 
 test("MVP practice template can be queried by id", () => {

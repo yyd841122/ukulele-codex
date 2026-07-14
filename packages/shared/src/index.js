@@ -247,6 +247,55 @@ export const practiceHubDisplayConfig = {
   ]
 };
 
+export const courseDetailDisplayConfig = {
+  title: "课程详情",
+  subtitle: "按步骤完成本课练习",
+  eyebrowTemplate: "第 {order} 课 · {minutes} 分钟",
+  defaultSegments: ["预习", "练习", "复盘", "完成"],
+  progressTitle: "学习进度",
+  resourceLabels: {
+    practice: "练习",
+    followup: "跟进",
+    song: "歌曲",
+    steps: "步骤"
+  },
+  resourceFallback: "先完成本课步骤，再进入下一节课。",
+  segmentStatusLabels: {
+    done: "已完成",
+    current: "当前步骤",
+    locked: "未开始"
+  },
+  pathStatusLabels: {
+    done: "已完成",
+    current: "当前",
+    locked: "未解锁",
+    pending: "待开始"
+  },
+  actions: {
+    openTuner: "打开调音器",
+    viewSong: "查看歌曲",
+    viewChords: "查看和弦库",
+    viewSteps: "查看课程步骤",
+    startPracticePrefix: "开始",
+    reviewPrefix: "复练本课",
+    nextCoursePrefix: "进入下一课",
+    nextStep: "完成下一步",
+    enterCoursePractice: "进入本课练习",
+    followupPrefix: "练跟进",
+    previewFollowupPrefix: "进入跟进",
+    followupFallback: "进入跟进练习"
+  },
+  hints: {
+    tuner: "下一步：打开调音器，把 G/C/E/A 调到绿色区",
+    song: "下一步：查看歌曲和本段用到的和弦",
+    steps: "下一步：查看课程步骤",
+    rhythm: "下一步：进入节奏型练习，先稳住右手",
+    transition: "下一步：进入和弦转换，先练两个和弦",
+    songFragment: "下一步：进入歌曲片段，把节奏和和弦合起来",
+    practicePrefix: "下一步：开始"
+  }
+};
+
 export const getSongChordNames = (song) =>
   song?.chordNames ?? song?.chords ?? ["C", "Am", "F", "G7"];
 
@@ -1359,6 +1408,7 @@ export const mvpPracticeContent = {
     tempoPresets: metronomeTempoPresets
   },
   practiceHub: practiceHubDisplayConfig,
+  courseDetail: courseDetailDisplayConfig,
   courses: mvpCourseCatalog,
   rhythmPatterns: beginnerRhythmPatterns,
   chordTransitions: chordTransitionExercises,

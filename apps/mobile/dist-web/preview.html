@@ -2976,6 +2976,31 @@ const practiceHubDisplayConfig = {
     { id: "transition", title: "C-Am 转换", detail: "先练两个和弦，再进四和弦", target: { type: "practice-template", id: "practice-transition-c-am" } }
   ]
 };
+const courseDetailDisplayConfig = {
+  title: "课程详情",
+  subtitle: "按步骤完成本课练习",
+  progressTitle: "学习进度",
+  resourceLabels: {
+    practice: "练习",
+    followup: "跟进",
+    song: "歌曲",
+    steps: "步骤"
+  },
+  resourceFallback: "先完成本课步骤，再进入下一节课。",
+  segmentStatusLabels: {
+    done: "已完成",
+    current: "当前步骤",
+    locked: "未开始"
+  },
+  actions: {
+    nextStep: "完成下一步",
+    nextCoursePrefix: "进入下一课",
+    enterCoursePractice: "进入本课练习",
+    viewSteps: "查看课程步骤",
+    previewFollowupPrefix: "进入跟进",
+    followupFallback: "进入跟进练习"
+  }
+};
 const courseCatalog = [
   {
     id: "course-uke-intro",
@@ -4047,17 +4072,18 @@ function renderCourseResources(course) {
   const template = coursePracticeTemplate(course);
   const followupTemplate = courseFollowupPracticeTemplate(course);
   const song = courseSong(course);
+  const copy = courseDetailDisplayConfig;
   const rows = [];
   if (template) {
-    rows.push(`<div class="course-resource-row"><b>练习</b><div class="course-resource-body">${template.title} · ${template.bpm} BPM${renderMiniChordList(template.targets.map(target => targetChordName(template, target)))}</div></div>`);
+    rows.push(`<div class="course-resource-row"><b>${copy.resourceLabels.practice}</b><div class="course-resource-body">${template.title} · ${template.bpm} BPM${renderMiniChordList(template.targets.map(target => targetChordName(template, target)))}</div></div>`);
   }
   if (followupTemplate) {
-    rows.push(`<div class="course-resource-row"><b>跟进</b><div class="course-resource-body">${followupTemplate.title} · ${followupTemplate.bpm} BPM${renderMiniChordList(followupTemplate.targets.map(target => targetChordName(followupTemplate, target)))}</div></div>`);
+    rows.push(`<div class="course-resource-row"><b>${copy.resourceLabels.followup}</b><div class="course-resource-body">${followupTemplate.title} · ${followupTemplate.bpm} BPM${renderMiniChordList(followupTemplate.targets.map(target => targetChordName(followupTemplate, target)))}</div></div>`);
   }
   if (song) {
-    rows.push(`<div class="course-resource-row"><b>歌曲</b><div class="course-resource-body">${song.title} · ${song.key} 调${renderMiniChordList(song.chords)}</div></div>`);
+    rows.push(`<div class="course-resource-row"><b>${copy.resourceLabels.song}</b><div class="course-resource-body">${song.title} · ${song.key} 调${renderMiniChordList(song.chords)}</div></div>`);
   }
-  $("#courseResources").innerHTML = rows.join("") || `<div class="course-resource-row"><b>步骤</b><div class="course-resource-body">先完成本课步骤，再进入下一节课。</div></div>`;
+  $("#courseResources").innerHTML = rows.join("") || `<div class="course-resource-row"><b>${copy.resourceLabels.steps}</b><div class="course-resource-body">${copy.resourceFallback}</div></div>`;
 }
 function templateProgress(template) {
   return appState.courseProgress[template.courseOrder] ?? 0;
@@ -4172,17 +4198,17 @@ function setupExtraSheets() {
   if (!phone || $("#courseDetail")) return;
   phone.insertAdjacentHTML("beforeend", `
     <section class="sheet" id="courseDetail">
-      <div class="sheet-head"><button class="back" data-close="courseDetail">‹</button><h2 id="courseTitle">课程详情</h2><p id="courseSubtitle">按步骤完成本课练习</p></div>
+      <div class="sheet-head"><button class="back" data-close="courseDetail">‹</button><h2 id="courseTitle">${courseDetailDisplayConfig.title}</h2><p id="courseSubtitle">${courseDetailDisplayConfig.subtitle}</p></div>
       <div class="tool-screen">
         <div class="course-detail-cover card" id="courseCover">🎓</div>
         <div class="tool-panel card">
-          <div class="module-row"><b>学习进度</b><span id="courseProgressText">0%</span></div>
+          <div class="module-row"><b>${courseDetailDisplayConfig.progressTitle}</b><span id="courseProgressText">0%</span></div>
           <div class="mini-progress" style="width:100%;margin-top:10px"><i id="courseProgressBar" style="width:0%"></i></div>
           <div class="segment-list" id="courseSegments"></div>
           <div class="course-resource-panel" id="courseResources"></div>
-          <button class="primary" id="courseNext" style="width:100%;margin-top:14px">完成下一步</button>
-          <button class="ghost" id="coursePractice" style="width:100%;margin-top:10px">进入本课练习</button>
-          <button class="ghost" id="courseFollowup" style="width:100%;margin-top:10px;display:none">进入跟进练习</button>
+          <button class="primary" id="courseNext" style="width:100%;margin-top:14px">${courseDetailDisplayConfig.actions.nextStep}</button>
+          <button class="ghost" id="coursePractice" style="width:100%;margin-top:10px">${courseDetailDisplayConfig.actions.enterCoursePractice}</button>
+          <button class="ghost" id="courseFollowup" style="width:100%;margin-top:10px;display:none">${courseDetailDisplayConfig.actions.followupFallback}</button>
         </div>
       </div>
     </section>
@@ -4806,16 +4832,17 @@ function renderCourseDetail() {
   if (!course) return;
   const progress = appState.courseProgress[course.order] ?? course.progress;
   const practiceSheet = coursePracticeSheet(course.order);
+  const copy = courseDetailDisplayConfig;
   $("#courseProgressText").textContent = `${progress}%`;
   $("#courseProgressBar").style.width = `${progress}%`;
   const completeCount = Math.floor(progress / 25);
-  $("#courseSegments").innerHTML = courseSegments(course).map((label, index) => `<div class="segment-item ${index < completeCount ? "active" : ""}"><span class="segment-index">${index + 1}</span><b>${label}</b><small>${index < completeCount ? "已完成" : index === completeCount ? "当前步骤" : "未开始"}</small></div>`).join("");
+  $("#courseSegments").innerHTML = courseSegments(course).map((label, index) => `<div class="segment-item ${index < completeCount ? "active" : ""}"><span class="segment-index">${index + 1}</span><b>${label}</b><small>${index < completeCount ? copy.segmentStatusLabels.done : index === completeCount ? copy.segmentStatusLabels.current : copy.segmentStatusLabels.locked}</small></div>`).join("");
   renderCourseResources(course);
-  $("#courseNext").textContent = progress >= 100 ? "进入下一课" : "完成下一步";
-  $("#coursePractice").textContent = practiceSheet ? "进入本课练习" : "查看课程步骤";
+  $("#courseNext").textContent = progress >= 100 ? copy.actions.nextCoursePrefix : copy.actions.nextStep;
+  $("#coursePractice").textContent = practiceSheet ? copy.actions.enterCoursePractice : copy.actions.viewSteps;
   const followupTemplate = courseFollowupPracticeTemplate(course);
   $("#courseFollowup").style.display = followupTemplate ? "block" : "none";
-  $("#courseFollowup").textContent = followupTemplate ? `进入跟进 · ${followupTemplate.title}` : "进入跟进练习";
+  $("#courseFollowup").textContent = followupTemplate ? `${copy.actions.previewFollowupPrefix} · ${followupTemplate.title}` : copy.actions.followupFallback;
 }
 function completeCourseStep() {
   const current = appState.courseProgress[selectedCourseOrder] || 0;

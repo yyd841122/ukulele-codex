@@ -16,6 +16,7 @@ import {
   buildMvpCourseProgressPath,
   chordLoopPractice,
   chordLibraryCategories as sharedChordLibraryCategories,
+  courseDetailDisplayConfig as sharedCourseDetailDisplayConfig,
   designPrinciples,
   designTokens,
   favoriteChordNames as sharedFavoriteChordNames,
@@ -117,6 +118,7 @@ const tunerStatusStageById = Object.fromEntries(
 );
 const songDetailDisplayConfig = sharedSongDetailDisplayConfig;
 const practiceHubDisplayConfig = sharedPracticeHubDisplayConfig;
+const courseDetailDisplayConfig = sharedCourseDetailDisplayConfig;
 const practiceLoopModes = sharedPracticeLoopModes.map((mode) => ({
   ...mode,
   id: mode.id as PracticeLoopMode,
@@ -378,34 +380,37 @@ function createMelodyPracticeTemplate(song: BeginnerSong, phrase: MelodyPractice
 function getCourseSegments(course: CourseCatalogItem) {
   return Array.isArray(course.segments) && course.segments.length > 0
     ? course.segments
-    : ["预习", "练习", "复盘", "完成"];
+    : courseDetailDisplayConfig.defaultSegments;
 }
 
 function getCourseActionLabel(course: CourseCatalogItem) {
-  if (course.toolId === "tuner") return "打开调音器";
+  const courseCopy = courseDetailDisplayConfig;
+  if (course.toolId === "tuner") return courseCopy.actions.openTuner;
   if (course.primaryPracticeTemplateId) {
-    return `开始${getPracticeTemplateShortLabel(getPracticeTemplateById(course.primaryPracticeTemplateId))}`;
+    return `${courseCopy.actions.startPracticePrefix}${getPracticeTemplateShortLabel(getPracticeTemplateById(course.primaryPracticeTemplateId))}`;
   }
-  if (course.linkedSongId) return "查看歌曲";
-  return "查看和弦库";
+  if (course.linkedSongId) return courseCopy.actions.viewSong;
+  return courseCopy.actions.viewChords;
 }
 
 function getCourseActionHint(course: CourseCatalogItem) {
-  if (course.toolId === "tuner") return "下一步：打开调音器，把 G/C/E/A 调到绿色区";
+  const hints = courseDetailDisplayConfig.hints;
+  if (course.toolId === "tuner") return hints.tuner;
   const template = getCoursePracticeTemplate(course);
-  if (!template && course.linkedSongId) return "下一步：查看歌曲和本段用到的和弦";
-  if (!template) return "下一步：查看课程步骤";
-  if (template.type === "rhythm_pattern") return "下一步：进入节奏型练习，先稳住右手";
-  if (template.type === "chord_transition") return "下一步：进入和弦转换，先练两个和弦";
-  if (template.type === "song_fragment") return "下一步：进入歌曲片段，把节奏和和弦合起来";
-  return `下一步：开始${getPracticeTemplateShortLabel(template)}`;
+  if (!template && course.linkedSongId) return hints.song;
+  if (!template) return hints.steps;
+  if (template.type === "rhythm_pattern") return hints.rhythm;
+  if (template.type === "chord_transition") return hints.transition;
+  if (template.type === "song_fragment") return hints.songFragment;
+  return `${hints.practicePrefix}${getPracticeTemplateShortLabel(template)}`;
 }
 
 function getCoursePathStatusText(status: LessonPathStatus) {
-  if (status === "done") return "已完成";
-  if (status === "current") return "当前";
-  if (status === "locked") return "未解锁";
-  return "待开始";
+  const labels = courseDetailDisplayConfig.pathStatusLabels;
+  if (status === "done") return labels.done;
+  if (status === "current") return labels.current;
+  if (status === "locked") return labels.locked;
+  return labels.pending;
 }
 
 function getCoursePracticeTemplate(course: CourseCatalogItem) {
@@ -3732,11 +3737,12 @@ function CourseDetailPanel({
   const followupChordNames = getPracticeTemplateChordNames(followupTemplate);
   const pathStatusText = getCoursePathStatusText(pathItem.status);
   const actionHint = getCourseActionHint(course);
+  const detailCopy = courseDetailDisplayConfig;
   const shouldOpenNextCourse = pathItem.status === "done" && Boolean(nextPathItem);
   const primaryActionLabel = shouldOpenNextCourse
-    ? `进入下一课 · ${nextPathItem?.title}`
+    ? `${detailCopy.actions.nextCoursePrefix} · ${nextPathItem?.title}`
     : pathItem.status === "done"
-      ? `复练本课 · ${getCourseActionLabel(course)}`
+      ? `${detailCopy.actions.reviewPrefix} · ${getCourseActionLabel(course)}`
       : getCourseActionLabel(course);
   const handlePrimaryCourseAction = () => {
     if (shouldOpenNextCourse && onOpenNextCourse) {
@@ -3763,7 +3769,11 @@ function CourseDetailPanel({
       </View>
       <View style={styles.courseDetailHeader}>
         <View style={styles.courseDetailCopy}>
-          <Text style={styles.courseDetailEyebrow}>第 {course.order} 课 · {course.estimatedMinutes} 分钟</Text>
+          <Text style={styles.courseDetailEyebrow}>
+            {detailCopy.eyebrowTemplate
+              .replace("{order}", String(course.order))
+              .replace("{minutes}", String(course.estimatedMinutes))}
+          </Text>
           <Text style={styles.courseDetailTitle}>{course.title}</Text>
           <Text style={styles.courseDetailSubtitle}>{course.subtitle}</Text>
         </View>
@@ -3807,7 +3817,7 @@ function CourseDetailPanel({
         <View style={styles.courseResourcePanel}>
           {template ? (
             <View style={styles.courseResourceRow}>
-              <Text style={styles.courseResourceLabel}>练习</Text>
+              <Text style={styles.courseResourceLabel}>{detailCopy.resourceLabels.practice}</Text>
               <View style={styles.courseResourceBody}>
                 <Text style={styles.courseResourceValue} numberOfLines={2}>
                   {getPracticeTemplateTitle(template)} · {template.bpm} BPM
@@ -3818,7 +3828,7 @@ function CourseDetailPanel({
           ) : null}
           {followupTemplate ? (
             <View style={styles.courseResourceRow}>
-              <Text style={styles.courseResourceLabel}>跟进</Text>
+              <Text style={styles.courseResourceLabel}>{detailCopy.resourceLabels.followup}</Text>
               <View style={styles.courseResourceBody}>
                 <Text style={styles.courseResourceValue} numberOfLines={2}>
                   {getPracticeTemplateTitle(followupTemplate)} · {followupTemplate.bpm} BPM
@@ -3829,7 +3839,7 @@ function CourseDetailPanel({
           ) : null}
           {song ? (
             <View style={styles.courseResourceRow}>
-              <Text style={styles.courseResourceLabel}>歌曲</Text>
+              <Text style={styles.courseResourceLabel}>{detailCopy.resourceLabels.song}</Text>
               <View style={styles.courseResourceBody}>
                 <Text style={styles.courseResourceValue} numberOfLines={2}>
                   {song.title} · {song.key} 调
@@ -3855,7 +3865,7 @@ function CourseDetailPanel({
           style={styles.courseSecondaryActionButton}
         >
           <Text style={styles.courseSecondaryActionText}>
-            练跟进 · {getPracticeTemplateTitle(followupTemplate)}
+            {detailCopy.actions.followupPrefix} · {getPracticeTemplateTitle(followupTemplate)}
           </Text>
         </Pressable>
       ) : null}
