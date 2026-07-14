@@ -35,6 +35,7 @@ import {
   mvpContentModules,
   mvpCourseCatalog,
   mvpPracticeRecommendationPath,
+  mvpPracticeSimulationFixtures,
   mvpPracticeContent,
   mvpSkillPath,
   mvpPracticeTemplates,
@@ -172,6 +173,27 @@ test("MVP practice recommendation path follows the intended beginner order", () 
       ["course-first-song-fragment", "practice-song-fragment-four-chord-hum"]
     ]
   );
+});
+
+test("MVP practice simulation fixtures are stable preview data", () => {
+  assert.equal(mvpPracticeSimulationFixtures.rhythmAutoOffsetsMs.length, 8);
+  assert.equal(mvpPracticeSimulationFixtures.transitionAutoOffsetsMs.length, 8);
+  assert.equal(mvpPracticeSimulationFixtures.followScorePattern.length, 8);
+  assert.equal(mvpPracticeSimulationFixtures.melodyHitPattern.length, 8);
+  for (const offset of [
+    ...mvpPracticeSimulationFixtures.rhythmAutoOffsetsMs,
+    ...mvpPracticeSimulationFixtures.transitionAutoOffsetsMs
+  ]) {
+    assert.ok(Number.isInteger(offset));
+    assert.ok(Math.abs(offset) <= 120);
+  }
+  for (const score of [
+    ...mvpPracticeSimulationFixtures.followScorePattern,
+    ...mvpPracticeSimulationFixtures.melodyHitPattern
+  ]) {
+    assert.ok(score >= 0 && score <= 100);
+  }
+  assert.equal(mvpPracticeContent.simulationFixtures, mvpPracticeSimulationFixtures);
 });
 
 test("MVP course catalog models the beginner learning path", () => {

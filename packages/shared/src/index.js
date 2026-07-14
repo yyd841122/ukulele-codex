@@ -1112,6 +1112,18 @@ export const mvpLearnTopicEntrances = [
   }
 ];
 
+export const mvpPracticeSimulationFixtures = {
+  rhythmAutoOffsetsMs: [-28, 42, 18, -64, 75, 8, -35, 55],
+  transitionAutoOffsetsMs: [-44, 32, 18, 86, -72, 12, 48, -26],
+  followScorePattern: [86, 74, 92, 68, 88, 95, 79, 91],
+  melodyHitPattern: [92, 86, 78, 95, 72, 88, 81, 96]
+};
+
+export const rhythmAutoOffsetsMs = mvpPracticeSimulationFixtures.rhythmAutoOffsetsMs;
+export const transitionAutoOffsetsMs = mvpPracticeSimulationFixtures.transitionAutoOffsetsMs;
+export const followScorePattern = mvpPracticeSimulationFixtures.followScorePattern;
+export const melodyHitPattern = mvpPracticeSimulationFixtures.melodyHitPattern;
+
 export const mvpPracticeContent = {
   version: "mvp-content-v1",
   instrumentId: ukuleleInstrument.id,
@@ -1128,6 +1140,7 @@ export const mvpPracticeContent = {
   chordTransitions: chordTransitionExercises,
   songFragments: beginnerSongFragments,
   practiceTemplates: mvpPracticeTemplates,
+  simulationFixtures: mvpPracticeSimulationFixtures,
   songs: beginnerSongCatalog
 };
 

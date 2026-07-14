@@ -3597,13 +3597,19 @@ const transitionPairs = [
   { from: "D", to: "G", tip: "D 回 G 时先释放 A 弦，再落到 C/E/A 三根弦。" }
 ];
 const followChords = ["C", "Am", "F", "G7"];
-const rhythmAutoOffsets = [-28, 42, 18, -64, 75, 8, -35, 55];
+const practiceSimulationFixtures = {
+  rhythmAutoOffsetsMs: [-28, 42, 18, -64, 75, 8, -35, 55],
+  transitionAutoOffsetsMs: [-44, 32, 18, 86, -72, 12, 48, -26],
+  followScorePattern: [86, 74, 92, 68, 88, 95, 79, 91],
+  melodyHitPattern: [92, 86, 78, 95, 72, 88, 81, 96]
+};
+const rhythmAutoOffsets = practiceSimulationFixtures.rhythmAutoOffsetsMs;
 const rhythmState = { pattern: 0, beat: 0, bars: 0, running: false, timer: null, score: 0, sound: true, startedAt: 0, taps: [], feedback: "点击开始后自动记录扫弦节奏，结束后生成评分" };
-const transitionAutoOffsets = [-44, 32, 18, 86, -72, 12, 48, -26];
+const transitionAutoOffsets = practiceSimulationFixtures.transitionAutoOffsetsMs;
 const transitionState = { index: 0, beat: 0, reps: 0, stable: 0, running: false, timer: null, bpm: 60, score: 0, scores: [], feedback: "点击开始后，第 4 拍会自动记录一次换指尝试。" };
-const followScorePattern = [86, 74, 92, 68, 88, 95, 79, 91];
+const followScorePattern = practiceSimulationFixtures.followScorePattern;
 const followState = { chordIndex: 0, beat: 0, bars: 0, stable: 0, running: false, timer: null, score: 0, scores: [], feedback: "点击开始后，每 4 拍进入下一和弦。" };
-const melodyHitPattern = [92, 86, 78, 95, 72, 88, 81, 96];
+const melodyHitPattern = practiceSimulationFixtures.melodyHitPattern;
 const melodyState = { index: 0, rounds: 0, hits: 0, running: false, timer: null, bpm: 70, scores: [], feedback: "点击开始后，按提示弦和品位逐拍练单音。" };
 const melodyPhrases = {
   C: [
