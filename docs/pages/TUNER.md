@@ -304,3 +304,24 @@ Invoke-WebRequest -Uri http://localhost:8082/preview.html -UseBasicParsing -Time
 节拍器页开工前新增：
 
 - `docs/pages/METRONOME.md`
+
+## 12. AudioEngine 预研结论
+
+当前不直接重写 Native/JSI AudioEngine。
+
+短期路线：
+
+- 优先真机验证 `expo-audio` 的 `useAudioStream` 实时 PCM。
+- 继续复用 `useRealtimeTunerStream.ts` -> `audio-core.detectPitch` -> `createDetectedTunerFrame` 管线。
+- UI 继续显示“权限 / 电平 / PitchFrame”三段状态。
+- 保留模拟帧兜底，避免无真机时阻塞页面开发。
+
+Native/JSI 进入条件：
+
+- `useAudioStream` 无法稳定获得 PCM。
+- 延迟或卡顿无法满足调音反馈。
+- 后续和弦识别或更复杂评分需要更低层实时处理。
+
+详细方案见：
+
+- `docs/AUDIO_ENGINE_PLAN.md`

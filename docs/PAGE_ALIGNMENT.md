@@ -19,7 +19,7 @@
 | --- | --- | --- | --- | --- |
 | 首页 Home | 已完成 | 已同步 | 部分共享 | 已对齐 |
 | 练习入口 Practice Hub | 已完成 | 已同步 | 部分共享 | 已对齐 |
-| 智能调音器 Tuner | 浏览器 PoC 已完成 | 权限、电平、模拟录音管线已完成 | tuner frame 已共享 | 部分对齐 |
+| 智能调音器 Tuner | 浏览器 PoC 已完成 | 权限、电平、实时 PCM 尝试与模拟兜底已完成 | tuner frame 已共享 | 部分对齐 |
 | 节拍器 Metronome | 已完成 | 基础节拍器已同步 | BPM/节奏模板部分共享 | 已对齐 |
 | 和弦库 Chord Library | 常用和弦大全已完成 | 分类、搜索、紧凑指法图网格已同步 | 和弦库已共享 | 已对齐 |
 | 节奏型练习 Rhythm Practice | 多节奏型与自动评分模拟已完成 | 节拍声、评分记录已同步 | 模板与评分已共享 | 已对齐 |
@@ -35,14 +35,14 @@
 
 ### 1. 调音器真实拾音仍是长期差距
 
-Preview 浏览器 PoC 已有真实麦克风、噪声门限、拨弦触发、PitchFrame 状态。  
-Expo App 当前以权限、录音电平和模拟监控管线为主，真实 PCM pitch detection 需要 Native/JSI 或可用音频流方案。
+Preview 浏览器 PoC 已有真实麦克风、噪声门限、拨弦触发、PitchFrame 状态。
+Expo App 当前已接入 `expo-audio useAudioStream` 的实时 PCM 尝试，并保留录音电平和模拟兜底。
 
 建议下一步：
 
 - UI 层继续保持三段状态：权限 / 电平 / PitchFrame。
-- 暂不强行在 Expo JS 里实现真实 PCM。
-- 后续单独开 Native AudioEngine 任务。
+- 先做真机 development build 验证 `useAudioStream` 稳定性。
+- 只有当 Expo Audio 流无法满足延迟或兼容性时，再进入 Native/JSI AudioEngine。
 
 ### 2. Shared 常量还可继续沉淀
 
@@ -51,7 +51,7 @@ Expo App 当前以权限、录音电平和模拟监控管线为主，真实 PCM 
 
 ## 推荐继续开发顺序
 
-1. 调音器 Native AudioEngine 技术预研。
+1. 调音器真机实时 PCM 验证与调试指标显示。
 2. 继续把 Preview 内仍未共享的常量沉淀到 `packages/shared`。
 
 ## 每轮收尾检查

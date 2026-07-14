@@ -112,7 +112,10 @@ export function useRealtimeTunerStream(
 }
 
 function audioStreamBufferToFloat32(buffer: AudioStreamBuffer) {
-  const source = new Float32Array(buffer.data);
+  const encoding = (buffer as AudioStreamBuffer & { encoding?: string }).encoding;
+  const source = encoding === "int16"
+    ? int16PcmToFloat32(buffer.data)
+    : new Float32Array(buffer.data);
   if (buffer.channels <= 1) {
     return source;
   }
@@ -122,4 +125,13 @@ function audioStreamBufferToFloat32(buffer: AudioStreamBuffer) {
     mono[i] = source[i * buffer.channels];
   }
   return mono;
+}
+
+function int16PcmToFloat32(data: ArrayBuffer) {
+  const input = new Int16Array(data);
+  const output = new Float32Array(input.length);
+  for (let index = 0; index < input.length; index += 1) {
+    output[index] = Math.max(-1, Math.min(1, input[index] / 32768));
+  }
+  return output;
 }
