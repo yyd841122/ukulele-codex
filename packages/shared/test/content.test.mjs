@@ -49,6 +49,7 @@ import {
   practiceHubDisplayConfig,
   practiceRecordVersion,
   practiceTempoPresets,
+  profileDisplayConfig,
   summarizePracticeHistory,
   summarizeMvpPracticePath,
   summarizePracticeRecord,
@@ -152,6 +153,18 @@ test("course detail display config defines actions resources and step states", (
   assert.equal(courseDetailDisplayConfig.actions.enterCoursePractice, "进入本课练习");
   assert.equal(courseDetailDisplayConfig.segmentStatusLabels.current, "当前步骤");
   assert.equal(mvpPracticeContent.courseDetail, courseDetailDisplayConfig);
+});
+
+test("profile display config defines local record labels", () => {
+  assert.equal(profileDisplayConfig.title, "我的练习");
+  assert.equal(profileDisplayConfig.coursePanel.title, "第一课路径");
+  assert.deepEqual(
+    profileDisplayConfig.achievements.badges.map((badge) => badge.id),
+    ["streak", "rhythm", "firstFollow", "songLibrary"]
+  );
+  assert.equal(profileDisplayConfig.recent.clearLabel, "清空");
+  assert.equal(profileDisplayConfig.recent.emptyText, "完成一次练琴后，这里会出现最近记录。");
+  assert.equal(mvpPracticeContent.profile, profileDisplayConfig);
 });
 
 test("MVP practice template can be queried by id", () => {

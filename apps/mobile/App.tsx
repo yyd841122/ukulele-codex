@@ -34,6 +34,7 @@ import {
   practiceHubDisplayConfig as sharedPracticeHubDisplayConfig,
   practiceLoopModes as sharedPracticeLoopModes,
   practiceTempoPresets as sharedPracticeTempoPresets,
+  profileDisplayConfig as sharedProfileDisplayConfig,
   songDetailDisplayConfig as sharedSongDetailDisplayConfig,
   tunerDisplayConfig as sharedTunerDisplayConfig,
   ukuleleInstrument
@@ -119,6 +120,7 @@ const tunerStatusStageById = Object.fromEntries(
 const songDetailDisplayConfig = sharedSongDetailDisplayConfig;
 const practiceHubDisplayConfig = sharedPracticeHubDisplayConfig;
 const courseDetailDisplayConfig = sharedCourseDetailDisplayConfig;
+const profileDisplayConfig = sharedProfileDisplayConfig;
 const practiceLoopModes = sharedPracticeLoopModes.map((mode) => ({
   ...mode,
   id: mode.id as PracticeLoopMode,
@@ -2752,35 +2754,39 @@ function ProfileScreen({
     ? 0
     : Math.round(coursePath.reduce((sum, item) => sum + Math.min(item.progress, 100), 0) / coursePath.length);
   const currentCourse = coursePath.find((item) => item.status === "current") ?? coursePath.find((item) => item.status !== "done") ?? coursePath[coursePath.length - 1];
+  const profileCopy = profileDisplayConfig;
   const badges = [
-    { label: "连续练习", value: `${practiceHistorySummary.currentStreakDays} 天`, active: practiceHistorySummary.currentStreakDays > 0 },
-    { label: "节奏记录", value: latestPracticeSummary?.rhythmLabel ?? "--", active: Boolean(latestPracticeSummary) },
-    { label: "首段跟弹", value: practiceHistorySummary.totalSessions > 0 ? "已记录" : "未开始", active: practiceHistorySummary.totalSessions > 0 },
-    { label: "歌曲库", value: `${practiceContent.songs.length} 首`, active: true }
+    { label: profileCopy.achievements.badges[0].label, value: `${practiceHistorySummary.currentStreakDays} 天`, active: practiceHistorySummary.currentStreakDays > 0 },
+    { label: profileCopy.achievements.badges[1].label, value: latestPracticeSummary?.rhythmLabel ?? "--", active: Boolean(latestPracticeSummary) },
+    { label: profileCopy.achievements.badges[2].label, value: practiceHistorySummary.totalSessions > 0 ? "已记录" : "未开始", active: practiceHistorySummary.totalSessions > 0 },
+    { label: profileCopy.achievements.badges[3].label, value: `${practiceContent.songs.length} 首`, active: true }
   ];
 
   return (
     <View style={styles.stack}>
-      <SectionTitle title="我的练习" detail="本地档案 · MVP" />
+      <SectionTitle title={profileCopy.title} detail={profileCopy.detail} />
       <View style={styles.profileHero}>
-        <Text style={styles.profileHeroTitle}>P0 入门阶段</Text>
+        <Text style={styles.profileHeroTitle}>{profileCopy.hero.title}</Text>
         <Text style={styles.profileHeroCopy}>
-          当前重点是调准音、稳定节奏、完成四和弦循环，再进入歌曲片段。
+          {profileCopy.hero.copy}
         </Text>
         <View style={styles.reportGrid}>
-          <ScoreBox label="练习" value={`${practiceHistorySummary.totalSessions}`} />
-          <ScoreBox label="时长" value={formatPracticeDuration(practiceHistorySummary.totalDurationSec)} />
-          <ScoreBox label="天数" value={`${practiceHistorySummary.practiceDays}`} />
-          <ScoreBox label="连续" value={`${practiceHistorySummary.currentStreakDays}`} />
+          <ScoreBox label={profileCopy.summaryMetrics.sessions} value={`${practiceHistorySummary.totalSessions}`} />
+          <ScoreBox label={profileCopy.summaryMetrics.duration} value={formatPracticeDuration(practiceHistorySummary.totalDurationSec)} />
+          <ScoreBox label={profileCopy.summaryMetrics.days} value={`${practiceHistorySummary.practiceDays}`} />
+          <ScoreBox label={profileCopy.summaryMetrics.streak} value={`${practiceHistorySummary.currentStreakDays}`} />
         </View>
       </View>
 
       <View style={styles.profileCoursePanel}>
         <View style={styles.profilePanelHead}>
           <View style={styles.profilePanelCopy}>
-            <Text style={styles.profilePanelTitle}>第一课路径</Text>
+            <Text style={styles.profilePanelTitle}>{profileCopy.coursePanel.title}</Text>
             <Text style={styles.profilePanelMeta}>
-              {courseDoneCount}/{coursePath.length} 个必修节点完成 · 当前 {currentCourse?.title ?? "待开始"}
+              {profileCopy.coursePanel.metaTemplate
+                .replace("{done}", String(courseDoneCount))
+                .replace("{total}", String(coursePath.length))
+                .replace("{current}", currentCourse?.title ?? profileCopy.coursePanel.fallbackCurrent)}
             </Text>
           </View>
           <Text style={styles.profileProgressBadge}>{courseProgress}%</Text>
@@ -2803,14 +2809,14 @@ function ProfileScreen({
       </View>
 
       <View style={styles.profileScoreGrid}>
-        <ProfileMetric label="最近节奏" value={latestPracticeSummary?.rhythmLabel ?? "--"} />
-        <ProfileMetric label="最高节奏" value={bestRhythmScore == null ? "--" : `${bestRhythmScore}`} />
-        <ProfileMetric label="练习次数" value={`${practiceHistorySummary.totalSessions}`} />
+        <ProfileMetric label={profileCopy.scoreMetrics.latestRhythm} value={latestPracticeSummary?.rhythmLabel ?? "--"} />
+        <ProfileMetric label={profileCopy.scoreMetrics.bestRhythm} value={bestRhythmScore == null ? "--" : `${bestRhythmScore}`} />
+        <ProfileMetric label={profileCopy.scoreMetrics.practiceCount} value={`${practiceHistorySummary.totalSessions}`} />
       </View>
 
       <Pressable accessibilityRole="button" onPress={onOpenLearn} style={styles.profileAdviceCard}>
         <View style={styles.profilePanelCopy}>
-          <Text style={styles.profilePanelTitle}>下一步建议</Text>
+          <Text style={styles.profilePanelTitle}>{profileCopy.advice.title}</Text>
           <Text style={styles.profilePanelMeta}>
             {nextPracticeRecommendation.title} · {nextPracticeRecommendation.bpm} BPM · {localizeRecommendationReason(nextPracticeRecommendation)}
           </Text>
@@ -2818,7 +2824,7 @@ function ProfileScreen({
         <Text style={styles.profileAdviceArrow}>›</Text>
       </Pressable>
 
-      <SectionTitle title="成就" detail="本地模拟徽章" />
+      <SectionTitle title={profileCopy.achievements.title} detail={profileCopy.achievements.detail} />
       <View style={styles.badgeGrid}>
         {badges.map((badge) => (
           <View key={badge.label} style={[styles.badgeCard, !badge.active && styles.badgeCardLocked]}>
@@ -2829,26 +2835,26 @@ function ProfileScreen({
         ))}
       </View>
 
-      <SectionTitle title="练习路径" detail="节奏 · 换和弦 · 歌曲片段" />
+      <SectionTitle title={profileCopy.practicePath.title} detail={profileCopy.practicePath.detail} />
       <View style={styles.reviewReportPanel}>
         <PracticePathSummaryList items={practicePathSummary} />
       </View>
 
-      <SectionTitle title="最近练习" detail={latestPracticeSummary ? latestPracticeSummary.title : "还没有记录"} />
+      <SectionTitle title={profileCopy.recent.title} detail={latestPracticeSummary ? latestPracticeSummary.title : profileCopy.recent.emptyDetail} />
       <View style={styles.practiceSession}>
         <View style={styles.practiceHistoryHeader}>
-          <Text style={styles.historyTitle}>本地记录</Text>
+          <Text style={styles.historyTitle}>{profileCopy.recent.historyTitle}</Text>
           <Pressable
             accessibilityRole="button"
             disabled={recentPracticeSummaries.length === 0}
             onPress={onClearHistory}
             style={[styles.clearHistoryButton, recentPracticeSummaries.length === 0 && styles.clearHistoryButtonDisabled]}
           >
-            <Text style={[styles.clearHistoryText, recentPracticeSummaries.length === 0 && styles.clearHistoryTextDisabled]}>清空</Text>
+            <Text style={[styles.clearHistoryText, recentPracticeSummaries.length === 0 && styles.clearHistoryTextDisabled]}>{profileCopy.recent.clearLabel}</Text>
           </Pressable>
         </View>
         {recentPracticeSummaries.length === 0 ? (
-          <Text style={styles.historyEmpty}>完成一次练琴后，这里会出现最近记录。</Text>
+          <Text style={styles.historyEmpty}>{profileCopy.recent.emptyText}</Text>
         ) : (
           <View style={styles.historyList}>
             {recentPracticeSummaries.map((summary, index) => (

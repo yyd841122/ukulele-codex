@@ -296,6 +296,57 @@ export const courseDetailDisplayConfig = {
   }
 };
 
+export const profileDisplayConfig = {
+  title: "我的练习",
+  detail: "本地档案 · MVP",
+  hero: {
+    title: "P0 入门阶段",
+    copy: "当前重点是调准音、稳定节奏、完成四和弦循环，再进入歌曲片段。"
+  },
+  summaryMetrics: {
+    sessions: "练习",
+    duration: "时长",
+    days: "天数",
+    streak: "连续"
+  },
+  coursePanel: {
+    title: "第一课路径",
+    metaTemplate: "{done}/{total} 个必修节点完成 · 当前 {current}",
+    fallbackCurrent: "待开始"
+  },
+  scoreMetrics: {
+    latestRhythm: "最近节奏",
+    bestRhythm: "最高节奏",
+    practiceCount: "练习次数"
+  },
+  advice: {
+    title: "下一步建议",
+    completed: "第一课路径已完成，可以去曲谱库挑一首歌继续跟弹。"
+  },
+  achievements: {
+    title: "成就",
+    detail: "本地模拟徽章",
+    badges: [
+      { id: "streak", label: "连续练习" },
+      { id: "rhythm", label: "节奏记录" },
+      { id: "firstFollow", label: "首段跟弹" },
+      { id: "songLibrary", label: "歌曲库" }
+    ]
+  },
+  practicePath: {
+    title: "练习路径",
+    detail: "节奏 · 换和弦 · 歌曲片段"
+  },
+  recent: {
+    title: "最近练习",
+    emptyDetail: "还没有记录",
+    historyTitle: "本地记录",
+    clearLabel: "清空",
+    emptyText: "完成一次练琴后，这里会出现最近记录。",
+    clearedToast: "最近练习已清空"
+  }
+};
+
 export const getSongChordNames = (song) =>
   song?.chordNames ?? song?.chords ?? ["C", "Am", "F", "G7"];
 
@@ -1409,6 +1460,7 @@ export const mvpPracticeContent = {
   },
   practiceHub: practiceHubDisplayConfig,
   courseDetail: courseDetailDisplayConfig,
+  profile: profileDisplayConfig,
   courses: mvpCourseCatalog,
   rhythmPatterns: beginnerRhythmPatterns,
   chordTransitions: chordTransitionExercises,

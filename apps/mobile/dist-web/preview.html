@@ -2622,8 +2622,8 @@
         <div class="me-score-grid" id="meScores"></div>
         <button class="me-advice-card card clickable" id="meAdvice" data-tab-go="learn"></button>
         <div class="calendar card"><div class="calendar-head"><b>打卡日历</b><span>本月 21 天</span></div><div class="cal-grid" id="calendar"></div></div>
-        <div class="achievements"><div class="section-title" style="margin-left:0;margin-right:0"><h2>成就墙</h2><span id="badgeCount">7/18</span></div><div class="achievement-row" id="badges"></div></div>
-        <div class="achievements" id="recentSessionsWrap"><div class="section-title" style="margin-left:0;margin-right:0"><h2>最近练习</h2><button class="filter tiny" id="clearSessions">清空</button></div><div class="segment-list" id="recentSessions"></div></div>
+        <div class="achievements"><div class="section-title" style="margin-left:0;margin-right:0"><h2 id="achievementTitle">成就墙</h2><span id="badgeCount">7/18</span></div><div class="achievement-row" id="badges"></div></div>
+        <div class="achievements" id="recentSessionsWrap"><div class="section-title" style="margin-left:0;margin-right:0"><h2 id="recentSessionsTitle">最近练习</h2><button class="filter tiny" id="clearSessions">清空</button></div><div class="segment-list" id="recentSessions"></div></div>
       </section>
     </main>
 
@@ -2999,6 +2999,56 @@ const courseDetailDisplayConfig = {
     viewSteps: "查看课程步骤",
     previewFollowupPrefix: "进入跟进",
     followupFallback: "进入跟进练习"
+  }
+};
+const profileDisplayConfig = {
+  title: "我的练习",
+  detail: "本地档案 · MVP",
+  hero: {
+    title: "P0 入门阶段",
+    copy: "当前重点是调准音、稳定节奏、完成四和弦循环，再进入歌曲片段。"
+  },
+  summaryMetrics: {
+    sessions: "练习",
+    duration: "时长",
+    days: "天数",
+    streak: "连续"
+  },
+  coursePanel: {
+    title: "第一课路径",
+    metaTemplate: "{done}/{total} 个必修节点完成 · 当前 {current}",
+    fallbackCurrent: "待开始"
+  },
+  scoreMetrics: {
+    latestRhythm: "最近节奏",
+    bestRhythm: "最高节奏",
+    practiceCount: "练习次数"
+  },
+  advice: {
+    title: "下一步建议",
+    completed: "第一课路径已完成，可以去曲谱库挑一首歌继续跟弹。"
+  },
+  achievements: {
+    title: "成就",
+    detail: "本地模拟徽章",
+    badges: [
+      { id: "streak", label: "连续练习" },
+      { id: "rhythm", label: "节奏记录" },
+      { id: "firstFollow", label: "首段跟弹" },
+      { id: "songLibrary", label: "歌曲库" }
+    ]
+  },
+  practicePath: {
+    title: "练习路径",
+    detail: "节奏 · 换和弦 · 歌曲片段"
+  },
+  recent: {
+    title: "最近练习",
+    emptyDetail: "还没有记录",
+    historyTitle: "本地记录",
+    clearLabel: "清空",
+    emptyText: "完成一次练琴后，这里会出现最近记录。",
+    clearedToast: "最近练习已清空"
   }
 };
 const courseCatalog = [
@@ -4185,7 +4235,7 @@ function setupEnhancedPreview() {
   }
   const mePage = $("#page-me");
   if (mePage && !$("#recentSessions")) {
-    mePage.insertAdjacentHTML("beforeend", `<div class="achievements" id="recentSessionsWrap"><div class="section-title" style="margin-left:0;margin-right:0"><h2>最近练习</h2><span>本地记录</span></div><div class="segment-list" id="recentSessions"></div></div>`);
+    mePage.insertAdjacentHTML("beforeend", `<div class="achievements" id="recentSessionsWrap"><div class="section-title" style="margin-left:0;margin-right:0"><h2 id="recentSessionsTitle">${profileDisplayConfig.recent.title}</h2><span>${profileDisplayConfig.recent.historyTitle}</span></div><div class="segment-list" id="recentSessions"></div></div>`);
   }
   setupExtraSheets();
   if (!window.__practiceSheetsEnhanced) {
@@ -4758,9 +4808,16 @@ function renderSongs() {
   $all("[data-song-filter]").forEach(node => node.classList.toggle("active", node.dataset.songFilter === activeSongFilter));
 }
 function renderMe() {
+  const copy = profileDisplayConfig;
+  const achievementTitle = $("#achievementTitle");
+  if (achievementTitle) achievementTitle.textContent = copy.achievements.title;
+  const recentSessionsTitle = $("#recentSessionsTitle");
+  if (recentSessionsTitle) recentSessionsTitle.textContent = copy.recent.title;
+  const clearSessionsButton = $("#clearSessions");
+  if (clearSessionsButton) clearSessionsButton.textContent = copy.recent.clearLabel;
   const stats = document.querySelector("#page-me .stat-grid");
   if (stats) {
-    stats.innerHTML = `<div class="stat card"><div class="n">${appState.streak}</div><div class="l">连续天数</div></div><div class="stat card"><div class="n">${appState.todayMinutes}</div><div class="l">练习分钟</div></div><div class="stat card"><div class="n">${appState.masteredChords}</div><div class="l">掌握和弦</div></div>`;
+    stats.innerHTML = `<div class="stat card"><div class="n">${appState.streak}</div><div class="l">${copy.summaryMetrics.streak}天数</div></div><div class="stat card"><div class="n">${appState.todayMinutes}</div><div class="l">${copy.summaryMetrics.duration}分钟</div></div><div class="stat card"><div class="n">${appState.masteredChords}</div><div class="l">掌握和弦</div></div>`;
   }
   const sessions = appState.sessions.map(normalizeSession);
   const scores = sessions.map(item => Number(item.score || 0)).filter(Boolean);
@@ -4771,8 +4828,12 @@ function renderMe() {
   const currentCourse = nextRequiredCourse();
   const progressCard = $("#meProgress");
   if (progressCard) {
+    const currentLabel = currentCourse ? `第 ${currentCourse.order} 课` : copy.coursePanel.fallbackCurrent;
     progressCard.innerHTML = `<div class="me-progress-head">
-      <span><b>第一课路径</b><small>${doneCount}/${required.length} 个必修节点完成 · 当前第 ${currentCourse.order} 课</small></span>
+      <span><b>${copy.coursePanel.title}</b><small>${copy.coursePanel.metaTemplate
+        .replace("{done}", String(doneCount))
+        .replace("{total}", String(required.length))
+        .replace("{current}", currentLabel)}</small></span>
       <span class="me-progress-pill">${totalProgress}%</span>
     </div>
     <div class="mini-progress" style="width:100%;margin-top:12px"><i style="width:${totalProgress}%"></i></div>
@@ -4784,18 +4845,18 @@ function renderMe() {
   const scoreGrid = $("#meScores");
   if (scoreGrid) {
     scoreGrid.innerHTML = [
-      ["最近得分", appState.lastScore || "--"],
-      ["最高分", bestScore || "--"],
-      ["练习次数", sessions.length]
+      [copy.scoreMetrics.latestRhythm, appState.lastScore || "--"],
+      [copy.scoreMetrics.bestRhythm, bestScore || "--"],
+      [copy.scoreMetrics.practiceCount, sessions.length]
     ].map(([label, value]) => `<div class="me-score-card"><b>${value}</b><span>${label}</span></div>`).join("");
   }
   const advice = $("#meAdvice");
   if (advice) {
     const recommendation = createPreviewNextPracticeRecommendation();
     const adviceText = totalProgress >= 100
-      ? "第一课路径已完成，可以去曲谱库挑一首歌继续跟弹。"
+      ? copy.advice.completed
       : `${recommendation.title} · ${recommendation.bpm} BPM · ${recommendation.reason}`;
-    advice.innerHTML = `<span><b>下一步建议</b><small>${adviceText}</small></span><span class="me-advice-arrow">›</span>`;
+    advice.innerHTML = `<span><b>${copy.advice.title}</b><small>${adviceText}</small></span><span class="me-advice-arrow">›</span>`;
   }
   const pattern = [1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,0,1,1,0,1];
   $("#calendar").innerHTML = pattern.map((on, i) => `<span class="cal-day ${on ? "on" : ""} ${i === 26 ? "today" : ""}">${i + 1}</span>`).join("");
@@ -4809,7 +4870,7 @@ function renderMe() {
   if (recent) {
     recent.innerHTML = sessions.map((item, index) => {
       return `<div class="segment-item"><span class="segment-index">${index + 1}</span><b>${item.type} · ${item.title}</b><small>${item.contentLabel} · ${item.completedCount}/${item.totalSteps} · ${item.at} · ${item.minutes} 分钟 · ${item.score} 分</small></div>`;
-    }).join("") || `<div class="empty-state">完成一次练习后，这里会出现本地记录。</div>`;
+    }).join("") || `<div class="empty-state">${copy.recent.emptyText}</div>`;
   }
 }
 function openCourse(order) {
@@ -4958,7 +5019,7 @@ function bindEnhancedPreview() {
       saveAppState();
       renderMe();
       renderHome();
-      toast("最近练习已清空");
+      toast(profileDisplayConfig.recent.clearedToast);
     }
     if (course) openCourse(course.dataset.course);
     if (practiceTemplate) openPracticeTemplate(practiceTemplate.dataset.practiceTemplate);
